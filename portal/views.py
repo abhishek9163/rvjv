@@ -4797,7 +4797,10 @@ def deployment_view(request):
             vehicles_by_cat['All'].append(a_item)
             vehicles_by_cat[target_cat].append(a_item)
         
-    # Fetch drivers categorized for fast dropdowns
+    # Fetch drivers categorized for fast dropdowns - STRICT DRIVER / OPERATOR ONLY
+    driver_keywords = ['driver', 'operator', 'hvd', 'lvd', 'scania', 'dumper', 'tipper', 'grader', 'excavator', 'compactor', 'roller', 'crane', 'transit mixer', 'tm driver', 'pilot']
+    exclude_keywords = ['mason', 'helper', 'security', 'welder', 'carpenter', 'cook', 'plumber', 'electrician', 'survey', 'cleaner', 'supervisor', 'staff', 'clerk', 'barman', 'guard', 'manager']
+
     drivers_by_cat = {
         'All': [],
         'Scania': [],
@@ -4811,18 +4814,36 @@ def deployment_view(request):
         clean_name = (e.name or '').strip()
         if not clean_name:
             continue
-        seen_drivers.add(clean_name.lower())
+
+        # Check duplicate
+        clean_key = clean_name.lower()
+        if clean_key in seen_drivers:
+            continue
+
+        desig_lower = (e.designation or '').lower()
+        dept_lower = (e.department or '').lower()
+        full_text = f"{desig_lower} {dept_lower}"
+
+        # Strict driver check
+        is_driver = any(k in full_text for k in driver_keywords)
+        if any(ex in desig_lower for ex in exclude_keywords) and not ('driver' in desig_lower or 'operator' in desig_lower):
+            is_driver = False
+
+        if not is_driver:
+            continue
+
+        seen_drivers.add(clean_key)
+
         cat = 'Other'
-        dept_lower = (e.department or '').lower() + ' ' + (e.designation or '').lower()
-        if 'scania' in dept_lower or 'dumper' in dept_lower or 'tipper' in dept_lower:
+        if 'scania' in full_text or 'dumper' in full_text or 'tipper' in full_text:
             cat = 'Scania'
-        elif 'excavator' in dept_lower:
+        elif 'excavator' in full_text:
             cat = 'Excavator'
-        elif 'grader' in dept_lower:
+        elif 'grader' in full_text:
             cat = 'Grader'
-        elif 'compactor' in dept_lower or 'roller' in dept_lower:
+        elif 'compactor' in full_text or 'roller' in full_text:
             cat = 'Compactor'
-            
+
         target_cat = cat if cat in drivers_by_cat else 'Other'
         d_item = {
             'id': e.id,
@@ -4835,7 +4856,7 @@ def deployment_view(request):
         drivers_by_cat['All'].append(d_item)
         drivers_by_cat[target_cat].append(d_item)
 
-    # Also include any drivers from past DailyVehicleAllocation
+    # Also include any drivers from past DailyVehicleAllocation (if not already seen)
     for a in DailyVehicleAllocation.objects.values('driver_name', 'driver_emp_id', 'driver_contact', 'category').distinct():
         d_name = (a.get('driver_name') or '').strip()
         if d_name and d_name != 'Unassigned' and d_name.lower() not in seen_drivers:
