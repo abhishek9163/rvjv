@@ -753,6 +753,12 @@
                         {% if user.is_superuser %}
                         <a href="/admin/" target="_blank" class="btn btn-outline" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700;">Admin</a>
                         {% endif %}
+                        {% if expiring_docs_count %}
+                        <a href="/documents/alerts/" class="btn" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #dc2626; font-weight: 700; padding: 0.35rem 0.8rem; font-size: 0.82rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;" title="{{ expiring_docs_count }} documents (RC/Insurance/Permits) expired or expiring within 30 days!">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>{{ expiring_docs_count }} Doc Alert{{ expiring_docs_count|pluralize }}</span>
+                        </a>
+                        {% endif %}
                         <a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700;">Logout</a>
                     </div>
                 </div>
@@ -891,8 +897,13 @@
                     {% endif %}
                     {% if 'document_expiries' in user_modules %}
                     <div class="fs-item" onclick="window.location.href='/documents/alerts/'">
-                        <div class="fs-icon fs-red"><i class="fas fa-triangle-exclamation"></i></div><span
-                            class="fs-text">Doc Expiries</span>
+                        <div class="fs-icon fs-red"><i class="fas fa-triangle-exclamation"></i></div>
+                        <span class="fs-text" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 6px;">
+                            Doc Expiries
+                            {% if expiring_docs_count %}
+                            <span style="background: #ef4444; color: white; border-radius: 10px; padding: 1px 6px; font-size: 0.7rem; font-weight: 700;">{{ expiring_docs_count }}</span>
+                            {% endif %}
+                        </span>
                     </div>
                     {% endif %}
                     <a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}" class="fs-item" title="Logout Account">

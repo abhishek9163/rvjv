@@ -67,8 +67,8 @@ class Command(BaseCommand):
             f'  - ContractorWorkerPPE: {ContractorWorkerPPE.objects.count()}\n'
         ))
 
-    def import_labour(self, excel_dir):
-        path = os.path.join(excel_dir, 'Labour man power List.xlsx')
+    def import_labour(self, excel_dir, specific_file=None):
+        path = specific_file or os.path.join(excel_dir, 'Labour man power List.xlsx')
         if not os.path.exists(path):
             self.stdout.write(self.style.WARNING(f'File not found: {path}'))
             return
@@ -114,8 +114,8 @@ class Command(BaseCommand):
             LabourRecord.objects.bulk_create(objects, batch_size=500)
         self.stdout.write(self.style.SUCCESS(f'  -> Imported {len(objects)} Labour records.'))
 
-    def import_rvjv(self, excel_dir):
-        path = os.path.join(excel_dir, 'Man power of rvjv.xlsx')
+    def import_rvjv(self, excel_dir, specific_file=None):
+        path = specific_file or os.path.join(excel_dir, 'Man power of rvjv.xlsx')
         if not os.path.exists(path):
             self.stdout.write(self.style.WARNING(f'File not found: {path}'))
             return
@@ -169,7 +169,7 @@ class Command(BaseCommand):
             RVJVEmployee.objects.bulk_create(objects, batch_size=500)
         self.stdout.write(self.style.SUCCESS(f'  -> Imported {len(objects)} RVJV employees.'))
 
-    def import_hiring(self, excel_dir):
+    def import_hiring(self, excel_dir, specific_file=None):
         path = os.path.join(excel_dir, 'Hiring Man power List.xlsx')
         if not os.path.exists(path):
             self.stdout.write(self.style.WARNING(f'File not found: {path}'))
@@ -224,8 +224,8 @@ class Command(BaseCommand):
             HiredOperator.objects.bulk_create(objects, batch_size=500)
         self.stdout.write(self.style.SUCCESS(f'  -> Imported {len(objects)} Hired Operators.'))
 
-    def import_contractor_ppe(self, excel_dir):
-        path = os.path.join(excel_dir, 'HIRINGS.xlsx')
+    def import_contractor_ppe(self, excel_dir, specific_file=None):
+        path = specific_file or os.path.join(excel_dir, 'HIRINGS.xlsx')
         if not os.path.exists(path):
             self.stdout.write(self.style.WARNING(f'File not found: {path}'))
             return

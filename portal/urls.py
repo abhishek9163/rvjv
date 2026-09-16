@@ -15,6 +15,7 @@ urlpatterns = [
     path('search/', views.global_search_view, name='global_search'),
     path('api/search-suggestions/', views.search_suggestions_api, name='search_suggestions_api'),
     path('employee/<int:user_id>/profile/', views.employee_profile_view, name='employee_profile'),
+    path('worker/<int:emp_id>/profile/', views.worker_profile_view, name='worker_profile'),
     path('send-email/', views.send_email_view, name='send_email'),
     path('system-settings/', views.system_settings_view, name='system_settings'),
     path('my-profile/', views.my_profile_view, name='my_profile'),
@@ -263,5 +264,6 @@ urlpatterns = [
     path('safety/api/upload-excel/', views.api_safety_excel_upload, name='api_safety_excel_upload'),
     path('safety/api/employees/search/', views.api_safety_employee_search, name='api_safety_employee_search'),
     path('manpower/', views.manpower_dashboard_view, name='manpower_dashboard'),
+    path('api/manpower/sync/', views.api_sync_manpower_data, name='api_sync_manpower_data'),
 ]
 

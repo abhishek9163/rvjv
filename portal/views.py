@@ -2009,16 +2009,99 @@ def global_search_view(request):
 @login_required
 def employee_profile_view(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
-    
-    # Only allow managers, superusers, or the user themselves to view the profile
     if request.user.system_role != 'MANAGER' and not request.user.is_superuser and request.user.id != target_user.id:
         return redirect('dashboard')
+    
+    # Try finding linked Employee record
+    employee = target_user.employee
+    if not employee and target_user.username:
+        employee = Employee.objects.filter(Q(emp_id=target_user.username) | Q(name__iexact=target_user.full_name)).first()
+    
+    return _render_360_profile(request, employee=employee, user_obj=target_user)
+
+
+@login_required
+def worker_profile_view(request, emp_id):
+    employee = get_object_or_404(Employee, id=emp_id)
+    user_obj = getattr(employee, 'user_accounts', None)
+    if user_obj:
+        user_obj = user_obj.first()
+    return _render_360_profile(request, employee=employee, user_obj=user_obj)
+
+
+def _render_360_profile(request, employee=None, user_obj=None):
+    from portal.models import (
+        SafetyEquipmentIssue, SafetyReplacementAndFine,
+        CampAssetAllotment, CampMovementLog, MessScanLog,
+        EmployeeAttendance, OvertimeRecord, EmployeeDocument,
+        LabourRecord, RVJVEmployee, HiredOperator, ContractorWorkerPPE,
+        DailyVehicleAllocation
+    )
+    from fleet.models import FleetVehicle
+
+    safety_issues = []
+    safety_fines = []
+    camp_asset = None
+    camp_movements = []
+    mess_scans = []
+    attendance_records = []
+    overtime_records = []
+    documents = []
+    manpower_records = {}
+    assigned_vehicle = None
+    recent_allocations = []
+
+    if employee:
+        # Safety PPE and issues
+        safety_issues = SafetyEquipmentIssue.objects.filter(employee=employee).select_related('item').order_by('-issue_date')[:25]
+        safety_fines = SafetyReplacementAndFine.objects.filter(employee=employee).select_related('item').order_by('-created_at')[:25]
         
-    grouped_data = {}
-    return render(request, 'employee_profile.html', {
-        'target_user': target_user,
-        'grouped_data': grouped_data
-    })
+        # Camp Allotments & Gate Movements
+        camp_asset = CampAssetAllotment.objects.filter(employee=employee).select_related('room', 'room__block').first()
+        camp_movements = CampMovementLog.objects.filter(employee=employee).order_by('-timestamp')[:20]
+        
+        # Mess Logs
+        mess_scans = MessScanLog.objects.filter(employee=employee).select_related('mess_location').order_by('-scan_timestamp')[:20]
+        
+        # Attendance & Overtime
+        attendance_records = EmployeeAttendance.objects.filter(employee=employee).order_by('-date')[:30]
+        overtime_records = OvertimeRecord.objects.filter(employee=employee).order_by('-date')[:30]
+        
+        # Documents
+        documents = EmployeeDocument.objects.filter(employee=employee).order_by('-created_at')
+        
+        # Vehicle Assignment & Allocations
+        assigned_vehicle = employee.assigned_vehicle
+        alloc_q = Q(driver=employee)
+        if employee.emp_id:
+            alloc_q |= Q(driver_emp_id=employee.emp_id)
+        if employee.name:
+            alloc_q |= Q(driver_name__iexact=employee.name)
+        recent_allocations = DailyVehicleAllocation.objects.filter(alloc_q).select_related('vehicle').order_by('-date')[:15]
+
+        # Check Manpower tables for cross-reference
+        if employee.emp_id:
+            manpower_records['labour'] = LabourRecord.objects.filter(labour_id=employee.emp_id).first()
+            manpower_records['rvjv'] = RVJVEmployee.objects.filter(emp_id=employee.emp_id).first()
+            manpower_records['hired'] = HiredOperator.objects.filter(operator_id=employee.emp_id).first()
+            manpower_records['contractor'] = ContractorWorkerPPE.objects.filter(worker_id=employee.emp_id).first()
+
+    context = {
+        'employee': employee,
+        'target_user': user_obj,
+        'safety_issues': safety_issues,
+        'safety_fines': safety_fines,
+        'camp_asset': camp_asset,
+        'camp_movements': camp_movements,
+        'mess_scans': mess_scans,
+        'attendance_records': attendance_records,
+        'overtime_records': overtime_records,
+        'documents': documents,
+        'manpower_records': manpower_records,
+        'assigned_vehicle': assigned_vehicle,
+        'recent_allocations': recent_allocations,
+    }
+    return render(request, 'employee_profile.html', context)
 
 
 @login_required
@@ -4670,6 +4753,39 @@ def _sync_allocation_to_deployment(date_val, category):
         dep.road_maint_night = rm_n
         dep.save()
 
+def _get_active_breakdowns():
+    """Returns a dict mapping clean_regn -> breakdown_dict for vehicles currently under repair."""
+    from fleet.models import RepairLog
+    from portal.models import Vehicle
+    import re
+    def _c(s): return re.sub(r'[^A-Za-z0-9]', '', str(s or '')).upper()
+
+    breakdowns = {}
+    for r in RepairLog.objects.filter(out_date__isnull=True).select_related('vehicle'):
+        reg = r.vehicle.regn or r.vehicle.dno
+        cr = _c(reg)
+        if cr:
+            garage_name = (r.extra_data.get('garage_name') if isinstance(r.extra_data, dict) else None) or 'Main Yard Workshop'
+            breakdowns[cr] = {
+                'regn': reg,
+                'complaint': r.complaint or 'Under Repair',
+                'in_date': r.in_date.strftime('%d %b %Y') if r.in_date else 'Recently',
+                'mechanic': r.mechanic or 'Workshop Team',
+                'garage': garage_name
+            }
+    for pv in Vehicle.objects.filter(garage_in_time__isnull=False, garage_out_time__isnull=True):
+        cr = _c(pv.vehicle_no)
+        if cr and cr not in breakdowns:
+            breakdowns[cr] = {
+                'regn': pv.vehicle_no,
+                'complaint': pv.garage_issue or 'In Workshop',
+                'in_date': pv.garage_in_time.strftime('%d %b %Y') if pv.garage_in_time else 'Recently',
+                'mechanic': 'Garage Team',
+                'garage': 'Main Garage'
+            }
+    return breakdowns
+
+
 @login_required
 def deployment_view(request):
     if request.user.system_role != 'MANAGER' and not request.user.is_superuser:
@@ -4719,6 +4835,8 @@ def deployment_view(request):
     machinery_list = DailyDeployment.objects.values_list('machinery', flat=True).distinct().order_by('machinery')
     available_dates = DailyDeployment.objects.values_list('date', flat=True).distinct().order_by('-date')
     
+    active_breakdowns = _get_active_breakdowns()
+
     # Build fast map of Hired vehicles by clean regn
     hired_map = {}
     for h in HiredVehicle.objects.all():
@@ -4748,13 +4866,16 @@ def deployment_view(request):
         target_cat = cat if cat in vehicles_by_cat else 'Other'
         wo = (hired.agreement_ref if hired else '') or v_extra.get('contract_ref', '') or ''
         vendor_name = (hired.owner_name if hired else '') or v_extra.get('owner_name', '') or ''
+        bd = active_breakdowns.get(cr)
         v_item = {
             'id': v.id,
             'regn': v.regn,
             'model': v.model_name or (hired.equipment_type if hired else ''),
             'wo': wo,
             'vendor': vendor_name,
-            'category': target_cat
+            'category': target_cat,
+            'is_breakdown': bool(bd),
+            'breakdown_info': f"{bd['complaint']} (since {bd['in_date']})" if bd else ''
         }
         vehicles_by_cat['All'].append(v_item)
         vehicles_by_cat[target_cat].append(v_item)
@@ -4765,13 +4886,16 @@ def deployment_view(request):
             seen_regns.add(cr)
             cat = _get_machinery_category(h.equipment_type or '')
             target_cat = cat if cat in vehicles_by_cat else 'Other'
+            bd = active_breakdowns.get(cr)
             h_item = {
                 'id': 0,
                 'regn': h.regn,
                 'model': h.equipment_type or '',
                 'wo': h.agreement_ref or '',
                 'vendor': h.owner_name or '',
-                'category': target_cat
+                'category': target_cat,
+                'is_breakdown': bool(bd),
+                'breakdown_info': f"{bd['complaint']} (since {bd['in_date']})" if bd else ''
             }
             vehicles_by_cat['All'].append(h_item)
             vehicles_by_cat[target_cat].append(h_item)
@@ -4786,13 +4910,16 @@ def deployment_view(request):
             seen_regns.add(cr)
             cat = a.get('category') or 'Other'
             target_cat = cat if cat in vehicles_by_cat else 'Other'
+            bd = active_breakdowns.get(cr)
             a_item = {
                 'id': 0,
                 'regn': v_r,
                 'model': cat,
                 'wo': a.get('work_order_no') or '',
                 'vendor': a.get('vendor') or '',
-                'category': target_cat
+                'category': target_cat,
+                'is_breakdown': bool(bd),
+                'breakdown_info': f"{bd['complaint']} (since {bd['in_date']})" if bd else ''
             }
             vehicles_by_cat['All'].append(a_item)
             vehicles_by_cat[target_cat].append(a_item)
@@ -4904,6 +5031,7 @@ def deployment_view(request):
         'is_captain_restricted': is_captain_restricted,
         'user_captain_category': user_captain_cat,
         'restricted_drivers': drivers_by_cat.get(user_captain_cat, []) if is_captain_restricted else [],
+        'active_breakdowns_count': len(active_breakdowns),
     })
 
 @login_required
@@ -4953,6 +5081,15 @@ def api_add_vehicle_allocation(request):
                 return re.sub(r'[^A-Za-z0-9]', '', str(s or '')).upper()
                 
             v_clean = _clean_r(vehicle_regn)
+            active_bds = _get_active_breakdowns()
+            if v_clean and v_clean != 'UNASSIGNED' and v_clean in active_bds:
+                bd = active_bds[v_clean]
+                err_msg = f"🚫 Breakdown Interlock: Vehicle {vehicle_regn} is currently UNDER REPAIR in {bd['garage']} since {bd['in_date']} (Defect: {bd['complaint']}). Deployment is blocked until repair is resolved."
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('deployment')
+
             vehicle_obj = None
             if v_clean and v_clean != 'UNASSIGNED':
                 # If WO or Vendor are empty, try auto-fill before creating/saving
@@ -5086,6 +5223,16 @@ def api_edit_vehicle_allocation(request, alloc_id):
             in_time = (request.POST.get('in_time') or '').strip()
             remarks = (request.POST.get('remarks') or '').strip()
             
+            v_clean = _clean_r(vehicle_regn)
+            active_bds = _get_active_breakdowns()
+            if v_clean and v_clean != 'UNASSIGNED' and v_clean in active_bds:
+                bd = active_bds[v_clean]
+                err_msg = f"🚫 Breakdown Interlock: Vehicle {vehicle_regn} is currently UNDER REPAIR in {bd['garage']} since {bd['in_date']} (Defect: {bd['complaint']}). Deployment is blocked until repair is resolved."
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('deployment')
+
             vehicle_obj = None
             if vehicle_regn and vehicle_regn != 'UNASSIGNED':
                 vehicle_obj = get_or_create_fleet_vehicle(
@@ -5280,8 +5427,12 @@ def api_deployment_vehicle_lookup(request):
         wo_no = (hired.agreement_ref if hired else '') or v_extra.get('contract_ref', '') or (last_alloc.work_order_no if last_alloc else '') or ''
         vendor_name = (hired.owner_name if hired else '') or v_extra.get('owner_name', '') or (last_alloc.vendor if last_alloc else '') or 'In-House (RIGSAR-VAJRA)'
                 
+        active_bds = _get_active_breakdowns()
+        bd = active_bds.get(clean_r)
         return JsonResponse({
             'found': True,
+            'is_breakdown': bool(bd),
+            'breakdown_info': f"{bd['complaint']} (since {bd['in_date']} in {bd['garage']})" if bd else '',
             'id': v.id if v else 0,
             'regn': (v.regn if v else (hired.regn if hired else (last_alloc.vehicle_regn if last_alloc else regn))),
             'model_name': model_name,

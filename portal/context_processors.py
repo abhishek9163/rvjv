@@ -42,9 +42,32 @@ def sidebar_modules(request):
                     user_modules.append('national_workers')
     else:
         user_modules = []
+
+    expiring_docs_count = 0
+    rc_expiring_count = 0
+    ins_expiring_count = 0
+    wp_expiring_count = 0
+
+    if user and user.is_authenticated:
+        try:
+            import datetime
+            today = datetime.date.today()
+            in_30d = today + datetime.timedelta(days=30)
+            from portal.models import VehicleDocument, InsuranceDocument, Employee
+            rc_expiring_count = VehicleDocument.objects.filter(rc_expiry_date__isnull=False, rc_expiry_date__lte=in_30d).count()
+            ins_expiring_count = InsuranceDocument.objects.filter(expiry_date__isnull=False, expiry_date__lte=in_30d).count()
+            wp_expiring_count = Employee.objects.filter(status='Active', work_permit_expiry__isnull=False, work_permit_expiry__lte=in_30d).count()
+            expiring_docs_count = rc_expiring_count + ins_expiring_count + wp_expiring_count
+        except Exception:
+            expiring_docs_count = 0
+
     return {
         'sidebar_sections': [],
         'system_settings': SystemSettings.get_settings(),
         'user_modules': user_modules,
+        'expiring_docs_count': expiring_docs_count,
+        'rc_expiring_count': rc_expiring_count,
+        'ins_expiring_count': ins_expiring_count,
+        'wp_expiring_count': wp_expiring_count,
     }
 

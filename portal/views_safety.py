@@ -2410,3 +2410,95 @@ def manpower_dashboard_view(request):
         'ppe_total': ppe_total, 'ppe_contractors': ppe_contractors,
     }
     return render(request, 'manpower_dashboard.html', context)
+
+
+@login_required
+def api_sync_manpower_data(request):
+    if request.user.system_role != 'MANAGER' and not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized: Only Managers and Admins can trigger data sync.'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST request required.'}, status=405)
+    
+    import os
+    import tempfile
+    from django.conf import settings
+    from django.core.management import call_command
+    from portal.models import LabourRecord, RVJVEmployee, HiredOperator, ContractorWorkerPPE, Employee
+
+    uploaded_file = request.FILES.get('file')
+    sheet_type = request.POST.get('sheet_type', 'all')
+    
+    try:
+        if uploaded_file:
+            suffix = os.path.splitext(uploaded_file.name)[1]
+            if suffix.lower() not in ('.xlsx', '.xls'):
+                return JsonResponse({'status': 'error', 'message': 'Only Excel files (.xlsx, .xls) are supported.'}, status=400)
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                for chunk in uploaded_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+            
+            from portal.management.commands.sync_manpower_data import Command as SyncCmd
+            cmd = SyncCmd()
+            
+            count = 0
+            sheet_name = 'Dataset'
+            if sheet_type == 'labour':
+                cmd.import_labour(os.path.dirname(tmp_path), specific_file=tmp_path)
+                count = LabourRecord.objects.count()
+                sheet_name = 'Labour Register'
+            elif sheet_type == 'rvjv':
+                cmd.import_rvjv(os.path.dirname(tmp_path), specific_file=tmp_path)
+                count = RVJVEmployee.objects.count()
+                sheet_name = 'RVJV Employees'
+            elif sheet_type == 'hired':
+                cmd.import_hiring(os.path.dirname(tmp_path), specific_file=tmp_path)
+                count = HiredOperator.objects.count()
+                sheet_name = 'Hired Operators'
+            elif sheet_type == 'ppe':
+                cmd.import_contractor_ppe(os.path.dirname(tmp_path), specific_file=tmp_path)
+                count = ContractorWorkerPPE.objects.count()
+                sheet_name = 'Contractor PPE'
+            
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+                
+            return JsonResponse({
+                'status': 'success',
+                'message': f'✅ Successfully updated {sheet_name} from "{uploaded_file.name}". Current records: {count:,}',
+                'counts': {
+                    'labour': LabourRecord.objects.count(),
+                    'rvjv': RVJVEmployee.objects.count(),
+                    'hired': HiredOperator.objects.count(),
+                    'ppe': ContractorWorkerPPE.objects.count(),
+                }
+            })
+        else:
+            # 1-Click Server Re-Sync
+            base_dir = settings.BASE_DIR
+            json_file = os.path.join(base_dir, 'manpower_data_export.json')
+            excel_dir = r'C:\Users\adev9\OneDrive\Desktop\safety_office_data'
+            
+            if os.path.exists(json_file):
+                call_command('sync_manpower_data', import_json=True)
+            elif os.path.exists(excel_dir):
+                call_command('sync_manpower_data', excel_dir=excel_dir)
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Neither server Excel directory nor backup JSON found.'}, status=404)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'✅ Full Manpower sync complete! 4 datasets refreshed (Labour: {LabourRecord.objects.count():,}, RVJV: {RVJVEmployee.objects.count():,}, Hired: {HiredOperator.objects.count():,}, PPE: {ContractorWorkerPPE.objects.count():,}).',
+                'counts': {
+                    'labour': LabourRecord.objects.count(),
+                    'rvjv': RVJVEmployee.objects.count(),
+                    'hired': HiredOperator.objects.count(),
+                    'ppe': ContractorWorkerPPE.objects.count(),
+                }
+            })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Sync failed: {str(e)}'}, status=500)

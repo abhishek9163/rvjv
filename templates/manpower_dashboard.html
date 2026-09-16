@@ -98,6 +98,9 @@
         </div>
     </div>
     <div class="mp-header-right">
+        <button type="button" onclick="openSyncModal()" style="background:#10b981;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:opacity .15s;">
+            <i class="fas fa-arrows-rotate"></i> Re-Sync Excel Data
+        </button>
         <a href="{% url 'safety_dashboard_view' %}" class="btn-safety"><i class="fas fa-shield-alt"></i> Safety Dashboard</a>
         <a href="{% url 'dashboard' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Main Dashboard</a>
     </div>
@@ -489,6 +492,191 @@
     </div>
 </div>
 {% endif %}
+
+
+<!-- Re-Sync & Excel Upload Modal -->
+<div id="syncModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#fff; border-radius:16px; width:100%; max-width:540px; box-shadow:0 20px 40px rgba(0,0,0,0.25); overflow:hidden; animation:fadeIn 0.2s ease;">
+        <!-- Modal Header -->
+        <div style="padding:16px 20px; background:linear-gradient(135deg, #0c4a6e, #0891b2); color:#fff; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:800; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-file-excel"></i> Manpower Excel Re-Sync & Upload
+            </div>
+            <button type="button" onclick="closeSyncModal()" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+
+        <div style="padding:20px;">
+            <!-- Option 1: Fast Server Sync -->
+            <div style="border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:16px; background:#f8fafc;">
+                <div style="font-weight:700; font-size:.9rem; color:#0f172a; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-bolt" style="color:#f59e0b;"></i> Fast 1-Click Server Re-Sync
+                </div>
+                <p style="font-size:.8rem; color:#64748b; margin-bottom:10px;">
+                    Re-reads and synchronizes all 4 datasets (Labour, RVJV, Hired, PPE) from server spreadsheets/JSON.
+                </p>
+                <button type="button" id="btnQuickSync" onclick="runServerSync()" style="background:#0891b2; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-arrows-rotate"></i> Run Fast Re-Sync
+                </button>
+            </div>
+
+            <!-- Option 2: Upload Updated File -->
+            <div style="border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; background:#f8fafc;">
+                <div style="font-weight:700; font-size:.9rem; color:#0f172a; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-upload" style="color:#10b981;"></i> Upload Updated Spreadsheet (.xlsx)
+                </div>
+                <p style="font-size:.8rem; color:#64748b; margin-bottom:10px;">
+                    Upload an updated Excel file to refresh a specific register immediately.
+                </p>
+                
+                <div style="margin-bottom:10px;">
+                    <label style="display:block; font-size:.74rem; font-weight:700; color:#64748b; margin-bottom:4px; text-transform:uppercase;">Select Register to Update:</label>
+                    <select id="uploadSheetType" style="width:100%; height:36px; border-radius:8px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:.85rem;">
+                        <option value="labour">🔨 Labour Register (Labour man power List.xlsx)</option>
+                        <option value="rvjv">🏢 RVJV Employees (Man power of rvjv.xlsx)</option>
+                        <option value="hired">🚜 Hired Machine Operators (Hiring man power list.xlsx)</option>
+                        <option value="ppe">🦺 Contractor Worker PPE (HIRINGS.xlsx)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block; font-size:.74rem; font-weight:700; color:#64748b; margin-bottom:4px; text-transform:uppercase;">Select .xlsx File:</label>
+                    <input type="file" id="uploadFileInput" accept=".xlsx,.xls" style="width:100%; font-size:.85rem;">
+                </div>
+
+                <button type="button" id="btnUploadSync" onclick="runFileUploadSync()" style="background:#10b981; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-cloud-arrow-up"></i> Upload & Re-Sync Sheet
+                </button>
+            </div>
+
+            <!-- Progress / Status Box -->
+            <div id="syncStatusBox" style="display:none; margin-top:14px; padding:12px 14px; border-radius:10px; font-size:.85rem;">
+                <span id="syncStatusText"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function openSyncModal() {
+    const modal = document.getElementById('syncModal');
+    if (modal) modal.style.display = 'flex';
+    document.getElementById('syncStatusBox').style.display = 'none';
+}
+
+function closeSyncModal() {
+    const modal = document.getElementById('syncModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function setSyncStatus(type, msg) {
+    const box = document.getElementById('syncStatusBox');
+    const txt = document.getElementById('syncStatusText');
+    box.style.display = 'block';
+    txt.innerHTML = msg;
+    if (type === 'loading') {
+        box.style.background = '#e0f2fe';
+        box.style.color = '#0369a1';
+        box.style.border = '1px solid #7dd3fc';
+    } else if (type === 'success') {
+        box.style.background = '#dcfce7';
+        box.style.color = '#15803d';
+        box.style.border = '1px solid #86efac';
+    } else {
+        box.style.background = '#fee2e2';
+        box.style.color = '#b91c1c';
+        box.style.border = '1px solid #fca5a5';
+    }
+}
+
+function runServerSync() {
+    const btn = document.getElementById('btnQuickSync');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronizing...';
+    setSyncStatus('loading', '⏳ Synchronizing datasets from server storage...');
+
+    fetch('{% url "api_sync_manpower_data" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Run Fast Re-Sync';
+        if (data.status === 'success') {
+            setSyncStatus('success', data.message + ' <br><a href="" style="color:#15803d;font-weight:bold;text-decoration:underline;">Click to reload page</a>');
+            setTimeout(() => { window.location.reload(); }, 2000);
+        } else {
+            setSyncStatus('error', '❌ ' + (data.message || 'Error occurred'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Run Fast Re-Sync';
+        setSyncStatus('error', '❌ Network error during sync: ' + err);
+    });
+}
+
+function runFileUploadSync() {
+    const fileInput = document.getElementById('uploadFileInput');
+    const sheetType = document.getElementById('uploadSheetType').value;
+    const btn = document.getElementById('btnUploadSync');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select an Excel (.xlsx) file first.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sheet_type', sheetType);
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading & Processing...';
+    setSyncStatus('loading', '⏳ Uploading and parsing spreadsheet records...');
+
+    fetch('{% url "api_sync_manpower_data" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Upload & Re-Sync Sheet';
+        if (data.status === 'success') {
+            setSyncStatus('success', data.message + ' <br><a href="" style="color:#15803d;font-weight:bold;text-decoration:underline;">Click to reload page</a>');
+            setTimeout(() => { window.location.reload(); }, 2000);
+        } else {
+            setSyncStatus('error', '❌ ' + (data.message || 'Error occurred'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Upload & Re-Sync Sheet';
+        setSyncStatus('error', '❌ Upload failed: ' + err);
+    });
+}
+</script>
 
 </body>
 </html>

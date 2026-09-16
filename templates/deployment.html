@@ -760,6 +760,11 @@
     </div>
     
     <div class="btn-group-header">
+      {% if active_breakdowns_count %}
+      <a href="{% url 'fleet:breakdown_register' %}" class="btn" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #dc2626; font-weight: 700;" title="Vehicles currently under repair in Fleet Workshop cannot be deployed">
+        <span>🔴</span> {{ active_breakdowns_count }} in Workshop / Repair
+      </a>
+      {% endif %}
       <a href="{% url 'dashboard' %}" class="btn btn-secondary">
         <span>←</span> Back to Dashboard
       </a>
@@ -1309,6 +1314,14 @@
             <input type="text" name="vehicle_regn_custom" id="modalVehicleCustomInput" class="form-control" placeholder="Type new Vehicle Reg No (e.g. BD-01A-1234)..." oninput="onDeployVehicleCustomInput(this.value)">
           </div>
           <input type="hidden" name="vehicle_regn" id="modalVehicleInput" value="">
+          
+          <!-- Breakdown Interlock Warning Box -->
+          <div id="modalBreakdownWarning" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 0.75rem 1rem; margin-top: 0.6rem; color: #dc2626; font-size: 0.86rem; animation: fadeIn 0.2s ease;">
+            <div style="font-weight: 800; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
+              <span>🚫</span> BREAKDOWN INTERLOCK ACTIVE
+            </div>
+            <div id="modalBreakdownText">This vehicle is currently under repair in the workshop.</div>
+          </div>
         </div>
 
         <!-- Work Order No & Vendor / Owner Name (Auto-filled & 100% User Editable) -->
@@ -1687,7 +1700,10 @@
     vList.forEach(v => {
       const isSel = (selectedVal && v.regn && v.regn.toLowerCase() === selectedVal.toLowerCase());
       if (isSel) found = true;
-      html += `<option value="${escapeHtml(v.regn)}" data-regn="${escapeHtml(v.regn)}" data-wo="${escapeHtml(v.wo || '')}" data-vendor="${escapeHtml(v.vendor || '')}" data-model="${escapeHtml(v.model || '')}" ${isSel ? 'selected' : ''}>${escapeHtml(v.regn)} - ${escapeHtml(v.model || 'Equipment')} (${escapeHtml(v.vendor || 'In-House')}${v.wo ? ' • ' + escapeHtml(v.wo) : ''})</option>`;
+      const isBd = !!v.is_breakdown;
+      const bdTag = isBd ? ` 🔴 [UNDER REPAIR: ${escapeHtml(v.breakdown_info || 'Workshop')}]` : '';
+      const optStyle = isBd ? 'style="color: #dc2626; font-weight: bold;"' : '';
+      html += `<option value="${escapeHtml(v.regn)}" data-regn="${escapeHtml(v.regn)}" data-wo="${escapeHtml(v.wo || '')}" data-vendor="${escapeHtml(v.vendor || '')}" data-model="${escapeHtml(v.model || '')}" data-breakdown="${isBd ? '1' : '0'}" data-bdinfo="${escapeHtml(v.breakdown_info || '')}" ${optStyle} ${isSel ? 'selected' : ''}>${isBd ? '⚠️ ' : ''}${escapeHtml(v.regn)} - ${escapeHtml(v.model || 'Equipment')} (${escapeHtml(v.vendor || 'In-House')}${v.wo ? ' • ' + escapeHtml(v.wo) : ''})${bdTag}</option>`;
     });
 
     sel.innerHTML = html;
@@ -1832,6 +1848,9 @@
       const vendor = opt.getAttribute('data-vendor');
       if (wo) document.getElementById('modalWOInput').value = wo;
       if (vendor) document.getElementById('modalVendorInput').value = vendor;
+      checkBreakdownStatus(opt);
+    } else {
+      checkBreakdownStatus(null);
     }
 
     lookupBackendVehicle(val);
@@ -1871,6 +1890,7 @@
     toggleDeploymentDriverMode(false);
 
     document.getElementById('editAllocId').value = '';
+    checkBreakdownStatus(null);
     document.getElementById('modalHeading').innerHTML = '<span>🚜</span> Allocate Vehicle & Driver <span id="modalCatBadge" class="badge badge-cat" style="font-size: 0.8rem; margin-left: 0.5rem;">Scania</span>';
     document.getElementById('btnSaveAnother').style.display = 'inline-flex';
     document.getElementById('modalInTime').value = getCurrentTimeStr();
@@ -1965,12 +1985,48 @@
     populateDriverSelect(cat);
   }
 
-  function lookupBackendVehicle(regnVal) {
+
+  // ================= BREAKDOWN INTERLOCK CHECK =================
+  function checkBreakdownStatus(optOrData) {
+    const warnBox = document.getElementById('modalBreakdownWarning');
+    const warnText = document.getElementById('modalBreakdownText');
+    const saveBtn = document.getElementById('btnSaveClose');
+    const saveAnotherBtn = document.getElementById('btnSaveAnother');
+    if (!warnBox || !warnText) return;
+
+    let isBd = false;
+    let bdInfo = '';
+    if (optOrData && optOrData.getAttribute) {
+      isBd = optOrData.getAttribute('data-breakdown') === '1';
+      bdInfo = optOrData.getAttribute('data-bdinfo') || '';
+    } else if (optOrData && optOrData.is_breakdown) {
+      isBd = true;
+      bdInfo = optOrData.breakdown_info || '';
+    }
+
+    if (isBd) {
+      warnText.innerHTML = `<strong>Machinery is currently in Workshop/Garage:</strong> ${escapeHtml(bdInfo)}.<br><span style="font-size:0.8rem;color:#b91c1c;">Deployment cannot be saved for vehicles under repair. Resolve repair in Fleet Breakdown first.</span>`;
+      warnBox.style.display = 'block';
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.5'; }
+      if (saveAnotherBtn) { saveAnotherBtn.disabled = true; saveAnotherBtn.style.opacity = '0.5'; }
+    } else {
+      warnBox.style.display = 'none';
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+      if (saveAnotherBtn) { saveAnotherBtn.disabled = false; saveAnotherBtn.style.opacity = '1'; }
+    }
+  }
+
+    function lookupBackendVehicle(regnVal) {
     if (!regnVal) return;
     fetch(`${URL_VEHICLE_LOOKUP}?regn=${encodeURIComponent(regnVal)}`)
       .then(res => res.json())
       .then(data => {
         if (data.found) {
+          if (data.is_breakdown) {
+            checkBreakdownStatus(data);
+          } else {
+            checkBreakdownStatus(null);
+          }
           if (data.work_order_no) {
             document.getElementById('modalWOInput').value = data.work_order_no;
           }
