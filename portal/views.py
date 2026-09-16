@@ -11204,14 +11204,15 @@ def mess_monitor_view(request):
     selected_dept = request.GET.get('department', 'ALL')
     search_query = request.GET.get('search', '').strip()
 
+    from datetime import datetime as dt_class
     try:
-        from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
-    except ValueError:
+        from_date = dt_class.strptime(from_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
         from_date = timezone.now().date()
 
     try:
-        to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
-    except ValueError:
+        to_date = dt_class.strptime(to_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
         to_date = timezone.now().date()
 
     today = timezone.now().date()
