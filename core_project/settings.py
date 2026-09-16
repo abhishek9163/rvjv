@@ -43,6 +43,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://*.ngrok.io',
     'https://*.ngrok-free.app',
     'http://*.ngrok-free.app',
+    'https://*.onrender.com',
+    'http://*.onrender.com',
     'https://*.koyeb.app',
     'http://*.koyeb.app',
     'https://*.trycloudflare.com',
