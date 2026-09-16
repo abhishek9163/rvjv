@@ -487,8 +487,16 @@ def api_safety_employee_search(request):
             Q(contractor_agency__icontains=q)
         )
 
+    # If all=true or all=1, return all employees (for background cache)
+    all_requested = request.GET.get('all', '').lower() in ('true', '1', 'yes')
+    limit = int(request.GET.get('limit', 50 if not all_requested else 10000))
+
     results = []
-    for emp in qs.order_by('name')[:35]:
+    query_set = qs.order_by('name')
+    if not all_requested:
+        query_set = query_set[:limit]
+
+    for emp in query_set:
         results.append({
             'id': emp.id,
             'name': emp.name,
@@ -499,7 +507,8 @@ def api_safety_employee_search(request):
             'cid_number': emp.cid_number or '',
         })
 
-    return JsonResponse({'status': 'SUCCESS', 'employees': results})
+    return JsonResponse({'status': 'SUCCESS', 'employees': results, 'total': len(results)})
+
 
 
 @login_required

@@ -2463,6 +2463,57 @@ function resetFinesFilters() {
     filterFinesTable();
 }
 
+// -----------------------------------------------------------------------------
+// BACKGROUND EMPLOYEE PRE-FETCH & LOCAL INSTANT SEARCH CACHE
+// -----------------------------------------------------------------------------
+window.SAFETY_ALL_EMPLOYEES = null;
+window.SAFETY_EMP_FETCHING = false;
+
+function initSafetyEmployeeBackgroundCache() {
+    if (window.SAFETY_ALL_EMPLOYEES || window.SAFETY_EMP_FETCHING) return;
+    window.SAFETY_EMP_FETCHING = true;
+    fetch('/safety/api/employees/search/?all=true', {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'SUCCESS' && Array.isArray(data.employees)) {
+                window.SAFETY_ALL_EMPLOYEES = data.employees;
+                console.log('✅ Safety Department: Cached', data.employees.length, 'employees in background.');
+            }
+        })
+        .catch(err => console.warn('Background employee cache warning:', err))
+        .finally(() => { window.SAFETY_EMP_FETCHING = false; });
+}
+
+// Start background cache load immediately
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSafetyEmployeeBackgroundCache);
+} else {
+    initSafetyEmployeeBackgroundCache();
+}
+
+function searchCachedEmployees(query, deptFilter) {
+    if (!window.SAFETY_ALL_EMPLOYEES) return null;
+    const q = (query || '').toLowerCase().trim();
+    const dept = (deptFilter || '').toLowerCase().trim();
+
+    let matches = window.SAFETY_ALL_EMPLOYEES;
+    if (dept && dept !== 'all') {
+        matches = matches.filter(emp => (emp.department || '').toLowerCase() === dept);
+    }
+    if (q) {
+        matches = matches.filter(emp => {
+            const name = (emp.name || '').toLowerCase();
+            const eid = (emp.emp_id || '').toLowerCase();
+            const cid = (emp.cid_number || '').toLowerCase();
+            const desig = (emp.designation || '').toLowerCase();
+            const agency = (emp.contractor_agency || '').toLowerCase();
+            const d = (emp.department || '').toLowerCase();
+            return name.includes(q) || eid.includes(q) || cid.includes(q) || desig.includes(q) || agency.includes(q) || d.includes(q);
+        });
+    }
+    return matches.slice(0, 50);
+}
+
 let _deskWorkerSearchTimer = null;
 function onDeskWorkerSearch(query) {
     const listEl = document.getElementById('deskWorkerDropdownList');
@@ -2471,6 +2522,15 @@ function onDeskWorkerSearch(query) {
     const q = (query || '').trim();
     if (!q) { listEl.style.display = 'none'; return; }
     const dept = (document.getElementById('deskDeptFilter') || {}).value || 'ALL';
+
+    // 1. If background cache is ready, search instantly without network delay
+    const localMatches = searchCachedEmployees(q, dept);
+    if (localMatches !== null) {
+        renderDeskWorkerList(localMatches, listEl);
+        return;
+    }
+
+    // 2. Fallback to AJAX while background cache is still downloading
     listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b;font-size:0.82rem;">🔍 Searching...</div>';
     listEl.style.display = 'block';
     _deskWorkerSearchTimer = setTimeout(async () => {
@@ -2478,33 +2538,34 @@ function onDeskWorkerSearch(query) {
             const url = `/safety/api/employees/search/?q=${encodeURIComponent(q)}&dept=${encodeURIComponent(dept === 'ALL' ? '' : dept)}`;
             const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
             const data = await resp.json();
-            const employees = data.employees || [];
-            if (employees.length === 0) {
-                listEl.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:0.85rem;">👷 No matching workers found</div>';
-            } else {
-                const selectEl = document.getElementById('desk_worker_select');
-                const currentVal = selectEl ? selectEl.value : '';
-                let html = '';
-                employees.forEach(emp => {
-                    const isSelected = currentVal === String(emp.id);
-                    html += `<div class="search-drop-item" onclick="selectDeskWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}','${(emp.designation||'').replace(/'/g,"\\'")}','${(emp.contractor_agency||'').replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#f0fdf4':'#ffffff'};transition:background 0.15s ease;">
-                        <div>
-                            <div style="font-weight:800;color:#0f172a;font-size:0.9rem;">${emp.name}</div>
-                            <div style="font-size:0.76rem;color:#2563eb;font-family:monospace;">Badge ID: <b>${emp.emp_id||'N/A'}</b></div>
-                        </div>
-                        <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:3px 8px;border-radius:9999px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${emp.department||'General'}</span>
-                    </div>`;
-                });
-                if (data.employees && data.employees.length >= 35) {
-                    html += '<div style="padding:8px;text-align:center;color:#64748b;font-size:0.78rem;background:#f8fafc;">...type more characters to refine search...</div>';
-                }
-                listEl.innerHTML = html;
-            }
+            renderDeskWorkerList(data.employees || [], listEl);
         } catch(e) {
             listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#ef4444;font-size:0.82rem;">Error searching. Try again.</div>';
+            listEl.style.display = 'block';
         }
-        listEl.style.display = 'block';
-    }, 300);
+    }, 250);
+}
+
+function renderDeskWorkerList(employees, listEl) {
+    if (!employees || employees.length === 0) {
+        listEl.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:0.85rem;">👷 No matching workers found</div>';
+    } else {
+        const selectEl = document.getElementById('desk_worker_select');
+        const currentVal = selectEl ? selectEl.value : '';
+        let html = '';
+        employees.forEach(emp => {
+            const isSelected = currentVal === String(emp.id);
+            html += `<div class="search-drop-item" onclick="selectDeskWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}','${(emp.designation||'').replace(/'/g,"\\'")}','${(emp.contractor_agency||'').replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#f0fdf4':'#ffffff'};transition:background 0.15s ease;">
+                <div>
+                    <div style="font-weight:800;color:#0f172a;font-size:0.9rem;">${emp.name}</div>
+                    <div style="font-size:0.76rem;color:#2563eb;font-family:monospace;">Badge ID: <b>${emp.emp_id||'N/A'}</b></div>
+                </div>
+                <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:3px 8px;border-radius:9999px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${emp.department||'General'}</span>
+            </div>`;
+        });
+        listEl.innerHTML = html;
+    }
+    listEl.style.display = 'block';
 }
 
 function selectDeskWorker(val, name, empId, dept, designation, agency) {
@@ -2610,6 +2671,15 @@ function onIssueEmpSearch(query) {
     clearTimeout(_issueEmpSearchTimer);
     const q = (query || '').trim();
     if (!q) { listEl.style.display = 'none'; return; }
+
+    // 1. If background cache is ready, search instantly
+    const localMatches = searchCachedEmployees(q, '');
+    if (localMatches !== null) {
+        renderIssueEmpList(localMatches, listEl);
+        return;
+    }
+
+    // 2. Fallback to AJAX while background cache loads
     listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b;font-size:0.82rem;">🔍 Searching...</div>';
     listEl.style.display = 'block';
     _issueEmpSearchTimer = setTimeout(async () => {
@@ -2617,30 +2687,34 @@ function onIssueEmpSearch(query) {
             const url = `/safety/api/employees/search/?q=${encodeURIComponent(q)}`;
             const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
             const data = await resp.json();
-            const employees = data.employees || [];
-            if (employees.length === 0) {
-                listEl.innerHTML = '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:0.85rem;">No matching employees found</div>';
-            } else {
-                const selectEl = document.getElementById('issue_emp');
-                const currentVal = selectEl ? selectEl.value : '';
-                let html = '';
-                employees.forEach(emp => {
-                    const isSelected = currentVal === String(emp.id);
-                    html += `<div class="search-drop-item" onclick="selectIssueWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#eff6ff':'#ffffff'};">
-                        <div>
-                            <div style="font-weight:700;color:#0f172a;font-size:0.88rem;">${emp.name}</div>
-                            <div style="font-size:0.76rem;color:#64748b;">ID: <b>${emp.emp_id||''}</b></div>
-                        </div>
-                        <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:9999px;">${emp.department||'General'}</span>
-                    </div>`;
-                });
-                listEl.innerHTML = html;
-            }
+            renderIssueEmpList(data.employees || [], listEl);
         } catch(e) {
             listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#ef4444;font-size:0.82rem;">Error searching. Try again.</div>';
+            listEl.style.display = 'block';
         }
-        listEl.style.display = 'block';
-    }, 300);
+    }, 250);
+}
+
+function renderIssueEmpList(employees, listEl) {
+    if (!employees || employees.length === 0) {
+        listEl.innerHTML = '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:0.85rem;">No matching employees found</div>';
+    } else {
+        const selectEl = document.getElementById('issue_emp');
+        const currentVal = selectEl ? selectEl.value : '';
+        let html = '';
+        employees.forEach(emp => {
+            const isSelected = currentVal === String(emp.id);
+            html += `<div class="search-drop-item" onclick="selectIssueWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#eff6ff':'#ffffff'};">
+                <div>
+                    <div style="font-weight:700;color:#0f172a;font-size:0.88rem;">${emp.name}</div>
+                    <div style="font-size:0.76rem;color:#64748b;">ID: <b>${emp.emp_id||''}</b></div>
+                </div>
+                <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:9999px;">${emp.department||'General'}</span>
+            </div>`;
+        });
+        listEl.innerHTML = html;
+    }
+    listEl.style.display = 'block';
 }
 
 function selectIssueWorker(val, name, empId, dept) {
@@ -3419,51 +3493,6 @@ function showDropdown(id) {
 function hideDropdown(id) {
     const el = document.getElementById(id);
     if (el) { el.style.display = 'none'; }
-}
-
-// ── Employee search ───────────────────────────────────────────────────────────
-function onIssueEmpSearch(query) {
-    const ddl = document.getElementById('issueEmpDropdownList');
-    const sel = document.getElementById('issue_emp');
-    if (!ddl || !sel) return;
-
-    const q = (query || '').toLowerCase().trim();
-    const opts = Array.from(sel.options).filter(o => o.value);
-
-    const matches = opts.filter(o => {
-        const name = (o.getAttribute('data-name') || '').toLowerCase();
-        const eid  = (o.getAttribute('data-empid') || '').toLowerCase();
-        const dept = (o.getAttribute('data-dept') || '').toLowerCase();
-        return !q || name.includes(q) || eid.includes(q) || dept.includes(q);
-    });
-
-    ddl.innerHTML = '';
-    if (matches.length === 0) {
-        ddl.innerHTML = '<div class="search-drop-item" style="color:#94a3b8;">No employees found</div>';
-    } else {
-        matches.forEach(o => {
-            const div = document.createElement('div');
-            div.className = 'search-drop-item';
-            div.innerHTML = `<strong>${o.getAttribute('data-name') || o.textContent.trim()}</strong><small>ID: ${o.getAttribute('data-empid') || 'N/A'} &bull; ${o.getAttribute('data-dept') || ''}</small>`;
-            div.onclick = () => selectIssueWorker(o.value, o.getAttribute('data-name') || o.textContent.trim());
-            ddl.appendChild(div);
-        });
-    }
-    showDropdown('issueEmpDropdownList');
-}
-
-function selectIssueWorker(val, label) {
-    const sel = document.getElementById('issue_emp');
-    const inp = document.getElementById('issueEmpSearchFilter');
-    if (sel) sel.value = val;
-    if (inp) inp.value = label || '';
-    hideDropdown('issueEmpDropdownList');
-}
-
-function onIssueEmpSelectChange(sel) {
-    const opt = sel.options[sel.selectedIndex];
-    const inp = document.getElementById('issueEmpSearchFilter');
-    if (inp && opt) inp.value = opt.getAttribute('data-name') || opt.textContent.trim();
 }
 
 // ── Equipment search ──────────────────────────────────────────────────────────
