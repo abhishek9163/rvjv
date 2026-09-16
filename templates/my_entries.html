@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>My Entries {% if status_filter != 'ALL' %}({{ status_filter }}){% endif %}</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="#" class="btn {% if status_filter == 'ALL' %}btn-primary{% else %}btn-outline{% endif %}">All Entries</a>
+        <a href="#?status=PENDING" class="btn {% if status_filter == 'PENDING' %}btn-primary{% else %}btn-outline{% endif %}">Pending</a>
+        <a href="#?status=VERIFIED" class="btn {% if status_filter == 'VERIFIED' %}btn-primary{% else %}btn-outline{% endif %}">Verified</a>
+        <a href="#?status=REJECTED" class="btn {% if status_filter == 'REJECTED' %}btn-primary{% else %}btn-outline{% endif %}">Rejected</a>
+    </div>
+</div>
+
+<div class="grid-container" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+    {% for entry in entries %}
+    <div class="card" style="border-top: 4px solid {% if entry.status == 'VERIFIED' %}var(--success){% elif entry.status == 'REJECTED' %}var(--error){% else %}orange{% endif %};">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+            <strong style="color: var(--primary);">{{ entry.section.name }}</strong>
+            <span class="badge" style="font-size: 0.75rem;">{{ entry.get_status_display }}</span>
+        </div>
+        
+        <div style="font-size: 0.85rem; color: var(--sidebar-text); margin-bottom: 1rem;">
+            Submitted on {{ entry.created_at|date:"M d, Y h:i A" }}
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            {% for key, value in entry.data.items %}
+                {% if key != '_stock_history' and key != 'current_stock' and key != 'stock_history' %}
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--sidebar-text); text-transform: uppercase;">{{ key }}</span><br>
+                    {% if 'http' in value|stringformat:"s" or '/media/' in value|stringformat:"s" %}
+                        <a href="{{ value }}" target="_blank" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; margin-top: 0.25rem;">View File</a>
+                    {% else %}
+                        <span style="font-size: 0.95rem;">{{ value }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if entry.section.is_inventory %}
+                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border);">
+                    <span style="font-size: 0.75rem; color: var(--sidebar-text); text-transform: uppercase;">Current Stock</span><br>
+                    <span style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">{{ entry.data.current_stock|default:"0" }}</span>
+                </div>
+            {% endif %}
+        </div>
+        
+        {% if entry.verification_remarks %}
+        <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-color); border-radius: 4px; border-left: 3px solid var(--border); font-size: 0.85rem;">
+            <strong>Manager Remarks:</strong><br>
+            <span style="font-style: italic; color: var(--sidebar-text);">"{{ entry.verification_remarks }}"</span>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--sidebar-text);">
+        No entries found for the selected filter.
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

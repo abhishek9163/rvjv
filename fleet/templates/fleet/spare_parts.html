@@ -1,0 +1,1589 @@
+{% extends 'base.html' %}
+{% block title %}Spare Parts Management - P&M Portal{% endblock %}
+
+{% block content %}
+<!-- jQuery & Select2 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Export Modal -->
+<div id="exportModal" class="sp-modal">
+    <div class="sp-modal-box" style="max-width:480px;">
+        <div class="sp-modal-header">
+            <h3 style="margin:0; font-size:1.2rem; color:var(--text-color);">📥 Export Spare Parts Data</h3>
+            <button type="button" onclick="closeModal('exportModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="sp-modal-body" style="display:flex; flex-direction:column; gap:15px;">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Export Format *</label>
+                    <select id="export_format" class="filter-select" style="width:100%;">
+                        <option value="EXCEL">Excel Spreadsheet (.xlsx)</option>
+                        <option value="PDF">PDF / Print Layout</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Transaction Type</label>
+                    <select id="export_transaction_type" class="filter-select" style="width:100%;">
+                        <option value="">All Types</option>
+                        <option value="IN">Stock IN</option>
+                        <option value="OUT">Stock OUT</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Vendor / Subcontractor Name</label>
+                <select id="export_vendor_name" class="filter-select select2" style="width:100%;">
+                    <option value="">-- All Vendors / Suppliers --</option>
+                    {% for s in suppliers %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Search Keyword</label>
+                <input type="text" id="export_q" class="filter-input" placeholder="Search keyword (matches Reg No, Part...)" style="width:100%;">
+            </div>
+            
+            <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Select Vehicle</label>
+                <select id="export_vehicle_id" class="filter-select select2" style="width:100%;">
+                    <option value="">Search Vehicle...</option>
+                    {% for v in vehicles %}
+                    <option value="{{ v.id }}">{{ v.regn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Select Part</label>
+                <select id="export_part_id" class="filter-select select2" style="width:100%;">
+                    <option value="">Search Part...</option>
+                    {% for p in parts %}
+                    <option value="{{ p.id }}">{{ p.part_number }} - {{ p.part_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Date From</label>
+                    <input type="date" id="export_start_date" class="filter-input" style="width:100%;">
+                </div>
+                <div style="flex:1;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Date To</label>
+                    <input type="date" id="export_end_date" class="filter-input" style="width:100%;">
+                </div>
+            </div>
+            
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin:0;">Columns to Export</label>
+                    <div style="display:flex; gap:10px; font-size:0.75rem; font-weight:600;">
+                        <a href="javascript:void(0)" onclick="toggleAllColumns(true)" style="color:var(--primary); text-decoration:none;">Select All</a>
+                        <span style="color:var(--border);">|</span>
+                        <a href="javascript:void(0)" onclick="toggleAllColumns(false)" style="color:var(--sidebar-text); text-decoration:none;">Unselect All</a>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; background: var(--bg-subtle); padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="date" checked> Date</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="type" checked> Type</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="vehicle" checked> Vehicle (Reg No)</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="supplier" checked> Supplier/Vendor</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="part_number" checked> Part No/SKU</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="part_name" checked> Part Name</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="quantity" checked> Quantity</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="rate" checked> Rate</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="total_amount" checked> Total Amount</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="location" checked> Location</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="wo_no" checked> WO No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="reference_no" checked> Ref/Invoice No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="manpower_cost" checked> Manpower Cost</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="mechanic" checked> Mechanic</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="entered_by" checked> Entered By</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-color);"><input type="checkbox" class="col-export-check" value="remarks" checked> Remarks</label>
+                </div>
+            </div>
+            
+            <button onclick="triggerExport()" class="btn" style="width:100%; background:var(--primary); color:white; border:none; padding:10px; font-weight:700; margin-top:10px;">Generate Export</button>
+        </div>
+    </div>
+</div>
+
+<!-- Style overrides and definitions -->
+
+<style>
+/* Select2 custom styling to fit project theme */
+.select2-container .select2-selection--single {
+    height: 38px !important;
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text-color) !important;
+    display: flex;
+    align-items: center;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-color) !important;
+    line-height: 38px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+}
+.select2-dropdown {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+    z-index: 9999999 !important; /* Ensure select2 dropdown is above custom modal */
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+}
+/* Ensure select2 and inputs do not overflow */
+.select2-container {
+    max-width: 100% !important;
+}
+.filter-input {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    border-radius: 6px;
+    padding: 6px;
+}
+</style>
+<style>
+/* Stats */
+.sp-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.sp-stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.sp-stat-icon { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem; }
+.sp-stat-value { font-size: 1.45rem; font-weight: 800; color: var(--text-color); line-height: 1.2; word-break: break-word; }
+.sp-stat-label { font-size: 0.78rem; color: var(--sidebar-text); font-weight: 600; margin-top: 3px; }
+
+/* Filter Bar */
+.filter-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.filter-input, .filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; }
+.filter-input { min-width: 200px; flex: 1; }
+
+/* Clean UI upgrades for list/table and cards */
+.data-table th {
+    background: var(--bg-color) !important;
+    color: var(--sidebar-text) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border) !important;
+}
+.data-table tbody tr:nth-child(even) {
+    background-color: rgba(243, 244, 246, 0.03);
+}
+.data-table tbody tr:hover {
+    background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* Card item hover animation */
+.sp-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sp-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* Collapsible stats button */
+#btnToggleStats {
+    display: none;
+}
+
+/* Base Collapsible Filter configuration for desktop */
+.filter-bar-collapsible {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+}
+
+/* Hide collapsible stats button on desktop */
+#btnToggleStats {
+    display: none;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    /* Hide floating bottom navigation bar on mobile for this page */
+    .floating-sidebar {
+        display: none !important;
+    }
+    .main-content {
+        padding-bottom: 1.5rem !important;
+    }
+
+    .page-header-wrap h1 {
+        font-size: 1.4rem !important;
+    }
+    .page-header-wrap p {
+        font-size: 0.8rem !important;
+        margin-top: 2px !important;
+    }
+    .header-actions {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+    }
+    .header-actions a {
+        grid-column: span 2;
+    }
+    .header-actions a, .header-actions button {
+        width: 100% !important;
+        padding: 8px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Collapsible Stats for Mobile */
+    .sp-stats-grid {
+        display: none;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 1rem;
+    }
+    .sp-stats-grid.show {
+        display: grid !important;
+    }
+    #btnToggleStats {
+        display: block !important;
+    }
+    
+    .sp-stat-card {
+        padding: 8px 12px !important;
+        gap: 6px !important;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+    }
+    .sp-stat-value {
+        font-size: 1.2rem !important;
+    }
+    .sp-stat-label {
+        font-size: 0.7rem !important;
+    }
+    .sp-stat-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 1rem !important;
+    }
+    .sp-stats-grid .sp-stat-card:last-child {
+        grid-column: span 2;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px !important;
+    }
+
+    .filter-bar {
+        padding: 10px !important;
+        gap: 8px !important;
+    }
+    .filter-bar-collapsible {
+        display: none !important;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+        margin-top: 5px;
+    }
+    .filter-bar-collapsible.show {
+        display: flex !important;
+    }
+    .filter-input, .filter-select, .select2-container {
+        width: 100% !important;
+    }
+    
+    /* Center align mobile toggle button */
+    #btnToggleMobile {
+        display: inline-flex !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 8px !important;
+        justify-content: center !important;
+        align-items: center !important;
+        flex-shrink: 0 !important;
+    }
+    
+    /* Table modifications for Mobile layout */
+    .data-table th, .data-table td {
+        padding: 8px 10px !important;
+        font-size: 0.78rem !important;
+    }
+
+    /* Mobile modal optimization */
+    .sp-modal {
+        padding: 10px !important;
+        align-items: flex-end !important;
+    }
+    .sp-modal-box {
+        border-radius: 16px 16px 0 0 !important;
+        max-height: 92vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .sp-modal-header {
+        padding: 14px 16px !important;
+    }
+    .sp-modal-body {
+        padding: 16px !important;
+        overflow-y: auto !important;
+    }
+
+    /* Form grid single column on mobile */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    .form-grid .full {
+        grid-column: 1 !important;
+    }
+    /* OUT-only and IN-only fields also single column */
+    .form-grid > div,
+    .form-grid .out-only,
+    .form-grid .in-only {
+        grid-column: 1 !important;
+    }
+
+    /* Inputs and selects full width & bigger tap targets on mobile */
+    .sp-modal .filter-input,
+    .sp-modal .filter-select {
+        padding: 10px 12px !important;
+        font-size: 0.9rem !important;
+        width: 100% !important;
+        min-height: 44px !important;
+    }
+    /* Action buttons full width on mobile */
+    .sp-modal-body form > div:last-of-type {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    .sp-modal-body form > div:last-of-type button {
+        width: 100% !important;
+        padding: 12px !important;
+        font-size: 0.95rem !important;
+    }
+}
+
+/* Modal */
+.sp-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px); z-index:99999; justify-content:center; align-items:center; padding:20px; }
+.sp-modal-box { background:var(--card-bg); border-radius:16px; width:100%; max-width:600px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 25px 50px rgba(0,0,0,0.2); }
+.sp-modal-header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:var(--card-bg); z-index:1; }
+.sp-modal-body { padding:24px; overflow-y:auto; flex:1; }
+.form-grid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:14px; }
+.form-grid .full { grid-column:1/-1; min-width: 0; }
+
+.page-header-wrap { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+</style>
+
+<div class="page-header-wrap">
+    <div>
+        <h1 style="margin:0; font-size:1.8rem; font-weight:800; color:var(--text-color);">⚙️ Spare Parts Management</h1>
+        <p style="margin:5px 0 0 0; color:var(--sidebar-text); font-size:0.9rem;">Track stock in/out and inventory.</p>
+    </div>
+    <div class="header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{% url 'dashboard' %}" class="btn" style="background:var(--bg-color); border:1px solid var(--border); color:var(--text-color);">← Back to Dashboard</a>
+        <button onclick="openExportModal()" class="btn" style="background:#10b981; color:white; border:none;">📥 Export Data</button>
+        <button onclick="openModal('addTransactionModal')" class="btn" style="background:var(--primary); color:white; border:none; box-shadow:0 4px 12px rgba(79,70,229,0.3);">+ Add Transaction</button>
+    </div>
+</div>
+
+<!-- Stats Toggle & View Toggles -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:10px;">
+    <button type="button" id="btnToggleStats" onclick="toggleStatsSection()" style="background:none; border:none; color:var(--primary); font-size:0.85rem; font-weight:700; padding:0; cursor:pointer;">
+        📊 <span id="toggleStatsText">Show Stats Summary</span>
+    </button>
+    
+    <div style="display:flex; gap:8px; align-items:center;">
+        <span style="font-weight:700; font-size:0.8rem; color:var(--sidebar-text);">VIEW:</span>
+        <button id="btnViewList" class="btn" style="background:var(--bg-color); color:var(--text-color); border:1px solid var(--border); padding:6px 12px; font-size:0.8rem; border-radius:6px;" onclick="switchPartsView('list')">
+            <i class="fas fa-list"></i> Table
+        </button>
+        <button id="btnViewCard" class="btn active" style="background:var(--primary); color:white; border:none; padding:6px 12px; font-size:0.8rem; border-radius:6px;" onclick="switchPartsView('card')">
+            <i class="fas fa-th-large"></i> Cards
+        </button>
+    </div>
+</div>
+
+<div class="sp-stats-grid">
+    <div class="sp-stat-card">
+        <div class="sp-stat-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">🔄</div>
+        <div>
+            <div class="sp-stat-value" id="stat_total_logs">{{ total_transactions|default:"0" }}</div>
+            <div class="sp-stat-label">Total Logs</div>
+        </div>
+    </div>
+    <div class="sp-stat-card">
+        <div class="sp-stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">⬇️</div>
+        <div>
+            <div class="sp-stat-value" id="stat_total_in">{{ total_in|default:"0" }}</div>
+            <div class="sp-stat-label">Total In (Qty)</div>
+        </div>
+    </div>
+    <div class="sp-stat-card">
+        <div class="sp-stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">⬆️</div>
+        <div>
+            <div class="sp-stat-value" id="stat_total_out">{{ total_out|default:"0" }}</div>
+            <div class="sp-stat-label">Total Out (Qty)</div>
+        </div>
+    </div>
+    <div class="sp-stat-card">
+        <div class="sp-stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">💰</div>
+        <div>
+            <div class="sp-stat-value" id="stat_total_value">Nu. {{ total_stock_value|default:"0.00"|floatformat:2 }}</div>
+            <div class="sp-stat-label">Est. Inventory Value</div>
+        </div>
+    </div>
+    <div class="sp-stat-card" style="border-left: 4px solid #ef4444;">
+        <div class="sp-stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">⚠️</div>
+        <div>
+            <div class="sp-stat-value" id="stat_low_stock" style="color: #ef4444;">{{ low_stock_count|default:"0" }}</div>
+            <div class="sp-stat-label">Low Stock Items</div>
+        </div>
+    </div>
+</div>
+
+<form method="GET" class="filter-bar" onsubmit="event.preventDefault();" style="gap: 12px;">
+    <!-- Mobile Responsive Global Search & Filter Toggle Row -->
+    <div class="search-row-mobile" style="display:flex; gap:8px; width:100%; align-items:center;">
+        <div style="position:relative; flex:1;">
+            <input type="text" id="globalSearch" class="filter-input" placeholder="Search spare parts (Reg No, name...)" onkeyup="applyLiveFilters()" style="width:100%; padding:10px 12px 10px 38px !important; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-color); font-size:0.88rem;">
+            <i class="fas fa-search" style="position:absolute; left:14px; top:12px; color:var(--sidebar-text);"></i>
+        </div>
+        
+        <button type="button" id="btnToggleMobile" onclick="toggleMobileFilters()" style="display:none; background:var(--bg-color); border:1px solid var(--border); color:var(--text-color); height:44px; width:44px; border-radius:8px; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;" title="Advanced Filters">
+            <i class="fas fa-sliders-h" id="filterIcon" style="font-size:1.1rem;"></i>
+        </button>
+    </div>
+
+    <!-- Collapsible Advanced Filters -->
+    <div id="collapsibleFilters" class="filter-bar-collapsible" style="width:100%; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div style="flex:1; min-width:180px;">
+            <select name="vendor_name" id="filter_vendor" class="filter-select select2" onchange="applyLiveFilters()">
+                <option value="">-- All Vendors / Suppliers --</option>
+                {% for s in suppliers %}
+                <option value="{{ s }}" {% if filters.vendor_name == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <input type="date" name="start_date" class="filter-input" value="{{ filters.start_date|default:'' }}" style="flex:1; min-width:130px;" title="Start Date">
+        <input type="date" name="end_date" class="filter-input" value="{{ filters.end_date|default:'' }}" style="flex:1; min-width:130px;" title="End Date">
+        
+        <select name="transaction_type" class="filter-select" style="flex:1; min-width:120px;" onchange="applyLiveFilters()">
+            <option value="">All Types</option>
+            <option value="IN" {% if filters.transaction_type == 'IN' %}selected{% endif %}>Stock IN</option>
+            <option value="OUT" {% if filters.transaction_type == 'OUT' %}selected{% endif %}>Stock OUT</option>
+        </select>
+        
+        <a href="{% url 'fleet:spare_parts' %}" class="btn" style="background:var(--bg-color); color:var(--text-color); border:1px solid var(--border); padding:8px 16px; border-radius:8px;">Clear Filters</a>
+    </div>
+</form>
+
+<div id="partsListContainer" style="display:none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; overflow-x: auto; margin-bottom: 2rem;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse; min-width: 1100px;">
+        <thead>
+            <tr style="background: var(--bg-color); border-bottom: 2px solid var(--border); text-align: left;">
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:center; width:50px; white-space:nowrap;">SR.NO</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:center; width:110px; white-space:nowrap;">DATE</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); width:110px; white-space:nowrap;">LOCATION</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); width:140px; white-space:nowrap;">WO NO</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); width:130px; white-space:nowrap;">REG NO / SUPP</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); min-width:240px;">SPARE PARTS DETAILS</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:center; width:90px; white-space:nowrap;">QTY</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:right; width:120px; white-space:nowrap;">SPARE COST</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:right; width:110px; white-space:nowrap;">MANPOWER</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:right; width:120px; white-space:nowrap;">TOTAL COST</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:center; width:110px; white-space:nowrap;">STATUS</th>
+                <th style="padding: 12px 14px; font-weight: 700; font-size: 0.78rem; color: var(--sidebar-text); text-align:center; width:130px; white-space:nowrap;">ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in grouped_transactions %}
+            <tr class="searchable-row" data-date="{{ g.date|date:'Y-m-d' }}" data-type="{{ g.transaction_type }}" data-vehicle="{{ g.vehicle.id|default:'' }}" data-supplier="{{ g.supplier|default:'' }}" style="border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                <td style="padding: 12px 14px; font-size: 0.85rem; font-weight: 600; text-align:center; vertical-align:middle;">{{ forloop.counter }}</td>
+                <td style="padding: 12px 14px; font-size: 0.82rem; font-weight: 600; text-align:center; white-space:nowrap; vertical-align:middle;">
+                    <div>{{ g.date|date:"d.m.Y" }}</div>
+                    {% if g.created_at %}
+                        <div style="font-size:0.73rem; color:#6366f1; font-weight:700; margin-top:3px;">⏰ {{ g.created_at|date:"h:i A" }}</div>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px 14px; font-size: 0.84rem; vertical-align:middle;">{{ g.location }}</td>
+                <td style="padding: 12px 14px; font-size: 0.84rem; font-family:monospace; vertical-align:middle; white-space:nowrap;">{{ g.wo_no }}</td>
+                <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; vertical-align:middle; white-space:nowrap;">
+                    {% if g.vehicle %}
+                        <span style="background:rgba(99,102,241,0.1); color:#6366f1; padding:3px 8px; border-radius:6px; font-weight:800; display:inline-block;">{{ g.vehicle.regn }}</span>
+                    {% elif g.supplier %}
+                        <span style="background:rgba(16,185,129,0.1); color:#10b981; padding:3px 8px; border-radius:6px; font-weight:800; display:inline-block;">Supp: {{ g.supplier }}</span>
+                    {% else %}-{% endif %}
+                </td>
+                
+                <!-- SPARE PARTS DETAILS CELL with fixed vertical item alignment -->
+                <td style="padding: 8px 14px; vertical-align:top;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        {% for item in g.items %}
+                        <div style="min-height:36px; display:flex; flex-direction:column; justify-content:center;">
+                            <div style="font-weight:700; color:var(--text-color); font-size:0.86rem; line-height:1.2;">
+                                {% if g.items_count > 1 %}<span style="color:var(--primary); font-weight:800;">{{ item.index }}.</span> {% endif %}{{ item.part_name }}
+                            </div>
+                            <div style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; margin-top:2px;">
+                                {% if g.transaction_type == 'IN' %}
+                                <span style="color:#10b981; font-weight:700;">[IN]</span>
+                                {% else %}
+                                <span style="color:#ef4444; font-weight:700;">[OUT]</span>
+                                {% endif %} {{ item.part_number }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--sidebar-text); margin-top:6px; border-top:1px dashed var(--border); padding-top:4px;">
+                        <i class="far fa-user"></i> By: {% if g.entered_by %}{{ g.entered_by.full_name|default:g.entered_by.username }}{% else %}System{% endif %}
+                    </div>
+                </td>
+                
+                <!-- QTY CELL matched item by item -->
+                <td style="padding: 8px 14px; font-weight: 700; text-align:center; vertical-align:top;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        {% for item in g.items %}
+                        <div style="min-height:36px; display:flex; align-items:center; justify-content:center; white-space:nowrap; font-size:0.85rem;">
+                            {{ item.quantity }} <span style="font-size:0.74rem; color:var(--sidebar-text); font-weight:normal; margin-left:3px;">{{ item.unit }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </td>
+                
+                <!-- SPARE COST CELL matched item by item -->
+                <td style="padding: 8px 14px; text-align:right; font-weight: 700; color:var(--text-color); vertical-align:top;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        {% for item in g.items %}
+                        <div style="min-height:36px; display:flex; align-items:center; justify-content:flex-end; white-space:nowrap; font-size:0.85rem;">
+                            Nu. {{ item.total_formatted }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </td>
+                
+                <td style="padding: 12px 14px; text-align:right; font-weight: 700; color:var(--text-color); vertical-align:middle; white-space:nowrap;">
+                    Nu. {{ g.manpower_cost_formatted }}
+                </td>
+                <td style="padding: 12px 14px; text-align:right; font-weight: 800; color:var(--primary); vertical-align:middle; white-space:nowrap; font-size:0.92rem;">
+                    Nu. {{ g.total_amount_formatted }}
+                </td>
+                
+                <!-- STATUS COLUMN -->
+                <td style="padding: 12px 14px; text-align:center; vertical-align:middle;">
+                    {% if g.is_approved %}
+                    <span style="background:rgba(16,185,129,0.12); color:#10b981; padding:4px 8px; border-radius:6px; font-size:0.74rem; font-weight:700; display:inline-block; white-space:nowrap;">
+                        ✓ Approved<br>
+                        <span style="font-size:0.65rem; font-weight:normal; opacity:0.85;">by {% if g.approved_by %}{{ g.approved_by.full_name|default:g.approved_by.username }}{% else %}System{% endif %}</span>
+                    </span>
+                    {% else %}
+                    <span style="background:rgba(245,158,11,0.12); color:#f59e0b; padding:4px 8px; border-radius:6px; font-size:0.74rem; font-weight:700; display:inline-block; white-space:nowrap;">
+                        ⏳ Pending
+                    </span>
+                    {% endif %}
+                </td>
+                
+                <!-- ACTIONS COLUMN -->
+                <td style="padding: 12px 14px; text-align:center; white-space:nowrap; vertical-align:middle;">
+                    <div style="display:flex; gap:5px; justify-content:center;">
+                        {% if not g.is_approved and is_manager %}
+                        <button onclick="approveBatch('{{ g.all_ids }}', this)" class="btn" style="background:#10b981; color:white; padding:5px 10px; font-size:0.72rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;" title="Approve All Items">Approve</button>
+                        {% endif %}
+                        <button onclick="openEditModal('{{ g.first_id }}', '{{ g.date|date:'Y-m-d' }}', '{{ g.items.0.quantity }}', '{{ g.items.0.rate }}', '{{ g.manpower_cost }}', '{{ g.location }}', '{{ g.wo_no }}', '{{ g.supplier|default:'' }}', '{{ g.items.0.remarks|escapejs }}')" class="btn" style="background:rgba(99,102,241,0.1); color:#6366f1; padding:5px 10px; font-size:0.72rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;" title="Edit Entry">Edit</button>
+                        <button onclick="deleteBatch('{{ g.all_ids }}')" class="btn" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:5px 10px; font-size:0.72rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;" title="Delete Batch">Delete</button>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="12" style="padding: 30px; text-align: center; color: var(--sidebar-text);">No transactions found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Card View (default) -->
+<div id="partsCardContainer" style="margin-bottom:2rem;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(310px, 1fr)); gap:1.25rem;">
+        {% for g in grouped_transactions %}
+        <div class="sp-card searchable-row" data-date="{{ g.date|date:'Y-m-d' }}" data-type="{{ g.transaction_type }}" data-vehicle="{{ g.vehicle.id|default:'' }}" data-supplier="{{ g.supplier|default:'' }}" style="background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:1.25rem; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:12px;">
+            <!-- Header with Badge & Date/Time -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+                {% if g.transaction_type == 'IN' %}
+                <span style="background:rgba(16,185,129,0.12); color:#10b981; padding:4px 10px; border-radius:8px; font-size:0.72rem; font-weight:800; text-transform:uppercase; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
+                    <i class="fas fa-arrow-down"></i> STOCK IN {% if g.items_count > 1 %}({{ g.items_count }} PARTS){% endif %}
+                </span>
+                {% else %}
+                <span style="background:rgba(239,68,68,0.12); color:#ef4444; padding:4px 10px; border-radius:8px; font-size:0.72rem; font-weight:800; text-transform:uppercase; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
+                    <i class="fas fa-arrow-up"></i> STOCK OUT {% if g.items_count > 1 %}({{ g.items_count }} PARTS){% endif %}
+                </span>
+                {% endif %}
+                
+                <div style="font-size:0.75rem; color:var(--sidebar-text); font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-left:auto;">
+                    <span>📅 {{ g.date|date:"d.m.Y" }}</span>
+                    {% if g.created_at %}
+                    <span style="color:#6366f1; font-weight:700; background:rgba(99,102,241,0.08); padding:2px 6px; border-radius:4px; border:1px solid rgba(99,102,241,0.15); white-space:nowrap;">⏰ {{ g.created_at|date:"h:i A" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Itemized Parts List in Card -->
+            <div style="background:var(--bg-color); border:1px solid var(--border); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+                {% for item in g.items %}
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; {% if not forloop.last %}border-bottom:1px dashed var(--border); padding-bottom:6px;{% endif %}">
+                    <div>
+                        <div style="font-weight:800; font-size:0.98rem; color:var(--text-color); line-height:1.2;">
+                            {% if g.items_count > 1 %}<span style="color:var(--primary); font-size:0.85rem;">{{ item.index }}.</span> {% endif %}{{ item.part_name }}
+                        </div>
+                        <div style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; margin-top:2px;">SKU: {{ item.part_number }}</div>
+                    </div>
+                    <div style="text-align:right; white-space:nowrap; display:flex; flex-direction:column; align-items:flex-end;">
+                        <div style="font-size:0.85rem; font-weight:800; color:var(--text-color);">
+                            {{ item.quantity }} <span style="font-size:0.72rem; font-weight:normal; color:var(--sidebar-text);">{{ item.unit }}</span>
+                        </div>
+                        <div style="font-size:0.72rem; color:var(--sidebar-text); font-weight:600; margin-top:2px;">Nu. {{ item.total_formatted }}</div>
+                        <button onclick="openEditModal('{{ item.id }}', '{{ g.date|date:'Y-m-d' }}', '{{ item.quantity }}', '{{ item.rate }}', '{{ g.manpower_cost }}', '{{ g.location }}', '{{ g.wo_no }}', '{{ g.supplier|default:'' }}', '{{ item.remarks|escapejs }}')" style="background:none; border:none; color:#6366f1; font-size:0.7rem; font-weight:700; cursor:pointer; padding:2px 0 0 0; margin-top:2px;" title="Edit this part entry">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Metadata details -->
+            <div style="background:var(--card-bg); padding:10px 12px; border-radius:8px; font-size:0.8rem; display:flex; flex-direction:column; gap:6px; border:1px solid var(--border);">
+                {% if g.transaction_type == 'OUT' %}
+                <div style="display:flex; align-items:center; gap:8px;"><i class="fas fa-truck" style="color:var(--primary); width:16px; text-align:center;"></i> <strong>Vehicle:</strong> <span style="font-weight:700; color:var(--primary);">{{ g.vehicle.regn|default:"-" }}</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><i class="fas fa-map-marker-alt" style="color:#ef4444; width:16px; text-align:center;"></i> <strong>Location:</strong> <span>{{ g.location }}</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><i class="fas fa-file-invoice" style="color:#f59e0b; width:16px; text-align:center;"></i> <strong>WO NO:</strong> <span>{{ g.wo_no }}</span></div>
+                {% else %}
+                <div style="display:flex; align-items:center; gap:8px;"><i class="fas fa-handshake" style="color:#10b981; width:16px; text-align:center;"></i> <strong>Supplier:</strong> <span>{{ g.supplier|default:"-" }}</span></div>
+                {% endif %}
+                
+                <div class="card-status-container" style="display:flex; align-items:center; gap:8px;">
+                    {% if g.is_approved %}
+                    <i class="fas fa-check-circle" style="color:#10b981; width:16px; text-align:center;"></i> <strong>Status:</strong> <span style="color:#10b981; font-weight:700;">Approved</span>
+                    {% else %}
+                    <i class="fas fa-hourglass-half" style="color:#f59e0b; width:16px; text-align:center;"></i> <strong>Status:</strong> <span style="color:#f59e0b; font-weight:700;">Pending Approval</span>
+                    {% endif %}
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-user-edit" style="color:#6366f1; width:16px; text-align:center;"></i>
+                    <strong>Entered By:</strong>
+                    <span>{% if g.entered_by %}{{ g.entered_by.full_name|default:g.entered_by.username }}{% else %}System{% endif %}</span>
+                </div>
+            </div>
+            
+            <!-- Bottom prices info -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:8px; margin-top:auto;">
+                <div>
+                    <div style="font-size:0.72rem; color:var(--sidebar-text);">Total Items</div>
+                    <div style="font-weight:800; font-size:1rem; color:var(--text-color);">{{ g.items_count }} Part{% if g.items_count > 1 %}s{% endif %}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.72rem; color:var(--sidebar-text);">Total Amount</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:var(--primary);">Nu. {{ g.total_amount_formatted }}</div>
+                </div>
+            </div>
+            
+            <!-- Card Actions -->
+            <div style="display:flex; gap:6px; border-top:1px solid var(--border); padding-top:8px; margin-top:4px;">
+                {% if not g.is_approved and is_manager %}
+                <button onclick="approveBatch('{{ g.all_ids }}', this)" class="btn" style="flex:1; background:#10b981; color:white; padding:7px; font-size:0.75rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;">Approve Batch</button>
+                {% endif %}
+                <button onclick="openEditModal('{{ g.first_id }}', '{{ g.date|date:'Y-m-d' }}', '{{ g.items.0.quantity }}', '{{ g.items.0.rate }}', '{{ g.manpower_cost }}', '{{ g.location }}', '{{ g.wo_no }}', '{{ g.supplier|default:'' }}', '{{ g.items.0.remarks|escapejs }}')" class="btn" style="flex:1; background:rgba(99,102,241,0.1); color:#6366f1; padding:7px; font-size:0.75rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;">Edit</button>
+                <button onclick="deleteBatch('{{ g.all_ids }}')" class="btn" style="flex:1; background:rgba(239,68,68,0.1); color:#ef4444; padding:7px; font-size:0.75rem; font-weight:700; border-radius:6px; border:none; cursor:pointer;">Delete Batch</button>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1/-1; text-align:center; padding:40px; color:var(--sidebar-text);">No transactions found.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div id="addTransactionModal" class="sp-modal">
+    <div class="sp-modal-box" style="max-width:850px; width:95%;">
+        <div class="sp-modal-header">
+            <h3 style="margin:0; font-size:1.2rem; color:var(--text-color);">Add Stock Transaction</h3>
+            <button type="button" onclick="closeModal('addTransactionModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="sp-modal-body">
+            <form id="addTransactionForm" onsubmit="submitTransaction(event)" novalidate>
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="full">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Transaction Type *</label>
+                        <select name="transaction_type" class="filter-select" style="width:100%; font-weight:700;" required onchange="toggleTypeFields(this.value)">
+                            <option value="OUT">📤 Stock OUT (Issue to Vehicle)</option>
+                            <option value="IN">📥 Stock IN (Receive from Supplier)</option>
+                        </select>
+                    </div>
+                    <div class="full">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Date *</label>
+                        <input type="date" name="date" class="filter-input" style="width:100%;" required>
+                    </div>
+                    
+                    <!-- OUT ONLY FIELDS: Vehicle, Location, WO NO -->
+                    <div class="out-only full" style="margin-bottom: 5px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <label style="margin-bottom:0; font-size:0.85rem; font-weight:600; color:var(--sidebar-text);">Select Vehicle (REG NO) *</label>
+                            <button type="button" id="sp_veh_toggle_btn" onclick="toggleSpareVehicleMode()" style="font-size:0.75rem; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.25); cursor:pointer; font-weight:700;">✨ + New Vehicle</button>
+                        </div>
+                        <div id="sp_veh_select_wrap">
+                            <select name="vehicle_id" id="form_vehicle_id" class="filter-select select2" style="width:100%;" onchange="if(this.value==='__NEW__'){toggleSpareVehicleMode();}else{autoFillVehicleData(this.value);}">
+                                <option value="">-- Search Vehicle --</option>
+                                <option value="__NEW__" style="color:#6366f1; font-weight:bold;">➕ + Type New / Custom Vehicle...</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}" data-reg="{{ v.regn }}">{{ v.regn }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="sp_veh_custom_wrap" style="display:none;">
+                            <input type="text" name="vehicle_regn" id="form_vehicle_custom" class="filter-input" style="width:100%;" placeholder="Type new Vehicle Reg No (e.g. BD-01A-1234)..." oninput="autoFillVehicleData(this.value)">
+                        </div>
+                    </div>
+                    <div class="out-only">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Location</label>
+                        <input type="text" name="location" id="form_location" class="filter-input" style="width:100%;">
+                    </div>
+                    <div class="out-only">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">WO NO</label>
+                        <input type="text" name="wo_no" id="form_wo_no" class="filter-input" style="width:100%;">
+                    </div>
+
+                    <!-- SUPPLIER/VENDOR FIELDS (Both IN and OUT) -->
+                    <div class="full" style="margin-bottom: 5px;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Supplier / Vendor *</label>
+                        <select id="form_supplier_select" class="filter-select select2" style="width:100%;" onchange="toggleSupplierInput(this.value)">
+                            <option value="">-- Search/Select Supplier / Vendor --</option>
+                            <option value="__NEW__">+ Add New Supplier / Vendor</option>
+                            {% for s in suppliers %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="new_supplier_wrapper" class="full" style="display:none; margin-bottom: 5px;">
+                        <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Enter New Supplier / Vendor Name *</label>
+                        <input type="text" name="supplier" id="form_supplier" class="filter-input" style="width:100%;">
+                    </div>
+                    
+                    <div class="out-only full">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Manpower Cost (Nu.)</label>
+                        <input type="number" step="0.01" name="manpower_cost" autocomplete="off" value="0" class="filter-input" style="width:100%;" oninput="calculateModalTotal()">
+                    </div>
+
+                    <!-- CLEAN PARTS OPTIONS TEMPLATE (NEVER INITIALIZED WITH SELECT2 DIRECTLY) -->
+                    <select id="sp_clean_parts_options" style="display:none;">
+                        <option value="">&#8212; Search & select from inventory (optional) &#8212;</option>
+                        {% for p in parts %}
+                        <option value="{{ p.id }}" data-num="{{ p.part_number }}" data-name="{{ p.part_name }}" data-rate="{{ p.valuation_rate|default:'0.00' }}" data-reorder="{{ p.reorder_level|default:'5' }}">{{ p.part_number }} &#8212; {{ p.part_name }} (Stock: {{ p.current_stock }})</option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- DYNAMIC MULTI-PART ITEMS SECTION -->
+                    <div class="full" style="margin-top: 10px; border-top: 2px dashed var(--border); padding-top: 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-size:0.88rem; font-weight:700; color:var(--text-color); display:flex; align-items:center; gap:7px;">
+                                <i class="fas fa-boxes" style="color:var(--primary);"></i>
+                                Parts to Issue / Receive
+                                <span id="sp_part_count_badge" style="background:rgba(99,102,241,0.12); color:#6366f1; font-size:0.7rem; padding:2px 8px; border-radius:20px; font-weight:700;">1 part</span>
+                            </span>
+                            <button type="button" onclick="addPartRow()" style="background:var(--primary); color:white; border:none; font-size:0.78rem; font-weight:700; padding:6px 14px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                                <i class="fas fa-plus"></i> Add Part
+                            </button>
+                        </div>
+
+                        <div id="sp_part_rows_container" style="display:flex; flex-direction:column; gap:8px;">
+                            <!-- Part 1 -->
+                            <div class="sp-item-row" style="border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                                <div style="background:var(--bg-color); padding:5px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+                                    <span class="sp-item-label" style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Part #1</span>
+                                    <button type="button" onclick="removePartRow(this)" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.75rem; font-weight:700; padding:2px 5px; display:flex; align-items:center; gap:3px;">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
+                                <div style="padding:10px; display:flex; flex-direction:column; gap:7px;">
+                                    <div>
+                                        <select name="part_id[]" class="filter-select part-select-input" style="width:100%;">
+                                            <option value="">&#8212; Search & select from inventory (optional) &#8212;</option>
+                                            {% for p in parts %}
+                                            <option value="{{ p.id }}" data-num="{{ p.part_number }}" data-name="{{ p.part_name }}" data-rate="{{ p.valuation_rate|default:'0.00' }}" data-reorder="{{ p.reorder_level|default:'5' }}">{{ p.part_number }} &#8212; {{ p.part_name }} (Stock: {{ p.current_stock }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+                                        <input type="text" name="part_name[]" class="filter-input part-name-input" placeholder="Part Name *" style="width:100%; font-size:0.82rem;" required>
+                                        <input type="text" name="part_number[]" class="filter-input part-num-input" placeholder="SKU / Part No *" style="width:100%; font-size:0.82rem;" required>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+                                        <input type="number" name="quantity[]" min="1" class="filter-input part-qty-input" placeholder="Quantity *" style="width:100%; font-size:0.82rem; font-weight:700;" required oninput="calculateModalTotal()">
+                                        <input type="number" step="0.01" name="rate[]" class="filter-input part-rate-input" placeholder="Rate (Nu.) *" style="width:100%; font-size:0.82rem; font-weight:700;" required oninput="calculateModalTotal()">
+                                    </div>
+                                </div>
+                                <input type="hidden" name="reorder_level[]" value="5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculated Total Amount -->
+                    <div class="full" style="background:var(--bg-subtle); padding:12px; border-radius:8px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:var(--sidebar-text);">Estimated Total:</span>
+                        <span style="font-size:1.3rem; font-weight:800; color:var(--primary);">Nu. <span id="modal_total_amount">0.00</span></span>
+                    </div>
+                </div>
+                
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeModal('addTransactionModal')" class="btn" style="background:var(--bg-color); color:var(--text-color); border:1px solid var(--border);">Cancel</button>
+                    <button type="submit" class="btn" style="background:var(--primary); color:white; border:none; padding:8px 24px; font-weight:700;">Save Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const vehicleMapping = {{ vehicle_mappings_json|safe }};
+let currentStatsFilter = 'ALL';
+
+$(document).ready(function() {
+    // Set default date
+    document.querySelector('input[name="date"]').value = new Date().toISOString().split('T')[0];
+
+    // Bind instant live-filtering events
+    $('#globalSearch').on('keyup', applyLiveFilters);
+    $('input[name="start_date"], input[name="end_date"]').on('change', applyLiveFilters);
+    $('select[name="transaction_type"]').on('change', function() {
+        currentStatsFilter = 'ALL';
+        applyLiveFilters();
+    });
+    
+    // Bind modal total calculation events
+    $(document).on('input', 'input[name="quantity"], input[name="rate"], input[name="manpower_cost"]', calculateModalTotal);
+    
+    // Bind WO No auto-select vehicle
+    $(document).on('change input', '#form_wo_no', function() {
+        const val = $(this).val().trim();
+        if (!val) return;
+        for (let vid in vehicleMapping) {
+            if ((vehicleMapping[vid].wo_no || '').toLowerCase() === val.toLowerCase()) {
+                $('#form_vehicle_id').val(vid).trigger('change.select2');
+                if (vehicleMapping[vid].location) {
+                    $('#form_location').val(vehicleMapping[vid].location);
+                }
+            }
+        }
+    });
+    
+    $('#filter_vendor').select2({
+        placeholder: '-- All Vendors / Suppliers --',
+        allowClear: true
+    });
+});
+
+function toggleSpareVehicleMode() {
+    const selectWrap = document.getElementById('sp_veh_select_wrap');
+    const customWrap = document.getElementById('sp_veh_custom_wrap');
+    const toggleBtn = document.getElementById('sp_veh_toggle_btn');
+    const customInput = document.getElementById('form_vehicle_custom');
+    
+    if (selectWrap.style.display !== 'none') {
+        selectWrap.style.display = 'none';
+        customWrap.style.display = 'block';
+        customInput.required = true;
+        customInput.focus();
+        toggleBtn.innerHTML = '📋 Choose from List';
+        toggleBtn.style.background = 'rgba(16,185,129,0.1)';
+        toggleBtn.style.color = '#10b981';
+        toggleBtn.style.borderColor = 'rgba(16,185,129,0.25)';
+    } else {
+        selectWrap.style.display = 'block';
+        customWrap.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+        toggleBtn.innerHTML = '✨ + New Vehicle';
+        toggleBtn.style.background = 'rgba(99,102,241,0.1)';
+        toggleBtn.style.color = '#6366f1';
+        toggleBtn.style.borderColor = 'rgba(99,102,241,0.25)';
+    }
+}
+
+function openModal(id) {
+    document.getElementById(id).style.display = 'flex';
+    if (id === 'addTransactionModal') {
+        $('#form_vehicle_id').select2({
+            dropdownParent: $('#addTransactionModal'),
+            width: '100%',
+            tags: true,
+            placeholder: '-- Search or Type Vehicle Reg No --'
+        });
+        $('#part_id, #form_supplier_select').select2({
+            dropdownParent: $('#addTransactionModal'),
+            width: '100%'
+        });
+        // Initialize select2 on all part rows in container
+        initAllPartSelects();
+    } else if (id === 'exportModal') {
+        $('#export_vehicle_id, #export_part_id, #export_vendor_name').select2({
+            dropdownParent: $('#exportModal'),
+            width: '100%'
+        });
+    }
+}
+
+function initAllPartSelects() {
+    $('#sp_part_rows_container .sp-item-row').each(function() {
+        initSinglePartSelect(this);
+    });
+}
+
+function initSinglePartSelect(cardEl) {
+    const $select = $(cardEl).find('.part-select-input');
+    if ($select.length) {
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
+        }
+        $select.select2({
+            dropdownParent: $('#addTransactionModal'),
+            width: '100%',
+            placeholder: '— Search & select from inventory (optional) —',
+            allowClear: true
+        });
+        $select.off('change.partfill').on('change.partfill', function() {
+            fillPartRowDetails(this);
+        });
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+function toggleSupplierInput(val) {
+    const wrapper = document.getElementById('new_supplier_wrapper');
+    const input = document.getElementById('form_supplier');
+    if (val === '__NEW__') {
+        wrapper.style.display = 'block';
+        input.value = '';
+        input.required = true;
+        input.focus();
+    } else {
+        wrapper.style.display = 'none';
+        input.value = val;
+        input.required = false;
+    }
+}
+
+function toggleMobileFilters() {
+    const coll = document.getElementById('collapsibleFilters');
+    const icon = document.getElementById('filterIcon');
+    const btn = document.getElementById('btnToggleMobile');
+    if (coll.classList.contains('show')) {
+        coll.classList.remove('show');
+        icon.className = 'fas fa-sliders-h';
+        btn.style.background = 'var(--bg-color)';
+        btn.style.color = 'var(--text-color)';
+    } else {
+        coll.classList.add('show');
+        icon.className = 'fas fa-times';
+        btn.style.background = 'var(--primary)';
+        btn.style.color = 'white';
+    }
+}
+
+function toggleTypeFields(val) {
+    const inFields = document.querySelectorAll('.in-only');
+    const outFields = document.querySelectorAll('.out-only');
+    if (val === 'IN') {
+        inFields.forEach(el => el.style.display = el.classList.contains('full') ? 'grid' : 'block');
+        outFields.forEach(el => el.style.display = 'none');
+    } else {
+        inFields.forEach(el => el.style.display = 'none');
+        outFields.forEach(el => el.style.display = el.classList.contains('full') ? 'grid' : 'block');
+    }
+}
+
+function toggleStatsSection() {
+    const grid = document.querySelector('.sp-stats-grid');
+    const txt = document.getElementById('toggleStatsText');
+    if (grid.classList.contains('show')) {
+        grid.classList.remove('show');
+        txt.innerText = 'Show Stats Summary';
+    } else {
+        grid.classList.add('show');
+        txt.innerText = 'Hide Stats Summary';
+    }
+}
+
+function fillPartRowDetails(selectEl) {
+    // All inputs are inside the same .sp-item-row card
+    const card = selectEl.closest('.sp-item-row');
+    if (!card) return;
+    
+    const $selectedOpt = $(selectEl).find('option:selected');
+    const opt = $selectedOpt.length ? $selectedOpt[0] : null;
+    
+    const numInput  = card.querySelector('.part-num-input');
+    const nameInput = card.querySelector('.part-name-input');
+    const rateInput = card.querySelector('.part-rate-input');
+    
+    if (opt && opt.value) {
+        const num = opt.getAttribute('data-num') || '';
+        const name = opt.getAttribute('data-name') || '';
+        const rate = opt.getAttribute('data-rate') || '0.00';
+        
+        if (numInput)  { numInput.value  = num; numInput.readOnly  = true; }
+        if (nameInput) { nameInput.value = name; nameInput.readOnly = true; }
+        if (rateInput && (!rateInput.value || parseFloat(rateInput.value) === 0)) {
+            rateInput.value = parseFloat(rate || 0).toFixed(2);
+        }
+    } else {
+        if (numInput)  { numInput.value  = ''; numInput.readOnly  = false; }
+        if (nameInput) { nameInput.value = ''; nameInput.readOnly = false; }
+    }
+    calculateModalTotal();
+}
+
+function calculateModalTotal() {
+    let itemsTotal = 0;
+    document.querySelectorAll('#sp_part_rows_container .sp-item-row').forEach(card => {
+        const qty  = parseFloat(card.querySelector('.part-qty-input')?.value  || 0);
+        const rate = parseFloat(card.querySelector('.part-rate-input')?.value || 0);
+        itemsTotal += qty * rate;
+    });
+    const mp = parseFloat($('input[name="manpower_cost"]').val() || 0);
+    const totEl = document.getElementById('modal_total_amount');
+    if (totEl) totEl.innerText = (itemsTotal + mp).toFixed(2);
+}
+
+function addPartRow() {
+    const container = document.getElementById('sp_part_rows_container');
+    if (!container) return;
+
+    // Get options ALWAYS from unpolluted clean hidden template
+    const cleanSelect = document.getElementById('sp_clean_parts_options');
+    const optionsHTML = cleanSelect ? cleanSelect.innerHTML : '<option value="">&#8212; Search &amp; select from inventory (optional) &#8212;</option>';
+    const rowNum = container.querySelectorAll('.sp-item-row').length + 1;
+
+    const card = document.createElement('div');
+    card.className = 'sp-item-row';
+    card.style.cssText = 'border:1px solid var(--border); border-radius:8px; overflow:hidden;';
+    card.innerHTML = `
+        <div style="background:var(--bg-color); padding:5px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+            <span class="sp-item-label" style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Part #${rowNum}</span>
+            <button type="button" onclick="removePartRow(this)" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.75rem; font-weight:700; padding:2px 5px; display:flex; align-items:center; gap:3px;">
+                <i class="fas fa-times"></i> Remove
+            </button>
+        </div>
+        <div style="padding:10px; display:flex; flex-direction:column; gap:7px;">
+            <div>
+                <select name="part_id[]" class="filter-select part-select-input" style="width:100%;">
+                    ${optionsHTML}
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+                <input type="text" name="part_name[]" class="filter-input part-name-input" placeholder="Part Name *" style="width:100%; font-size:0.82rem;" required>
+                <input type="text" name="part_number[]" class="filter-input part-num-input" placeholder="SKU / Part No *" style="width:100%; font-size:0.82rem;" required>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+                <input type="number" name="quantity[]" min="1" class="filter-input part-qty-input" placeholder="Quantity *" style="width:100%; font-size:0.82rem; font-weight:700;" required oninput="calculateModalTotal()">
+                <input type="number" step="0.01" name="rate[]" class="filter-input part-rate-input" placeholder="Rate (Nu.) *" style="width:100%; font-size:0.82rem; font-weight:700;" required oninput="calculateModalTotal()">
+            </div>
+        </div>
+        <input type="hidden" name="reorder_level[]" value="5">
+    `;
+
+    container.appendChild(card);
+    initSinglePartSelect(card);
+    updatePartCountBadge();
+    calculateModalTotal();
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function removePartRow(btn) {
+    const container = document.getElementById('sp_part_rows_container');
+    const cards = container ? container.querySelectorAll('.sp-item-row') : [];
+    if (cards.length > 1) {
+        const card = btn.closest('.sp-item-row');
+        $(card).find('.part-select-input').select2('destroy');
+        card.remove();
+        
+        // Re-number remaining cards
+        container.querySelectorAll('.sp-item-label').forEach((lbl, idx) => {
+            lbl.innerText = `Part #${idx + 1}`;
+        });
+        updatePartCountBadge();
+        calculateModalTotal();
+    } else {
+        alert('At least one part is required.');
+    }
+}
+
+function updatePartCountBadge() {
+    const container = document.getElementById('sp_part_rows_container');
+    const count = container ? container.querySelectorAll('.sp-item-row').length : 0;
+    const badge = document.getElementById('sp_part_count_badge');
+    if (badge) badge.innerText = count === 1 ? '1 part' : `${count} parts`;
+}
+
+function submitTransaction(e) {
+    if (e) e.preventDefault();
+    const form = document.getElementById('addTransactionForm');
+    
+    const requiredFields = form.querySelectorAll('[required]');
+    for (let field of requiredFields) {
+        if ($(field).is(':visible') && (!field.value || !field.value.trim())) {
+            alert('Please fill out all required fields marked with *');
+            field.focus();
+            return;
+        }
+    }
+    
+    const formData = new FormData(form);
+    
+    fetch("{% url 'fleet:api_add_spare_part_transaction' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": formData.get("csrfmiddlewaretoken")
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    })
+    .catch(err => alert("Server Error"));
+}
+
+function autoFillVehicleData(vehicleId) {
+    if (!vehicleId) {
+        document.getElementById('form_location').value = '';
+        document.getElementById('form_wo_no').value = '';
+        return;
+    }
+    
+    function cleanStr(s) {
+        return (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+    
+    const targetClean = cleanStr(vehicleId);
+    let matchedData = vehicleMapping[vehicleId];
+    
+    if (!matchedData) {
+        for (let vid in vehicleMapping) {
+            if (cleanStr(vehicleMapping[vid].regn) === targetClean || cleanStr(vehicleMapping[vid].dno) === targetClean) {
+                matchedData = vehicleMapping[vid];
+                break;
+            }
+        }
+    }
+    
+    function applyData(loc, wo, vendor) {
+        if (loc && !document.getElementById('form_location').value.trim()) {
+            document.getElementById('form_location').value = loc;
+        }
+        if (wo && !document.getElementById('form_wo_no').value.trim()) {
+            document.getElementById('form_wo_no').value = wo;
+        }
+        if (vendor) {
+            const selectEl = document.getElementById('form_supplier_select');
+            let found = false;
+            for (let i = 0; i < selectEl.options.length; i++) {
+                if (selectEl.options[i].value.toLowerCase() === vendor.toLowerCase()) {
+                    found = true;
+                    $(selectEl).val(selectEl.options[i].value).trigger('change');
+                    break;
+                }
+            }
+            if (!found) {
+                $(selectEl).val('__NEW__').trigger('change');
+                document.getElementById('form_supplier').value = vendor;
+            }
+        }
+    }
+    
+    if (matchedData) {
+        applyData(matchedData.location || 'Gelephu', matchedData.wo_no || '', matchedData.vendor_name || '');
+    } else {
+        // Fetch dynamically from server
+        fetch('/deployment/vehicle-lookup/?regn=' + encodeURIComponent(vehicleId))
+            .then(r => r.json())
+            .then(d => {
+                if (d.found) {
+                    applyData('Gelephu', d.work_order_no || '', d.vendor || '');
+                }
+            })
+            .catch(() => {});
+    }
+}
+
+function triggerStatsFilter(mode) {
+    currentStatsFilter = mode;
+    if (mode === 'IN' || mode === 'OUT') {
+        $('select[name="transaction_type"]').val(mode);
+    } else {
+        $('select[name="transaction_type"]').val('');
+    }
+    applyLiveFilters();
+}
+
+function applyLiveFilters() {
+    const q = $('#globalSearch').val().toLowerCase();
+    const startDate = $('input[name="start_date"]').val();
+    const endDate = $('input[name="end_date"]').val();
+    const type = $('select[name="transaction_type"]').val();
+    const vendor = $('#filter_vendor').val();
+    
+    $('.searchable-row').each(function() {
+        const row = $(this);
+        const rText = row.text().toLowerCase();
+        const rDate = row.attr('data-date');
+        const rType = row.attr('data-type');
+        const rLow = row.attr('data-lowstock');
+        const rSupplier = row.attr('data-supplier') || '';
+        
+        const matchQ = !q || rText.includes(q);
+        const matchDate = (!startDate || rDate >= startDate) && (!endDate || rDate <= endDate);
+        const matchType = !type || rType === type;
+        const matchLow = (currentStatsFilter !== 'LOWSTOCK') || (rLow === 'true');
+        const matchVendor = !vendor || rSupplier === vendor;
+        
+        if (matchQ && matchDate && matchType && matchLow && matchVendor) {
+            // Use flex for cards, table-row for table rows
+            const display = row.hasClass('sp-card') ? 'flex' : '';
+            row.css('display', display);
+        } else {
+            row.css('display', 'none');
+        }
+    });
+    
+    recalculateStats();
+}
+
+function recalculateStats() {
+    let totalLogs = 0;
+    let totalIn = 0;
+    let totalOut = 0;
+    let totalVal = 0;
+    let lowStock = 0;
+    
+    $('#partsListContainer tbody tr.searchable-row').each(function() {
+        const row = $(this);
+        if (row[0] && row[0].style.display !== 'none') {
+            totalLogs++;
+            const type = row.attr('data-type');
+            
+            const qtyStr = row.find('td').eq(6).text().trim();
+            const qty = parseFloat(qtyStr) || 0;
+            
+            const totalStr = row.find('td').eq(9).text().replace(/[^\d.]/g, '');
+            const total = parseFloat(totalStr) || 0;
+            
+            if (type === 'IN') {
+                totalIn += qty;
+            } else if (type === 'OUT') {
+                totalOut += qty;
+            }
+            totalVal += total;
+            
+            if (row.attr('data-lowstock') === 'true') {
+                lowStock++;
+            }
+        }
+    });
+    
+    $('#stat_total_logs').text(totalLogs);
+    $('#stat_total_in').text(totalIn);
+    $('#stat_total_out').text(totalOut);
+    $('#stat_total_value').text('Nu. ' + totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    $('#stat_low_stock').text(lowStock);
+}
+
+function toggleAllColumns(checked) {
+    document.querySelectorAll('.col-export-check').forEach(cb => {
+        cb.checked = checked;
+    });
+}
+
+function openExportModal() {
+    document.getElementById('export_start_date').value = $('input[name="start_date"]').val() || '';
+    document.getElementById('export_end_date').value = $('input[name="end_date"]').val() || '';
+    
+    const currentVendor = $('#filter_vendor').val() || '';
+    $('#export_vendor_name').val(currentVendor).trigger('change');
+    
+    document.getElementById('export_transaction_type').value = $('select[name="transaction_type"]').val() || '';
+    document.getElementById('export_q').value = $('#globalSearch').val() || '';
+    
+    openModal('exportModal');
+}
+
+function triggerExport() {
+    const fmt = document.getElementById('export_format').value;
+    const start = document.getElementById('export_start_date').value;
+    const end = document.getElementById('export_end_date').value;
+    const vendor = $('#export_vendor_name').val() || '';
+    const type = document.getElementById('export_transaction_type').value;
+    const q = document.getElementById('export_q').value;
+    const vehicle = $('#export_vehicle_id').val() || '';
+    const part = $('#export_part_id').val() || '';
+    
+    // Get column checkboxes
+    const checkedCols = [];
+    document.querySelectorAll('.col-export-check:checked').forEach(cb => {
+        checkedCols.push(cb.value);
+    });
+    const columnsStr = checkedCols.join(',');
+    
+    const baseUrl = (fmt === 'PDF') ? "/fleet/api/spare-parts/export-pdf/" : "/fleet/api/spare-parts/export/";
+    const params = `?start_date=${start}&end_date=${end}&transaction_type=${type}&vehicle_id=${vehicle}&part_id=${part}&vendor_name=${encodeURIComponent(vendor)}&q=${encodeURIComponent(q)}&columns=${columnsStr}`;
+    
+    window.open(baseUrl + params, '_blank');
+    closeModal('exportModal');
+}
+
+function switchPartsView(mode) {
+    if (mode === 'card') {
+        $('#partsListContainer').hide();
+        $('#partsCardContainer').show();
+        $('#btnViewCard').css({ background: 'var(--primary)', color: 'white', border: 'none' });
+        $('#btnViewList').css({ background: 'var(--bg-color)', color: 'var(--text-color)', border: '1px solid var(--border)' });
+    } else {
+        $('#partsListContainer').show();
+        $('#partsCardContainer').hide();
+        $('#btnViewList').css({ background: 'var(--primary)', color: 'white', border: 'none' });
+        $('#btnViewCard').css({ background: 'var(--bg-color)', color: 'var(--text-color)', border: '1px solid var(--border)' });
+    }
+}
+</script>
+
+
+
+<!-- Edit Transaction Modal -->
+<div id="editTransactionModal" class="sp-modal" style="display:none;">
+    <div class="sp-modal-box" style="max-width:500px;">
+        <div class="sp-modal-header">
+            <h3 style="margin:0; font-size:1.2rem; color:var(--text-color);">✏️ Edit Transaction</h3>
+            <button type="button" onclick="closeModal('editTransactionModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="sp-modal-body">
+            <form id="editTransactionForm" onsubmit="submitEdit(event)">
+                {% csrf_token %}
+                <input type="hidden" id="edit_tx_id">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Date</label>
+                        <input type="date" id="edit_date" name="date" class="filter-input" style="width:100%;" required>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Quantity</label>
+                        <input type="number" id="edit_qty" name="quantity" class="filter-input" style="width:100%;" min="1" required>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Rate (Nu. /unit)</label>
+                        <input type="number" id="edit_rate" name="rate" class="filter-input" style="width:100%;" step="0.01" min="0">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Manpower Cost (Nu. )</label>
+                        <input type="number" id="edit_mp" name="manpower_cost" class="filter-input" style="width:100%;" step="0.01" min="0">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Location</label>
+                        <input type="text" id="edit_location" name="location" class="filter-input" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">WO No</label>
+                        <input type="text" id="edit_wo_no" name="wo_no" class="filter-input" style="width:100%;">
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Supplier</label>
+                    <input type="text" id="edit_supplier" name="supplier" class="filter-input" style="width:100%;">
+                </div>
+                <div style="margin-top:12px;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Remarks</label>
+                    <textarea id="edit_remarks" name="remarks" class="filter-input" rows="2" style="width:100%; resize:vertical;"></textarea>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                    <button type="button" onclick="closeModal('editTransactionModal')" class="btn" style="flex:1; background:var(--bg-color); border:1px solid var(--border); color:var(--text-color);">Cancel</button>
+                    <button type="submit" class="btn" style="flex:2; background:var(--primary); color:white; border:none; font-weight:700;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '{{ csrf_token }}';
+}
+
+// Event delegation for edit buttons (data-attribute approach avoids quote escaping)
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.addEventListener('click', function(e) {
+        const btn = e.target.closest('.sp-edit-btn');
+        if (!btn) return;
+        const d = btn.dataset;
+        openEditModal(d.id, d.date, d.qty, d.rate, d.mp, d.location, d.wo, d.supplier, d.remarks);
+    });
+});
+
+function approveTransaction(txId, btn) {
+    if (!confirm('Approve this entry?')) return;
+    // Temporarily pause auto-notification polling to avoid toast appearing
+    const originalPollFn = window.pollNotifications;
+    window.pollNotifications = null;
+    
+    fetch(`/fleet/api/spare-parts/approve/${txId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        window.pollNotifications = originalPollFn;
+        if (data.success) {
+            const row = btn.closest('tr') || btn.closest('.sp-card');
+            if (row) {
+                // Update STATUS cell (2nd last td in row)
+                const tds = row.querySelectorAll('td');
+                const statusCell = tds.length > 1 ? tds[tds.length - 2] : null;
+                if (statusCell) {
+                    statusCell.innerHTML = `<span style="background:rgba(16,185,129,0.12); color:#10b981; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-block; white-space:nowrap;">✓ Approved<br><span style="font-size:0.65rem; font-weight:normal; opacity:0.85;">by ${data.approved_by}</span></span>`;
+                }
+                
+                // Update Card STATUS container
+                const cardStatus = row.querySelector('.card-status-container');
+                if (cardStatus) {
+                    cardStatus.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981; width:16px; text-align:center;"></i> <strong>Status:</strong> <span style="color:#10b981; font-weight:700;">Approved (by ${data.approved_by})</span>`;
+                }
+                
+                btn.style.display = 'none';
+            }
+            // Show inline success message instead of toast
+            const msg = document.createElement('div');
+            msg.textContent = '✓ Approved successfully!';
+            msg.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:10px 20px;border-radius:8px;z-index:9999;font-weight:700;font-size:0.9rem;';
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 2500);
+        } else {
+            alert('Error: ' + (data.message || 'Could not approve'));
+        }
+    })
+    .catch(() => { window.pollNotifications = originalPollFn; alert('Server error. Please try again.'); });
+}
+
+function deleteTransaction(txId) {
+    if (!confirm('Delete this entry? This will revert the stock change.')) return;
+    fetch(`/fleet/api/spare-parts/delete/${txId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Could not delete'));
+        }
+    })
+    .catch(() => alert('Server error. Please try again.'));
+}
+
+function approveBatch(idsStr, btn) {
+    if (!confirm('Approve all parts in this entry batch?')) return;
+    const ids = idsStr.split(',').filter(Boolean);
+    if (!ids.length) return;
+    
+    btn.disabled = true;
+    btn.textContent = 'Approving...';
+    
+    Promise.all(ids.map(txId => {
+        return fetch(`/fleet/api/spare-parts/approve/${txId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' }
+        }).then(r => r.json());
+    }))
+    .then(results => {
+        window.location.reload();
+    })
+    .catch(() => {
+        alert('Server error approving batch.');
+        btn.disabled = false;
+        btn.textContent = 'Approve Batch';
+    });
+}
+
+function deleteBatch(idsStr) {
+    if (!confirm('Are you sure you want to delete this entire entry batch? Stock changes for all parts in this entry will be reverted.')) return;
+    const ids = idsStr.split(',').filter(Boolean);
+    if (!ids.length) return;
+    
+    Promise.all(ids.map(txId => {
+        return fetch(`/fleet/api/spare-parts/delete/${txId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        }).then(r => r.json());
+    }))
+    .then(results => {
+        window.location.reload();
+    })
+    .catch(() => alert('Server error deleting batch.'));
+}
+
+function openEditModal(txId, date, qty, rate, mp, location, wo_no, supplier, remarks) {
+    document.getElementById('edit_tx_id').value = txId;
+    document.getElementById('edit_date').value = date;
+    document.getElementById('edit_qty').value = qty;
+    document.getElementById('edit_rate').value = rate;
+    document.getElementById('edit_mp').value = mp;
+    document.getElementById('edit_location').value = location;
+    document.getElementById('edit_wo_no').value = wo_no;
+    document.getElementById('edit_supplier').value = supplier;
+    document.getElementById('edit_remarks').value = remarks;
+    openModal('editTransactionModal');
+}
+
+function submitEdit(e) {
+    e.preventDefault();
+    const txId = document.getElementById('edit_tx_id').value;
+    const formData = new FormData(document.getElementById('editTransactionForm'));
+    
+    fetch(`/fleet/api/spare-parts/edit/${txId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Could not edit'));
+        }
+    })
+    .catch(() => alert('Server error. Please try again.'));
+}
+</script>
+
+{% endblock %}

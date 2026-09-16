@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}👨‍🍳 Mess Kitchen Control - Cook Portal{% endblock %}
+
+{% block content %}
+<style>
+    @media (max-width: 640px) {
+        .kitchen-container { padding: 10px; }
+        .meal-card { padding: 16px; }
+        .header-wrap { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+        .header-btn-group { width: 100%; display: flex; flex-direction: column; gap: 6px !important; }
+        .header-btn-group a { width: 100%; text-align: center; justify-content: center; }
+        .status-btn-grid { grid-template-columns: 1fr !important; }
+        .announcement-wrap { flex-direction: column; }
+        .announcement-wrap button { width: 100%; }
+    }
+    
+    .meal-card {
+        background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;
+        padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    }
+    
+    .status-btn {
+        border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 0.95rem;
+        cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        color: white; width: 100%;
+    }
+    .status-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .status-btn.active { ring: 3px solid #6366f1; border-color: #312e81; font-size: 1.05rem; }
+    
+    .btn-ready { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-ready5 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .btn-preparing { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .btn-closed { background: linear-gradient(135deg, #64748b, #334155); }
+
+    .toast-msg {
+        position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
+        padding: 14px 24px; border-radius: 12px; font-weight: 700; font-size: 0.95rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 9999;
+    }
+</style>
+
+<div class="kitchen-container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0;">👨‍🍳 Mess Kitchen Control Portal</h1>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.9rem;">Update Live Food Readiness, Custom Announcements &amp; Today's Menu</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <a href="{% url 'mess_user_view' %}" class="btn" style="background: #f1f5f9; color: #334155; font-weight: 700; border-radius: 10px; padding: 8px 16px; text-decoration: none; font-size: 0.85rem; border: 1px solid #cbd5e1;">
+                👤 View User Portal
+            </a>
+            {% if is_manager %}
+            <a href="{% url 'mess_monitor_view' %}" class="btn" style="background: #9333ea; color: white; font-weight: 700; border-radius: 10px; padding: 8px 16px; text-decoration: none; font-size: 0.85rem;">
+                ⚙️ Manager Monitor
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div style="background: #fff7ed; border: 1px solid #ffedd5; border-radius: 14px; padding: 16px; text-align: center;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #c2410c;">🌅 Breakfast Served Today</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #ea580c; margin-top: 4px;">{{ bf_count }}</div>
+        </div>
+        <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 14px; padding: 16px; text-align: center;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #15803d;">☀️ Lunch Served Today</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #16a34a; margin-top: 4px;">{{ lunch_count }}</div>
+        </div>
+        <div style="background: #faf5ff; border: 1px solid #f3e8ff; border-radius: 14px; padding: 16px; text-align: center;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #7e22ce;">🌙 Dinner Served Today</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #9333ea; margin-top: 4px;">{{ dinner_count }}</div>
+        </div>
+    </div>
+
+    <!-- Meal Status Update Controls -->
+    <div class="meal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">⚡ Live Food Status Controls</h2>
+            <span style="font-size: 0.85rem; background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                Current Meal: {{ active_meal }}
+            </span>
+        </div>
+
+        <!-- Meal Selection Tabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button onclick="selectMealTab('BREAKFAST')" id="tab-BREAKFAST" class="btn" style="flex: 1; padding: 10px; font-weight: 700; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569;">
+                🌅 Breakfast
+            </button>
+            <button onclick="selectMealTab('LUNCH')" id="tab-LUNCH" class="btn" style="flex: 1; padding: 10px; font-weight: 700; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569;">
+                ☀️ Lunch
+            </button>
+            <button onclick="selectMealTab('DINNER')" id="tab-DINNER" class="btn" style="flex: 1; padding: 10px; font-weight: 700; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569;">
+                🌙 Dinner
+            </button>
+        </div>
+
+        <!-- Action Buttons for Selected Meal -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            <button onclick="updateFoodStatus('READY')" class="status-btn btn-ready">
+                🟢 Food is READY!
+            </button>
+            <button onclick="updateFoodStatus('READY_IN_5')" class="status-btn btn-ready5">
+                ⏰ Ready in 5 Mins!
+            </button>
+            <button onclick="updateFoodStatus('PREPARING')" class="status-btn btn-preparing">
+                ⏳ Preparing Food
+            </button>
+            <button onclick="updateFoodStatus('CLOSED')" class="status-btn btn-closed">
+                🔴 Kitchen Closed
+            </button>
+        </div>
+
+        <!-- Status Display Info -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <span style="font-size: 0.85rem; color: #64748b;">Selected Meal Status:</span>
+                <strong id="status-display-text" style="color: #0f172a; margin-left: 6px; font-size: 1rem;">-</strong>
+            </div>
+            <div style="font-size: 0.8rem; color: #94a3b8;">
+                Last Updated: <span id="status-updated-at">-</span> by <span id="status-updated-by">-</span>
+            </div>
+        </div>
+
+        <!-- Custom Chef Announcement Input -->
+        <div style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            <label style="font-weight: 700; font-size: 0.9rem; color: #334155; display: block; margin-bottom: 6px;">
+                📢 Custom Kitchen Notice / Special Item Announcement:
+            </label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="announcement-input" class="form-control" placeholder="e.g. Fresh Hot Gulab Jamun served at Counter 1! Or Extra Puri available." style="border-radius: 10px; font-size: 0.9rem;">
+                <button onclick="saveAnnouncement()" class="btn" style="background: #7e22ce; color: white; font-weight: 700; border-radius: 10px; padding: 8px 20px; white-space: nowrap;">
+                    📢 Broadcast Notice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Menu Editor -->
+    <div class="meal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">📋 Edit Today's Food Menu</h2>
+            <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">📅 {{ today_date|date:"d M Y" }}</span>
+        </div>
+
+        <form id="menu-form" onsubmit="saveMenu(event)">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 700; color: #c2410c; font-size: 0.85rem; display: block; margin-bottom: 4px;">🌅 Breakfast Menu</label>
+                    <textarea id="bf-menu" class="form-control" rows="3" style="border-radius: 10px; font-size: 0.9rem;" placeholder="e.g. Poha, Jalebi, Tea/Coffee">{{ menu.breakfast_menu|default:'' }}</textarea>
+                </div>
+                <div>
+                    <label style="font-weight: 700; color: #15803d; font-size: 0.85rem; display: block; margin-bottom: 4px;">☀️ Lunch Menu</label>
+                    <textarea id="lunch-menu" class="form-control" rows="3" style="border-radius: 10px; font-size: 0.9rem;" placeholder="e.g. Dal Tadka, Paneer Sabzi, Roti, Rice, Salad">{{ menu.lunch_menu|default:'' }}</textarea>
+                </div>
+                <div>
+                    <label style="font-weight: 700; color: #7e22ce; font-size: 0.85rem; display: block; margin-bottom: 4px;">🌙 Dinner Menu</label>
+                    <textarea id="dinner-menu" class="form-control" rows="3" style="border-radius: 10px; font-size: 0.9rem;" placeholder="e.g. Mix Veg, Dal Fry, Chapati, Kheer">{{ menu.dinner_menu|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn" style="background: #0284c7; color: white; font-weight: 700; border-radius: 10px; padding: 12px 24px; font-size: 0.95rem; width: 100%;">
+                💾 Save &amp; Update Today's Menu
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="toast" class="toast-msg"></div>
+
+<script>
+    let currentMeal = "{{ active_meal }}";
+    
+    const foodStatuses = {
+        'BREAKFAST': {
+            'status': '{{ bf_status.status }}',
+            'status_display': '{{ bf_status.get_status_display }}',
+            'announcement': '{{ bf_status.announcement|default:""|escapejs }}',
+            'updated_at': '{{ bf_status.updated_at|time:"H:i:s" }}',
+            'updated_by': '{% if bf_status.updated_by %}{{ bf_status.updated_by.get_full_name|default:bf_status.updated_by.username }}{% else %}Chef{% endif %}'
+        },
+        'LUNCH': {
+            'status': '{{ lunch_status.status }}',
+            'status_display': '{{ lunch_status.get_status_display }}',
+            'announcement': '{{ lunch_status.announcement|default:""|escapejs }}',
+            'updated_at': '{{ lunch_status.updated_at|time:"H:i:s" }}',
+            'updated_by': '{% if lunch_status.updated_by %}{{ lunch_status.updated_by.get_full_name|default:lunch_status.updated_by.username }}{% else %}Chef{% endif %}'
+        },
+        'DINNER': {
+            'status': '{{ dinner_status.status }}',
+            'status_display': '{{ dinner_status.get_status_display }}',
+            'announcement': '{{ dinner_status.announcement|default:""|escapejs }}',
+            'updated_at': '{{ dinner_status.updated_at|time:"H:i:s" }}',
+            'updated_by': '{% if dinner_status.updated_by %}{{ dinner_status.updated_by.get_full_name|default:dinner_status.updated_by.username }}{% else %}Chef{% endif %}'
+        }
+    };
+
+    function selectMealTab(meal) {
+        currentMeal = meal;
+        ['BREAKFAST', 'LUNCH', 'DINNER'].forEach(m => {
+            const btn = document.getElementById(`tab-${m}`);
+            if (m === meal) {
+                btn.style.background = '#6366f1';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#4338ca';
+            } else {
+                btn.style.background = '#f8fafc';
+                btn.style.color = '#475569';
+                btn.style.borderColor = '#cbd5e1';
+            }
+        });
+        
+        const data = foodStatuses[meal];
+        document.getElementById('status-display-text').innerText = data.status_display || data.status;
+        document.getElementById('status-updated-at').innerText = data.updated_at || '-';
+        document.getElementById('status-updated-by').innerText = data.updated_by || '-';
+        document.getElementById('announcement-input').value = data.announcement || '';
+    }
+
+    function showToast(msg, isSuccess = true) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.background = isSuccess ? '#059669' : '#dc2626';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    }
+
+    function updateFoodStatus(newStatus) {
+        const announcement = document.getElementById('announcement-input').value;
+        fetch("{% url 'api_update_food_status' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                meal_type: currentMeal,
+                status: newStatus,
+                announcement: announcement
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'SUCCESS') {
+                showToast(data.msg);
+                foodStatuses[currentMeal].status = newStatus;
+                foodStatuses[currentMeal].status_display = data.status_display || newStatus;
+                foodStatuses[currentMeal].updated_at = data.updated_at;
+                foodStatuses[currentMeal].updated_by = data.updated_by;
+                selectMealTab(currentMeal);
+            } else {
+                showToast(data.msg || 'Error updating status', false);
+            }
+        })
+        .catch(err => {
+            showToast('Server connection error', false);
+        });
+    }
+
+    function saveAnnouncement() {
+        const announcement = document.getElementById('announcement-input').value;
+        const currentStatus = foodStatuses[currentMeal].status || 'READY';
+        updateFoodStatus(currentStatus);
+    }
+
+    function saveMenu(e) {
+        e.preventDefault();
+        const bf = document.getElementById('bf-menu').value;
+        const lunch = document.getElementById('lunch-menu').value;
+        const dinner = document.getElementById('dinner-menu').value;
+
+        fetch("{% url 'api_update_mess_menu' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                breakfast_menu: bf,
+                lunch_menu: lunch,
+                dinner_menu: dinner
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'SUCCESS') {
+                showToast(data.msg);
+            } else {
+                showToast(data.msg || 'Error saving menu', false);
+            }
+        })
+        .catch(err => {
+            showToast('Server connection error', false);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        selectMealTab(currentMeal);
+    });
+</script>
+{% endblock %}

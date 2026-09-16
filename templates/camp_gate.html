@@ -1,0 +1,1128 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Camp Gate Security - Guard In/Out Desk{% endblock %}
+
+{% block content %}
+<!-- Include html5-qrcode & qrcode.js libraries -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+    .gate-container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+    @media (max-width: 768px) {
+        .gate-container { padding: 8px; }
+        .header-actions { width: 100%; display: flex; flex-wrap: wrap; gap: 6px !important; }
+        .header-actions .btn, .header-actions button, .header-actions a { flex: 1 1 calc(50% - 6px); font-size: 0.82rem !important; padding: 8px 10px !important; text-align: center; justify-content: center; }
+        .direction-wrap { flex-direction: column !important; gap: 8px !important; }
+        .form-grid-2 { grid-template-columns: 1fr !important; }
+        .manual-search-wrap { flex-direction: column !important; }
+        .manual-search-wrap input, .manual-search-wrap button { width: 100% !important; }
+    }
+
+    .scanner-card {
+        background: white;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .direction-btn {
+        flex: 1;
+        padding: 14px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 1.05rem;
+        cursor: pointer;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .direction-btn:active { transform: scale(0.98); }
+    .dir-in.active {
+        background: #16a34a !important;
+        color: white !important;
+        box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+        border-color: #15803d;
+    }
+    .dir-out.active {
+        background: #dc2626 !important;
+        color: white !important;
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+        border-color: #b91c1c;
+    }
+    .reader-box {
+        width: 100%;
+        max-width: 440px;
+        margin: 0 auto 16px auto;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px dashed #cbd5e1;
+        background: #0f172a;
+        min-height: 260px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    #camera-reader video {
+        border-radius: 14px;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .badge-in { background: #dcfce7; color: #15803d; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+    .badge-out { background: #fee2e2; color: #b91c1c; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+
+    .btn-action {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px;
+        border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+        border: none; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-action:hover { transform: translateY(-1px); }
+    .btn-action:active { transform: scale(0.97); }
+
+    /* Dark Mode Theme Support */
+    [data-theme="dark"] .gate-container { color: #f1f5f9; }
+    [data-theme="dark"] .scanner-card,
+    [data-theme="dark"] .modal-box {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+    }
+    [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4 {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] p, [data-theme="dark"] small, [data-theme="dark"] .subtext {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] input,
+    [data-theme="dark"] select {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] table thead tr {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr {
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    [data-theme="dark"] table td {
+        color: #e2e8f0 !important;
+    }
+</style>
+
+<div class="gate-container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h1 style="font-size: 1.4rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span> Security Gate In/Out Desk
+            </h1>
+            <p style="margin: 3px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                Camp Security Guard Terminal • Scanned by: <b>{{ request.user.full_name|default:request.user.username }}</b>
+            </p>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button onclick="toggleTheme()" class="btn-action" style="background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; color: #334155;" title="Toggle Light / Dark Mode">
+                <span id="campGateThemeIcon">🌙</span> Theme
+            </button>
+            <button type="button" onclick="openCampExportModal()" class="btn-action" style="background: #10b981; color: white;">
+                <span>📊</span> Export Gate Data
+            </button>
+            <a href="{% url 'camp_dashboard_view' %}" class="btn-action" style="background: #e2e8f0; color: #334155;">
+                🏢 Dashboard
+            </a>
+            <a href="{% url 'camp_gate_poster_view' %}" target="_blank" class="btn-action" style="background: #0d9488; color: white;">
+                🔲 Wall Poster
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN SCANNER & DIRECTION CONTROLS -->
+    <div class="scanner-card">
+        <!-- Direction Toggle Mode -->
+        <label style="font-weight: 800; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Select Gate Movement Direction:
+        </label>
+        <div class="direction-wrap" style="display: flex; gap: 12px; margin-bottom: 18px;">
+            <button type="button" id="btnDirIn" onclick="setDirection('IN')" class="direction-btn dir-in active" style="background: #f0fdf4; color: #16a34a; border: 2px solid #86efac;">
+                <span style="font-size: 1.2rem;">🟢</span> MARK IN (Entering Camp)
+            </button>
+            <button type="button" id="btnDirOut" onclick="setDirection('OUT')" class="direction-btn dir-out" style="background: #fef2f2; color: #dc2626; border: 2px solid #fca5a5;">
+                <span style="font-size: 1.2rem;">🔴</span> MARK OUT (Leaving Camp)
+            </button>
+        </div>
+
+        <!-- Purpose & Gate Selection -->
+        <div class="form-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+            <div>
+                <label style="font-weight: 700; font-size: 0.8rem; color: #334155; display: block; margin-bottom: 4px;">Purpose of Movement</label>
+                <select id="punch_purpose" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="SHIFT_DUTY">🚜 Shift / Site Duty</option>
+                    <option value="PERSONAL">🛍️ Personal / Market Visit</option>
+                    <option value="MEDICAL">🏥 Medical / Hospital</option>
+                    <option value="LEAVE">🏖️ Home Leave / Travel</option>
+                    <option value="OTHER">📌 Other Reason</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-weight: 700; font-size: 0.8rem; color: #334155; display: block; margin-bottom: 4px;">Gate Location</label>
+                <input type="text" id="gate_name" value="Main Camp Gate" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+            </div>
+        </div>
+
+        <!-- CAMERA SCANNER BOX -->
+        <div class="reader-box" id="camera-reader-box">
+            <div id="camera-reader" style="width: 100%;"></div>
+            <div id="camera-placeholder" style="color: #94a3b8; text-align: center; padding: 20px;">
+                <div style="font-size: 2.4rem; margin-bottom: 8px;">📷</div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: #cbd5e1;">Point Camera at Worker Badge / QR</div>
+                <p style="font-size: 0.78rem; color: #64748b; margin: 4px 0 0 0;">Click Start Camera below to activate mobile scanner</p>
+            </div>
+        </div>
+
+        <!-- Camera Actions -->
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 18px;">
+            <button type="button" id="btnStartCam" onclick="startCamera()" class="btn" style="background: #0284c7; color: white; font-weight: 700; border-radius: 10px; padding: 10px 22px; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <span>📸</span> Start Camera Scanner
+            </button>
+            <button type="button" id="btnStopCam" onclick="stopCamera()" class="btn" style="background: #64748b; color: white; font-weight: 700; border-radius: 10px; padding: 10px 18px; border: none; cursor: pointer; display: none;">
+                ⏹️ Stop Camera
+            </button>
+        </div>
+
+        <!-- MANUAL SEARCH & PUNCH (NO QR REQUIRED) -->
+        <div class="manual-search-container" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+            <label style="font-weight: 800; font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 6px;">
+                🔍 Manual Worker Search &amp; Punch (If Worker Has No QR):
+            </label>
+            <div class="manual-search-wrap" style="display: flex; gap: 8px;">
+                <input list="gate_emp_datalist" id="manual_emp_input" placeholder="Type Worker Name, Emp ID, or Phone..." class="form-control" style="flex: 1; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;" onkeypress="if(event.key === 'Enter'){ submitManualPunch(); }">
+                <datalist id="gate_emp_datalist">
+                    {% for emp in active_employees %}
+                    <option value="{{ emp.emp_id }}">{{ emp.name }} ({{ emp.designation|default:"Staff" }} - {{ emp.department|default:"General" }})</option>
+                    {% endfor %}
+                </datalist>
+                <button type="button" onclick="submitManualPunch()" class="btn" style="background: #2563eb; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">
+                    Log Movement
+                </button>
+            </div>
+        </div>
+
+        <!-- QUICK TESTING & WORKER SCAN SIMULATOR -->
+        <div style="background: #eff6ff; border: 1px dashed #3b82f6; border-radius: 12px; padding: 12px 14px; margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <span style="font-size: 0.85rem; font-weight: 800; color: #1e40af; display: flex; align-items: center; gap: 6px;">
+                    <span>🧪</span> Quick Testing Simulator (Test gate punches instantly)
+                </span>
+                <button type="button" onclick="showTestQrModal()" style="background: #3b82f6; color: white; border: none; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
+                    🔲 Show Worker QR on Screen
+                </button>
+            </div>
+            <div style="font-size: 0.78rem; color: #1e40af; margin-bottom: 8px;">
+                One-Click Test: Click any worker to test an instant scan with currently selected (<b id="simDirText">IN</b>) movement:
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                {% for emp in active_employees|slice:":6" %}
+                <button type="button" onclick="submitGatePunch('{{ emp.emp_id }}')" style="background: white; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 5px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.2s;" title="Test scan for {{ emp.name }}">
+                    ⚡ {{ emp.name|truncatechars:16 }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- LIVE CONFIRMATION BANNER (DUAL IN/OUT TIME DISPLAY) -->
+        <div id="punchResultCard" style="display: none; margin-top: 18px; border-radius: 16px; padding: 18px; border: 2px solid #16a34a; background: #f0fdf4; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="resBadge" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; background: #dcfce7; color: #16a34a; flex-shrink: 0;">
+                        ✅
+                    </div>
+                    <div>
+                        <h3 id="resEmpName" style="margin: 0; font-size: 1.2rem; font-weight: 900; color: #0f172a;">-</h3>
+                        <p id="resEmpSub" style="margin: 2px 0 0 0; font-size: 0.85rem; color: #475569; font-weight: 600;">-</p>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span id="resDirectionPill" style="display: inline-block; font-size: 0.9rem; font-weight: 900; padding: 6px 14px; border-radius: 8px;">-</span>
+                    <div id="resTime" style="font-size: 0.78rem; color: #64748b; font-weight: 700; margin-top: 4px;">-</div>
+                </div>
+            </div>
+
+            <!-- SIMULTANEOUS IN TIME & OUT TIME DUAL DISPLAY -->
+            <div style="display: flex; gap: 12px; margin-top: 14px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 130px;">
+                    <div style="font-size: 0.72rem; text-transform: uppercase; color: #15803d; font-weight: 800; letter-spacing: 0.5px;">🟢 GATE IN TIME</div>
+                    <div id="resInTime" style="font-weight: 900; font-size: 1.15rem; color: #15803d; margin-top: 2px;">--:-- --</div>
+                </div>
+                <div style="width: 1px; background: #e2e8f0;"></div>
+                <div style="flex: 1; min-width: 130px;">
+                    <div style="font-size: 0.72rem; text-transform: uppercase; color: #b91c1c; font-weight: 800; letter-spacing: 0.5px;">🔴 GATE OUT TIME</div>
+                    <div id="resOutTime" style="font-weight: 900; font-size: 1.15rem; color: #b91c1c; margin-top: 2px;">--:-- --</div>
+                </div>
+                <div style="width: 1px; background: #e2e8f0;"></div>
+                <div style="flex: 1; min-width: 130px;">
+                    <div style="font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 800; letter-spacing: 0.5px;">⏱️ TIME DURATION</div>
+                    <div id="resDuration" style="font-weight: 800; font-size: 1.05rem; color: #0f172a; margin-top: 2px;">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REAL-TIME CAMP GATE IN/OUT LOG TABLE & SEARCH -->
+    <div class="scanner-card" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🚪</span> Real-Time Camp Gate In/Out Log
+                </h2>
+                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">Live movements of workers entering and exiting camp premises</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 0.84rem; font-weight: 700; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 8px;">
+                    Today: <b style="color: #16a34a;" id="gate_in_count">{{ today_in }} IN</b> • <b style="color: #dc2626;" id="gate_out_count">{{ today_out }} OUT</b>
+                </span>
+                <button type="button" onclick="openCampExportModal()" class="btn-action" style="background: #10b981; color: white; padding: 6px 14px; font-size: 0.85rem;">
+                    <span>📊</span> Export Movements
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Strip -->
+        <form method="GET" action="{% url 'camp_gate_view' %}" class="filter-strip" style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px;">
+                <input type="text" name="q" value="{{ search_q }}" placeholder="🔍 Search Worker Name / Emp ID..." class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+            </div>
+            <div style="width: 160px;">
+                <select name="direction" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                    <option value="ALL" {% if selected_dir == 'ALL' %}selected{% endif %}>All Movements (IN &amp; OUT)</option>
+                    <option value="IN" {% if selected_dir == 'IN' %}selected{% endif %}>🟢 Entry / IN Only</option>
+                    <option value="OUT" {% if selected_dir == 'OUT' %}selected{% endif %}>🔴 Exit / OUT Only</option>
+                </select>
+            </div>
+            <div style="width: 160px;">
+                <select name="gate_name" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                    <option value="ALL">All Gates</option>
+                    {% for g in gates %}
+                        <option value="{{ g }}" {% if selected_gate == g %}selected{% endif %}>{{ g }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-action" style="background: #2563eb; color: white; font-weight: 700; border-radius: 8px; padding: 8px 16px;">Filter</button>
+            <a href="{% url 'camp_gate_view' %}" class="btn-action" style="background: #e2e8f0; color: #475569; font-weight: 700; border-radius: 8px; padding: 8px 14px; text-decoration: none;">Reset</a>
+        </form>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;" id="recentPunchesTable">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                        <th style="padding: 10px 12px;">Date</th>
+                        <th style="padding: 10px 12px; color: #15803d;">🟢 Gate IN Time</th>
+                        <th style="padding: 10px 12px; color: #b91c1c;">🔴 Gate OUT Time</th>
+                        <th style="padding: 10px 12px;">⏱️ Duration</th>
+                        <th style="padding: 10px 12px;">Movement</th>
+                        <th style="padding: 10px 12px;">Employee ID</th>
+                        <th style="padding: 10px 12px;">Worker Name</th>
+                        <th style="padding: 10px 12px;">Department</th>
+                        <th style="padding: 10px 12px;">Purpose</th>
+                        <th style="padding: 10px 12px;">Gate &amp; Guard</th>
+                        {% if is_manager %}<th style="padding: 10px 12px; text-align: center;">Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody id="recentMovementsTbody">
+                    {% for log in recent_movements %}
+                    <tr style="border-bottom: 1px solid #f1f5f9;" id="log-row-{{ log.id }}">
+                        <td style="padding: 10px 12px; font-weight: 700; color: #334155; white-space: nowrap;">
+                            {{ log.date|date:"Y-m-d" }}
+                        </td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #15803d; white-space: nowrap;">
+                            {{ log.paired_in_time|default:"--" }}
+                        </td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #b91c1c; white-space: nowrap;">
+                            {{ log.paired_out_time|default:"--" }}
+                        </td>
+                        <td style="padding: 10px 12px; font-weight: 700; color: #475569; white-space: nowrap;">
+                            {{ log.duration_str|default:"--" }}
+                        </td>
+                        <td style="padding: 10px 12px; white-space: nowrap;">
+                            {% if log.direction == 'IN' %}
+                                <span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;">
+                                    🟢 ENTERED CAMP
+                                </span>
+                            {% else %}
+                                <span style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;">
+                                    🔴 EXITED CAMP
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #2563eb;">
+                            {% if '@' in log.employee.emp_id %}
+                                EMP-{{ log.employee.id|stringformat:"04d" }}
+                            {% else %}
+                                {{ log.employee.emp_id }}
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #1e293b;">
+                            {{ log.employee.name }}
+                            <small style="display: block; color: #64748b; font-weight: 600; font-size: 0.75rem;">
+                                💼 {{ log.employee.designation|default:"P&M Staff" }}
+                            </small>
+                        </td>
+                        <td style="padding: 10px 12px; color: #475569;">{{ log.employee.department|default:"General" }}</td>
+                        <td style="padding: 10px 12px; font-weight: 700; color: #d97706;">
+                            {{ log.get_purpose_display }}
+                            {% if log.remarks %}<small style="display: block; color: #64748b; font-weight: normal;">{{ log.remarks }}</small>{% endif %}
+                        </td>
+                        <td style="padding: 10px 12px; font-size: 0.82rem; color: #475569;">
+                            <b>📍 {{ log.gate_name }}</b>
+                            <small style="display: block; color: #6366f1; font-weight: 700;">
+                                👤 {% if log.scanned_by %}{{ log.scanned_by.get_full_name|default:log.scanned_by.username }}{% else %}Self Scan{% endif %}
+                            </small>
+                        </td>
+                        {% if is_manager %}
+                        <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+                            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                                <button type="button" onclick="openEditMovementModal({{ log.id }})" title="Edit Movement" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    ✏️ Edit
+                                </button>
+                                <button type="button" onclick="deleteMovementEntry({{ log.id }})" title="Delete Movement" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr id="emptyMovementsRow">
+                        <td colspan="{% if is_manager %}11{% else %}10{% endif %}" style="text-align: center; padding: 25px; color: #64748b;">
+                            No gate movements recorded yet for the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDirection = 'IN';
+let html5QrCode = null;
+let isScanning = false;
+let isProcessingPunch = false;
+
+// Audio feedback on scan
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep(success) {
+    try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = success ? 880 : 320;
+        osc.type = success ? 'sine' : 'sawtooth';
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (success ? 0.18 : 0.35));
+    } catch(e) {}
+}
+
+function setDirection(dir) {
+    currentDirection = dir;
+    let btnIn = document.getElementById('btnDirIn');
+    let btnOut = document.getElementById('btnDirOut');
+    let simDir = document.getElementById('simDirText');
+    if (simDir) simDir.innerText = dir;
+    if (dir === 'IN') {
+        btnIn.classList.add('active');
+        btnOut.classList.remove('active');
+    } else {
+        btnOut.classList.add('active');
+        btnIn.classList.remove('active');
+    }
+}
+
+function startCamera() {
+    if (isScanning) return;
+    document.getElementById('camera-placeholder').style.display = 'none';
+    html5QrCode = new Html5Qrcode("camera-reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onQrCodeScanned,
+        onQrScanError
+    ).then(() => {
+        isScanning = true;
+        document.getElementById('btnStartCam').style.display = 'none';
+        document.getElementById('btnStopCam').style.display = 'inline-flex';
+    }).catch(err => {
+        alert("Camera error: " + err);
+        document.getElementById('camera-placeholder').style.display = 'block';
+    });
+}
+
+function stopCamera() {
+    if (html5QrCode && isScanning) {
+        html5QrCode.stop().then(() => {
+            isScanning = false;
+            document.getElementById('camera-placeholder').style.display = 'block';
+            document.getElementById('btnStartCam').style.display = 'inline-flex';
+            document.getElementById('btnStopCam').style.display = 'none';
+        });
+    }
+}
+
+function onQrCodeScanned(decodedText) {
+    if (isProcessingPunch) return;
+    isProcessingPunch = true;
+    submitGatePunch(decodedText);
+    setTimeout(() => { isProcessingPunch = false; }, 2200);
+}
+
+function onQrScanError(err) {
+    // ignore ongoing frame scan misses
+}
+
+function submitManualPunch() {
+    let inputVal = document.getElementById('manual_emp_input').value.trim();
+    if (!inputVal) {
+        alert('Please enter or select an employee name or ID.');
+        return;
+    }
+    submitGatePunch(inputVal);
+    document.getElementById('manual_emp_input').value = '';
+}
+
+function submitGatePunch(identifier) {
+    let purpose = document.getElementById('punch_purpose').value;
+    let gateName = document.getElementById('gate_name').value;
+
+    fetch('/camp/api/gate-punch/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            emp_identifier: identifier,
+            direction: currentDirection,
+            purpose: purpose,
+            gate_name: gateName,
+            remarks: ''
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        let card = document.getElementById('punchResultCard');
+        card.style.display = 'block';
+
+        if (data.status === 'SUCCESS') {
+            playBeep(true);
+            card.style.borderColor = currentDirection === 'IN' ? '#16a34a' : '#dc2626';
+            card.style.background = currentDirection === 'IN' ? '#f0fdf4' : '#fef2f2';
+
+            document.getElementById('resBadge').innerHTML = currentDirection === 'IN' ? '🟢' : '🔴';
+            document.getElementById('resEmpName').innerText = `${data.worker.name} (${data.worker.emp_id})`;
+            document.getElementById('resEmpSub').innerText = `${data.worker.designation} • ${data.worker.department} • Room: ${data.worker.camp_room}`;
+
+            let pill = document.getElementById('resDirectionPill');
+            pill.innerText = currentDirection === 'IN' ? '🟢 ENTERED CAMP' : '🔴 EXITED CAMP';
+            pill.style.background = currentDirection === 'IN' ? '#16a34a' : '#dc2626';
+            pill.style.color = 'white';
+
+            document.getElementById('resTime').innerText = `Logged at ${data.worker.time} by ${data.worker.scanned_by}`;
+            document.getElementById('resInTime').innerText = data.worker.in_time || '--';
+            document.getElementById('resOutTime').innerText = data.worker.out_time || '--';
+            document.getElementById('resDuration').innerText = data.worker.duration || '--';
+
+            // Add row to recent movements table
+            let tbody = document.getElementById('recentMovementsTbody') || document.getElementById('recentPunchesBody');
+            let noRow = document.getElementById('emptyMovementsRow') || document.getElementById('noPunchesRow');
+            if (noRow) noRow.remove();
+
+            let newRow = document.createElement('tr');
+            newRow.id = `log-row-${data.worker.log_id || Date.now()}`;
+            newRow.style.borderBottom = '1px solid #f1f5f9';
+            newRow.style.backgroundColor = currentDirection === 'IN' ? '#ecfdf5' : '#fff1f2';
+            newRow.innerHTML = `
+                <td style="padding: 10px 12px; font-weight: 700; color: #334155; white-space: nowrap;">
+                    ${data.worker.date || ''}
+                </td>
+                <td style="padding: 10px 12px; font-weight: 800; color: #15803d; white-space: nowrap;">
+                    ${data.worker.in_time || '--'}
+                </td>
+                <td style="padding: 10px 12px; font-weight: 800; color: #b91c1c; white-space: nowrap;">
+                    ${data.worker.out_time || '--'}
+                </td>
+                <td style="padding: 10px 12px; font-weight: 700; color: #475569; white-space: nowrap;">
+                    ${data.worker.duration || '--'}
+                </td>
+                <td style="padding: 10px 12px; white-space: nowrap;">
+                    <span style="${currentDirection === 'IN' ? 'background: #dcfce7; color: #15803d;' : 'background: #fee2e2; color: #b91c1c;'} padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;">
+                        ${currentDirection === 'IN' ? '🟢 ENTERED CAMP' : '🔴 EXITED CAMP'}
+                    </span>
+                </td>
+                <td style="padding: 10px 12px; font-weight: 800; color: #2563eb;">${data.worker.emp_id}</td>
+                <td style="padding: 10px 12px; font-weight: 800; color: #1e293b;">
+                    ${data.worker.name}
+                    <small style="display: block; color: #64748b; font-weight: 600; font-size: 0.75rem;">
+                        💼 ${data.worker.designation || 'P&M Staff'}
+                    </small>
+                </td>
+                <td style="padding: 10px 12px; color: #475569;">${data.worker.department || 'General'}</td>
+                <td style="padding: 10px 12px; font-weight: 700; color: #d97706;">${purpose}</td>
+                <td style="padding: 10px 12px; font-size: 0.82rem; color: #475569;">
+                    <b>📍 ${gateName}</b>
+                    <small style="display: block; color: #6366f1; font-weight: 700;">
+                        👤 ${data.worker.scanned_by}
+                    </small>
+                </td>
+                {% if is_manager %}
+                <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+                    <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                        <button type="button" onclick="openEditMovementModal(${data.worker.log_id})" title="Edit Movement" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                            ✏️ Edit
+                        </button>
+                        <button type="button" onclick="deleteMovementEntry(${data.worker.log_id})" title="Delete Movement" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </td>
+                {% endif %}
+            `;
+            if (tbody) tbody.insertBefore(newRow, tbody.firstChild);
+
+            setTimeout(() => { newRow.style.backgroundColor = ''; }, 2000);
+        } else {
+            playBeep(false);
+            card.style.borderColor = '#ef4444';
+            card.style.background = '#fef2f2';
+            document.getElementById('resBadge').innerHTML = '⚠️';
+            document.getElementById('resEmpName').innerText = 'Punch Error';
+            document.getElementById('resEmpSub').innerText = data.msg || 'Unable to log movement';
+            let pill = document.getElementById('resDirectionPill');
+            pill.innerText = 'FAILED';
+            pill.style.background = '#ef4444';
+            pill.style.color = 'white';
+            document.getElementById('resTime').innerText = '';
+        }
+    })
+    .catch(err => {
+        playBeep(false);
+        alert('Network or server error while logging movement.');
+    });
+}
+
+// Live Gate Auto-Sync (Picks up Worker Self-Punches and HR movements without refresh)
+let knownGateLogIds = new Set([
+    {% for p in today_punches %}{{ p.id }},{% endfor %}
+]);
+
+async function pollGateFeed() {
+    try {
+        const res = await fetch("{% url 'api_camp_live_stats' %}");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status !== 'success') return;
+
+        // Update counts
+        const k = data.kpis;
+        if (k) {
+            const elIn = document.getElementById('gate_in_count');
+            const elOut = document.getElementById('gate_out_count');
+            if (elIn && elIn.innerText != `${k.in_today} IN`) elIn.innerText = `${k.in_today} IN`;
+            if (elOut && elOut.innerText != `${k.out_today} OUT`) elOut.innerText = `${k.out_today} OUT`;
+        }
+
+        // Check new movements
+        if (data.recent_movements && data.recent_movements.length > 0) {
+            const tbody = document.getElementById('recentMovementsTbody') || document.getElementById('recentPunchesBody');
+            const noRow = document.getElementById('emptyMovementsRow') || document.getElementById('noPunchesRow');
+
+            const newLogs = data.recent_movements.filter(l => !knownGateLogIds.has(l.id));
+            if (newLogs.length > 0 && tbody) {
+                if (noRow) noRow.remove();
+
+                for (let i = newLogs.length - 1; i >= 0; i--) {
+                    const l = newLogs[i];
+                    knownGateLogIds.add(l.id);
+
+                    const tr = document.createElement('tr');
+                    tr.id = `log-row-${l.id}`;
+                    tr.style.borderBottom = '1px solid #f1f5f9';
+                    tr.style.backgroundColor = l.direction === 'IN' ? '#ecfdf5' : '#fff1f2';
+                    tr.style.transition = 'background-color 2s ease';
+
+                    const dirSpan = l.direction === 'IN'
+                        ? `<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;">🟢 ENTERED CAMP</span>`
+                        : `<span style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;">🔴 EXITED CAMP</span>`;
+
+                    tr.innerHTML = `
+                        <td style="padding: 10px 12px; font-weight: 700; color: #334155; white-space: nowrap;">
+                            ${l.date || ''} <span style="color: #64748b; font-weight: normal;">${l.time_short || l.time}</span>
+                        </td>
+                        <td style="padding: 10px 12px;">${dirSpan}</td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #2563eb;">${l.emp_id}</td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #1e293b;">
+                            ${l.employee_name}
+                            <small style="display: block; color: #64748b; font-weight: 600; font-size: 0.75rem;">
+                                💼 ${l.designation || 'P&M Staff'}
+                            </small>
+                        </td>
+                        <td style="padding: 10px 12px; color: #475569;">${l.department || 'General'}</td>
+                        <td style="padding: 10px 12px; font-weight: 700; color: #d97706;">${l.purpose}</td>
+                        <td style="padding: 10px 12px; font-weight: 700; color: #0d9488;">📍 ${l.gate_name}</td>
+                        <td style="padding: 10px 12px; color: #6366f1; font-weight: 700;">👤 ${l.scanned_by}</td>
+                        {% if is_manager %}
+                        <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+                            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                                <button type="button" onclick="openEditMovementModal(${l.id})" title="Edit Movement" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    ✏️ Edit
+                                </button>
+                                <button type="button" onclick="deleteMovementEntry(${l.id})" title="Delete Movement" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    `;
+                    tbody.insertBefore(tr, tbody.firstChild);
+
+                    setTimeout(() => { tr.style.backgroundColor = ''; }, 3000);
+                }
+            }
+        }
+    } catch(e) {
+        console.warn("Gate live poll error:", e);
+    }
+}
+
+// Auto poll gate every 3 seconds
+setInterval(pollGateFeed, 3000);
+
+// Theme Icon Sync
+function updateThemeIcon() {
+    const icon = document.getElementById('campGateThemeIcon');
+    if (!icon) return;
+    const current = document.documentElement.getAttribute('data-theme');
+    icon.innerText = (current === 'dark') ? '☀️' : '🌙';
+}
+updateThemeIcon();
+const origToggleTheme = window.toggleTheme;
+window.toggleTheme = function() {
+    if (typeof origToggleTheme === 'function') origToggleTheme();
+    setTimeout(updateThemeIcon, 50);
+};
+
+// Export Modal Controls
+function openCampExportModal() {
+    const modal = document.getElementById('campExportModal');
+    if (modal) modal.style.display = 'flex';
+}
+function closeCampExportModal() {
+    const modal = document.getElementById('campExportModal');
+    if (modal) modal.style.display = 'none';
+}
+function runCampExport(format) {
+    const fromDate = document.getElementById('camp_export_from_date') ? document.getElementById('camp_export_from_date').value : '';
+    const toDate = document.getElementById('camp_export_to_date') ? document.getElementById('camp_export_to_date').value : '';
+    const direction = document.getElementById('camp_export_direction') ? document.getElementById('camp_export_direction').value : 'ALL';
+    const dept = document.getElementById('camp_export_department') ? document.getElementById('camp_export_department').value : 'ALL';
+    const purpose = document.getElementById('camp_export_purpose') ? document.getElementById('camp_export_purpose').value : 'ALL';
+    const q = document.getElementById('camp_export_q') ? document.getElementById('camp_export_q').value : '';
+
+    const baseUrl = format === 'excel' ? "{% url 'export_camp_excel' %}" : "{% url 'export_camp_pdf' %}";
+    const url = `${baseUrl}?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}&direction=${encodeURIComponent(direction)}&department=${encodeURIComponent(dept)}&purpose=${encodeURIComponent(purpose)}&q=${encodeURIComponent(q)}`;
+    window.open(url, '_blank');
+    closeCampExportModal();
+}
+
+// Edit & Delete Movement Functions
+function updateEditDirUi() {
+    const dir = document.querySelector('input[name="edit_direction"]:checked') ? document.querySelector('input[name="edit_direction"]:checked').value : 'IN';
+    const inBtn = document.getElementById('editDirInBtn');
+    const outBtn = document.getElementById('editDirOutBtn');
+    if (!inBtn || !outBtn) return;
+    if (dir === 'IN') {
+        inBtn.style.border = '2px solid #86efac';
+        inBtn.style.background = '#f0fdf4';
+        inBtn.style.color = '#15803d';
+        outBtn.style.border = '2px solid #cbd5e1';
+        outBtn.style.background = 'white';
+        outBtn.style.color = '#475569';
+    } else {
+        outBtn.style.border = '2px solid #fca5a5';
+        outBtn.style.background = '#fef2f2';
+        outBtn.style.color = '#b91c1c';
+        inBtn.style.border = '2px solid #cbd5e1';
+        inBtn.style.background = 'white';
+        inBtn.style.color = '#475569';
+    }
+}
+
+async function openEditMovementModal(logId) {
+    const modal = document.getElementById('editMovementModal');
+    if (!modal) return;
+    const sub = document.getElementById('editMovementWorkerSubtitle');
+    if (sub) sub.innerText = 'Loading movement entry details...';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/camp/api/movement/${logId}/edit/`);
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            const log = data.log;
+            document.getElementById('edit_log_id').value = log.id;
+            if (sub) sub.innerText = `Worker: ${log.worker_name} (${log.emp_id})`;
+
+            const dirRadios = document.querySelectorAll('input[name="edit_direction"]');
+            dirRadios.forEach(r => {
+                r.checked = (r.value === log.direction);
+            });
+            updateEditDirUi();
+
+            document.getElementById('edit_date').value = log.date || '';
+            document.getElementById('edit_time').value = log.time || '';
+            document.getElementById('edit_purpose').value = log.purpose || 'PERSONAL';
+            document.getElementById('edit_gate_name').value = log.gate_name || 'Main Camp Gate';
+            document.getElementById('edit_remarks').value = log.remarks || '';
+        } else {
+            alert(`⚠️ Error: ${data.msg}`);
+            closeEditMovementModal();
+        }
+    } catch(e) {
+        alert("⚠️ Network error fetching movement details.");
+        closeEditMovementModal();
+    }
+}
+
+function closeEditMovementModal() {
+    const modal = document.getElementById('editMovementModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitEditMovement() {
+    const logId = document.getElementById('edit_log_id').value;
+    if (!logId) return;
+
+    const btn = document.getElementById('btnSubmitEditMovement');
+    const dir = document.querySelector('input[name="edit_direction"]:checked') ? document.querySelector('input[name="edit_direction"]:checked').value : 'IN';
+    const date = document.getElementById('edit_date').value;
+    const time = document.getElementById('edit_time').value;
+    const purpose = document.getElementById('edit_purpose').value;
+    const gateName = document.getElementById('edit_gate_name').value;
+    const remarks = document.getElementById('edit_remarks').value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Saving Changes...';
+
+    try {
+        const res = await fetch(`/camp/api/movement/${logId}/edit/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                direction: dir,
+                date: date,
+                time: time,
+                purpose: purpose,
+                gate_name: gateName,
+                remarks: remarks
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            closeEditMovementModal();
+            window.location.reload();
+        } else {
+            alert(`⚠️ Error: ${data.msg}`);
+        }
+    } catch(e) {
+        alert("⚠️ Network error saving movement changes.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> Save Changes';
+    }
+}
+
+async function deleteMovementEntry(logId) {
+    if (!confirm("Are you sure you want to delete this gate movement record?\n\nThis will remove the entry and recalculate the worker's Inside/Outside status.")) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/camp/api/movement/${logId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            const row = document.getElementById(`log-row-${logId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.4s ease';
+                row.style.opacity = '0';
+                setTimeout(() => { row.remove(); }, 400);
+            }
+            pollGateFeed();
+        } else {
+            alert(`⚠️ Error: ${data.msg}`);
+        }
+    } catch(e) {
+        alert("⚠️ Network error while deleting movement entry.");
+    }
+}
+
+// Test QR Code Modal for Camera Testing
+let testQrInstance = null;
+
+function showTestQrModal() {
+    document.getElementById('testQrModal').style.display = 'flex';
+    let sel = document.getElementById('testQrSelect');
+    if (sel && sel.value) {
+        renderTestQr(sel.value);
+    }
+}
+
+function closeTestQrModal() {
+    document.getElementById('testQrModal').style.display = 'none';
+}
+
+function renderTestQr(empId) {
+    let container = document.getElementById('testQrContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    testQrInstance = new QRCode(container, {
+        text: empId,
+        width: 180,
+        height: 180,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    let sel = document.getElementById('testQrSelect');
+    if (sel && sel.selectedIndex >= 0) {
+        let text = sel.options[sel.selectedIndex].text;
+        document.getElementById('testQrEmpInfo').innerText = text;
+    }
+}
+
+function simulateSelectedWorker() {
+    let sel = document.getElementById('testQrSelect');
+    if (sel && sel.value) {
+        closeTestQrModal();
+        submitGatePunch(sel.value);
+    }
+}
+</script>
+
+<!-- CAMP GATE MOVEMENTS EXPORT MODAL -->
+<div id="campExportModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 520px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Export Gate Movement Reports
+            </h3>
+            <button type="button" onclick="closeCampExportModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="campExportForm" onsubmit="event.preventDefault();">
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Date Range (From - To)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="camp_export_from_date" value="{{ today_date|date:'Y-m-d' }}" class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <input type="date" id="camp_export_to_date" value="{{ today_date|date:'Y-m-d' }}" class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Direction</label>
+                    <select id="camp_export_direction" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Movements (IN &amp; OUT)</option>
+                        <option value="IN">🟢 Entry / IN Only</option>
+                        <option value="OUT">🔴 Exit / OUT Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Department / Contractor</label>
+                    <select id="camp_export_department" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Departments</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Purpose</label>
+                    <select id="camp_export_purpose" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Purposes</option>
+                        <option value="SHIFT_DUTY">🚜 Shift / Site Duty</option>
+                        <option value="PERSONAL">🛍️ Personal / Market Visit</option>
+                        <option value="MEDICAL">🏥 Medical / Hospital</option>
+                        <option value="LEAVE">🏖️ Home Leave / Travel</option>
+                        <option value="OTHER">📌 Other Reason</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Worker Search</label>
+                    <input type="text" id="camp_export_q" placeholder="Name or ID..." class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px; flex-wrap: wrap;">
+                <button type="button" onclick="closeCampExportModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Cancel</button>
+                <button type="button" onclick="runCampExport('excel')" class="btn-action" style="background: #10b981; color: white;">
+                    <span>📗</span> Download Excel
+                </button>
+                <button type="button" onclick="runCampExport('pdf')" class="btn-action" style="background: #ef4444; color: white;">
+                    <span>📄</span> Print / PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TEST QR CODE MODAL FOR CAMERA TESTING -->
+<div id="testQrModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 10001; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 20px; max-width: 400px; width: 100%; padding: 22px; box-shadow: 0 25px 60px rgba(0,0,0,0.3); text-align: center; border: 2px solid #3b82f6;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">
+                🔲 Test Worker QR Code
+            </h3>
+            <button type="button" onclick="closeTestQrModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+        </div>
+        <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 14px 0;">
+            Select any worker to render their test QR. Point your device camera at this QR to test the guard scanner!
+        </p>
+
+        <div style="margin-bottom: 14px;">
+            <select id="testQrSelect" onchange="renderTestQr(this.value)" class="form-control" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.88rem;">
+                {% for emp in active_employees|slice:":25" %}
+                <option value="{{ emp.emp_id }}">{{ emp.name }} ({{ emp.emp_id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="background: white; padding: 14px; border-radius: 16px; border: 2px solid #e2e8f0; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 12px;">
+            <div id="testQrContainer" style="display: flex; justify-content: center;"></div>
+        </div>
+
+        <div id="testQrEmpInfo" style="font-weight: 800; color: #1e3a8a; font-size: 0.88rem; margin-bottom: 14px;"></div>
+
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <button type="button" onclick="closeTestQrModal()" class="btn-action" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+                Close
+            </button>
+            <button type="button" onclick="simulateSelectedWorker()" class="btn-action" style="background: #16a34a; color: white;">
+                ⚡ 1-Click Scan Test
+            </button>
+        </div>
+    </div>
+</div>
+
+{% if is_manager %}
+<!-- EDIT MOVEMENT MODAL -->
+<div id="editMovementModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 500px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>✏️</span> Edit Gate Movement
+                </h3>
+                <p id="editMovementWorkerSubtitle" style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b; font-weight: 600;">Loading...</p>
+            </div>
+            <button type="button" onclick="closeEditMovementModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="editMovementForm" onsubmit="event.preventDefault(); submitEditMovement();">
+            <input type="hidden" id="edit_log_id" value="">
+
+            <!-- Direction Selector -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 6px;">Movement Direction</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label id="editDirInBtn" style="border: 2px solid #86efac; background: #f0fdf4; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; font-weight: 800; color: #15803d; transition: all 0.2s;">
+                        <input type="radio" name="edit_direction" value="IN" style="display: none;" onchange="updateEditDirUi()">
+                        🟢 ENTERED CAMP (IN)
+                    </label>
+                    <label id="editDirOutBtn" style="border: 2px solid #cbd5e1; background: white; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; font-weight: 800; color: #475569; transition: all 0.2s;">
+                        <input type="radio" name="edit_direction" value="OUT" style="display: none;" onchange="updateEditDirUi()">
+                        🔴 EXITED CAMP (OUT)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Date & Time -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Date</label>
+                    <input type="date" id="edit_date" required class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Time</label>
+                    <input type="time" id="edit_time" required class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <!-- Purpose -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Movement Purpose</label>
+                <select id="edit_purpose" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="PERSONAL">Personal / Market</option>
+                    <option value="SHIFT_DUTY">Shift / Site Duty</option>
+                    <option value="MEDICAL">Medical Emergency</option>
+                    <option value="LEAVE">Authorized Leave</option>
+                    <option value="OTHER">Other Reason</option>
+                </select>
+            </div>
+
+            <!-- Gate Name -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Gate Name / Location</label>
+                <input type="text" id="edit_gate_name" class="form-control" placeholder="e.g. Main Camp Gate" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+            </div>
+
+            <!-- Remarks -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Remarks / Note</label>
+                <textarea id="edit_remarks" rows="2" class="form-control" placeholder="Optional details..." style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.88rem;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" onclick="closeEditMovementModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Cancel</button>
+                <button type="submit" id="btnSubmitEditMovement" class="btn-action" style="background: #2563eb; color: white;">
+                    <span>💾</span> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+    <h2>🚜 {{ section.name }} - Overview</h2>
+    <div style="display:flex; gap: 1rem;">
+        <a href="{% url 'fleet:master' section.id %}" class="btn btn-outline">Manage Fleet Master</a>
+        <a href="{% url 'fleet:log_repair' section.id %}" class="btn btn-primary">Log Repair / Update</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Advanced Filters</h3>
+    <form method="GET" style="display:flex; gap: 1rem; margin-top:1rem; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+            <label>Department</label>
+            <select name="dept" class="form-control">
+                <option value="">All Departments</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}" {% if request.GET.dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Status</label>
+            <select name="status" class="form-control">
+                <option value="">All</option>
+                <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending (Breakdown)</option>
+                <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed (Repaired)</option>
+            </select>
+        </div>
+        <div>
+            <label>Date Range (Start)</label>
+            <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+        </div>
+        <div>
+            <label>Date Range (End)</label>
+            <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">Filter</button>
+        <a href="{% url 'fleet:dashboard' section.id %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Clear</a>
+    </form>
+</div>
+
+<div class="card" style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; min-width: 1000px;">
+        <thead>
+            <tr style="background: var(--bg-color); border-bottom: 2px solid var(--border);">
+                <th style="padding: 1rem; text-align: left;">In Date</th>
+                <th style="padding: 1rem; text-align: left;">Vehicle (D.No)</th>
+                <th style="padding: 1rem; text-align: left;">Complaint</th>
+                <th style="padding: 1rem; text-align: left;">Status</th>
+                <th style="padding: 1rem; text-align: left;">Out Date</th>
+                <th style="padding: 1rem; text-align: left;">Mechanic</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">{{ log.in_date|date:"d-m-Y" }}<br><small>{{ log.in_time|time:"H:i"|default:'' }}</small></td>
+                <td style="padding: 1rem; font-weight:600;"><a href="{% url 'fleet:kundali' log.vehicle.id %}">{{ log.vehicle.dno }}</a><br><small>{{ log.vehicle.department.name|default:'' }}</small></td>
+                <td style="padding: 1rem;">{{ log.complaint|default:'-' }}</td>
+                <td style="padding: 1rem;">
+                    {% if log.status == 'PENDING' %}
+                    <span style="background:#fef08a; color:#854d0e; padding: 0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; font-weight:600;">Pending</span>
+                    {% else %}
+                    <span style="background:#bbf7d0; color:#166534; padding: 0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; font-weight:600;">Completed</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 1rem;">{{ log.out_date|date:"d-m-Y"|default:'-' }}</td>
+                <td style="padding: 1rem;">{{ log.mechanic|default:'-' }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="padding: 2rem; text-align:center; color:var(--sidebar-text);">No breakdown logs found for the selected filters.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

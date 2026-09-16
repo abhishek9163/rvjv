@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mess Worker &amp; Staff Portal - P&amp;M Cafeteria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #9333ea;
+            --primary-dark: #7e22ce;
+            --primary-light: #f3e8ff;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #3b0764 0%, #1e1b4b 50%, #0f172a 100%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            border-radius: 28px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+            width: 100%;
+            max-width: 460px;
+            padding: 30px 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #9333ea, #3b82f6, #10b981);
+        }
+
+        .logo-icon {
+            width: 68px;
+            height: 68px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.1rem;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 20px rgba(147, 51, 234, 0.18);
+        }
+
+        .meal-status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .meal-status-chip.ready {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
+        }
+
+        /* Tab Switcher */
+        .tab-switcher {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            padding: 9px 6px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #64748b;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            line-height: 1.2;
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            color: #94a3b8;
+            font-size: 1.05rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            border-radius: 12px;
+            border: 1.5px solid #cbd5e1;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.15);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.35);
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .error-banner {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: var(--danger);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-banner {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: var(--success);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-menu-box {
+            margin-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            text-align: left;
+        }
+
+        .quick-menu-title {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .quick-menu-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            color: #475569;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo-icon">
+        🍱
+    </div>
+
+    <h1 style="font-size: 1.45rem; font-weight: 900; color: #0f172a; margin-bottom: 4px;">
+        Mess Worker &amp; Diner Portal
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 18px;">Official Meal Pass, Digital Verification & Daily Canteen Menu</p>
+
+    {% if error_msg %}
+    <div class="error-banner">
+        <span>⚠️</span>
+        <span>{{ error_msg }}</span>
+    </div>
+    {% endif %}
+
+    {% if success_msg %}
+    <div class="success-banner">
+        <span>✅</span>
+        <span>{{ success_msg }}</span>
+    </div>
+    {% endif %}
+
+    {% if claim_mess %}
+    <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; border-radius: 16px; padding: 12px 16px; margin-bottom: 18px; text-align: left; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);">
+        <div style="font-weight: 900; color: #1e40af; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+            <span>🍽️</span> Mess QR Scan: {{ claim_mess.name }}
+        </div>
+        <div style="font-size: 0.82rem; color: #1e3a8a; margin-top: 4px; line-height: 1.4;">
+            Please <b>Log In</b> to activate your food pass. If you do not have an account yet, switch to the <b>'New Worker'</b> tab to register. Your digital meal pass will be activated immediately.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3-Segmented Tabs -->
+    <div class="tab-switcher">
+        <button type="button" class="tab-btn {% if active_tab == 'login' %}active{% endif %}" onclick="switchTab('login')">
+            <span>🔐 Log In</span>
+            <span style="font-size: 0.68rem; font-weight: 600;">Worker Login</span>
+        </button>
+        <button type="button" class="tab-btn {% if active_tab == 'activate' %}active{% endif %}" onclick="switchTab('activate')">
+            <span>⚡ Set PIN</span>
+            <span style="font-size: 0.68rem; font-weight: 600;">PIN Setup</span>
+        </button>
+        <button type="button" class="tab-btn {% if active_tab == 'register' %}active{% endif %}" onclick="switchTab('register')">
+            <span>➕ New Worker</span>
+            <span style="font-size: 0.68rem; font-weight: 600;">Register New</span>
+        </button>
+    </div>
+
+    <!-- TAB 1: Normal Worker Login -->
+    <div id="panel-login" class="tab-panel {% if active_tab == 'login' %}active{% endif %}">
+        <form method="POST" action="{% url 'mess_login_view' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="login">
+            {% if claim_mess %}<input type="hidden" name="claim_mess" value="{{ claim_mess.id }}">{% endif %}
+            
+            <div class="form-group">
+                <label class="form-label">Worker ID / Mobile Number</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-id-card input-icon"></i>
+                    <input type="text" name="login_identifier" required placeholder="e.g. 2843, W-102, or Mobile Number" class="form-control" autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label class="form-label" style="margin-bottom: 0;">4-Digit PIN / Password</label>
+                    <a href="javascript:void(0)" onclick="switchTab('activate')" style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-decoration: none;">Forgot / Set PIN?</a>
+                </div>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="password" name="password" required placeholder="••••" class="form-control" autocomplete="current-password" maxlength="20">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <span>Login to Mess Portal</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div style="margin-top: 14px; font-size: 0.8rem; color: #64748b; font-weight: 600;">
+            First time logging in? <a href="javascript:void(0)" onclick="switchTab('activate')" style="color: var(--primary); font-weight: 800; text-decoration: none;">Set your 4-Digit PIN here &rarr;</a>
+        </div>
+    </div>
+
+    <!-- TAB 2: First Time Login / Set PIN (For 4,055 Existing Employees) -->
+    <div id="panel-activate" class="tab-panel {% if active_tab == 'activate' %}active{% endif %}">
+        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; text-align: left;">
+            <div style="font-size: 0.78rem; font-weight: 800; color: #7e22ce;">ℹ️ One-Time PIN Setup</div>
+            <div style="font-size: 0.76rem; color: #6b21a8; line-height: 1.3; margin-top: 2px;">
+                If your employee record is already in the company roster, enter your Employee ID or Mobile Number to set your 4-digit PIN.
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'mess_login_view' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="activate_pin">
+            {% if claim_mess %}<input type="hidden" name="claim_mess" value="{{ claim_mess.id }}">{% endif %}
+            
+            <div class="form-group">
+                <label class="form-label">Worker ID / Mobile Number</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-id-badge input-icon"></i>
+                    <input type="text" name="emp_id_or_phone" required placeholder="e.g. 2843, HR-EMP-001, or 9876543210" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Registered Mobile Number</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-phone input-icon"></i>
+                    <input type="text" name="verify_phone" placeholder="Your 10-digit mobile number" class="form-control" maxlength="15">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">New 4-Digit PIN</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-key input-icon"></i>
+                        <input type="password" name="new_pin" required placeholder="e.g. 1234" class="form-control" maxlength="8">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm PIN</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-check input-icon"></i>
+                        <input type="password" name="confirm_pin" required placeholder="Confirm" class="form-control" maxlength="8">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login" style="background: #7e22ce;">
+                <span>Set PIN &amp; Open Meal Pass</span>
+                <i class="fa-solid fa-check-circle"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- TAB 3: New Worker Self-Registration (If not in DB) -->
+    <div id="panel-register" class="tab-panel {% if active_tab == 'register' %}active{% endif %}">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; text-align: left;">
+            <div style="font-size: 0.78rem; font-weight: 800; color: #15803d;">➕ New Worker Self-Registration</div>
+            <div style="font-size: 0.76rem; color: #166534; line-height: 1.3; margin-top: 2px;">
+                Enter your details below. Your digital meal pass account will be created immediately.
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'mess_login_view' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="self_register">
+            {% if claim_mess %}<input type="hidden" name="claim_mess" value="{{ claim_mess.id }}">{% endif %}
+            
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" name="full_name" required placeholder="e.g. Ramesh Kumar" class="form-control">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">Employee ID</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-id-badge input-icon"></i>
+                        <input type="text" name="emp_id" required placeholder="e.g. 2843 or HR-01" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mobile Number</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-mobile-screen input-icon"></i>
+                        <input type="tel" name="phone_number" required placeholder="e.g. 9876543210" class="form-control" maxlength="15">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">Work Permit Number (Optional)</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-passport input-icon"></i>
+                        <input type="text" name="permit_number" placeholder="e.g. WP-2024-998" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">4-Digit PIN / Password</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" name="pin" required placeholder="1234" class="form-control" maxlength="6">
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 12px; text-align: left; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-building-circle-check" style="color: #10b981;"></i>
+                <span>Mess Location will be automatically assigned by the system.</span>
+            </div>
+
+            <button type="submit" class="btn-login" style="background: #16a34a;">
+                <span>Register &amp; Get Meal Pass</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- Quick Today's Food Menu Preview -->
+    <div class="quick-menu-box">
+        <div class="quick-menu-title">
+            <span>📋 Today's Food Menu</span>
+            <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;">{{ today_date|date:"D, d M" }}</span>
+        </div>
+        <div class="quick-menu-item">
+            {% if active_meal == 'BREAKFAST' %}
+                <b>🌅 Breakfast:</b> {{ today_menu.breakfast_menu|default:"Fresh Breakfast served at counters" }}
+            {% elif active_meal == 'LUNCH' %}
+                <b>☀️ Lunch:</b> {{ today_menu.lunch_menu|default:"Dal, Sabzi, Roti, Rice & Salad" }}
+            {% else %}
+                <b>🌙 Dinner:</b> {{ today_menu.dinner_menu|default:"Nutritious Dinner served at counters" }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+        
+        const targetPanel = document.getElementById('panel-' + tabName);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+        }
+        
+        // Highlight correct button
+        const buttons = document.querySelectorAll('.tab-btn');
+        if (tabName === 'login' && buttons[0]) buttons[0].classList.add('active');
+        if (tabName === 'activate' && buttons[1]) buttons[1].classList.add('active');
+        if (tabName === 'register' && buttons[2]) buttons[2].classList.add('active');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Camp HR Desk - Workforce Management{% endblock %}
+
+{% block content %}
+<style>
+    .hr-container { padding: 16px; max-width: 1400px; margin: 0 auto; }
+    
+    @media (max-width: 768px) {
+        .hr-container { padding: 8px; }
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+        .header-actions-hr { width: 100%; display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 6px !important; padding-bottom: 4px; scrollbar-width: none; }
+        .header-actions-hr::-webkit-scrollbar { display: none; }
+        .header-actions-hr .btn-action, .header-actions-hr button, .header-actions-hr a { flex: 0 0 auto !important; font-size: 0.78rem !important; padding: 7px 12px !important; white-space: nowrap; }
+        .filter-row { flex-direction: column !important; }
+        .filter-row input, .filter-row select, .filter-row button, .filter-row a { width: 100% !important; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .modal-box { padding: 14px 12px !important; max-width: 98% !important; border-radius: 14px !important; }
+    }
+    @media (max-width: 480px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+        .kpi-card { padding: 10px 8px !important; }
+        .kpi-val { font-size: 1.25rem !important; }
+    }
+
+    .kpi-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px;
+    }
+    .kpi-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02); text-align: center;
+    }
+    .kpi-val { font-size: 1.8rem; font-weight: 800; margin-bottom: 2px; }
+    .kpi-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+    .table-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 24px;
+    }
+
+    .btn-action {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px;
+        border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+        border: none; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-action:active { transform: scale(0.97); }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px);
+        display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;
+    }
+    .modal-box {
+        background: white; width: 100%; max-width: 600px; border-radius: 20px;
+        padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 700; color: #475569; margin-bottom: 5px; text-transform: uppercase; }
+    .form-control {
+        width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 14px;
+        font-size: 0.92rem; font-weight: 600; color: #1e293b; background: #f8fafc;
+    }
+    .form-control:focus { outline: none; border-color: #3b82f6; background: white; }
+
+    /* Dark Mode Theme Support */
+    [data-theme="dark"] .hr-container { color: #f1f5f9; }
+    [data-theme="dark"] .kpi-card,
+    [data-theme="dark"] .table-card,
+    [data-theme="dark"] .modal-box {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+    [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4 {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] p, [data-theme="dark"] small, [data-theme="dark"] .subtext, [data-theme="dark"] .kpi-label {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .form-group label {
+        color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] input,
+    [data-theme="dark"] select {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] table thead tr {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr {
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    [data-theme="dark"] table td {
+        color: #e2e8f0 !important;
+    }
+</style>
+
+<div class="hr-container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>👥</span> Camp HR Representative Desk
+            </h1>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.9rem;">
+                Onboard new workers, allocate camp rooms, manage active roster, and record employee exits
+            </p>
+        </div>
+        <div class="header-actions-hr" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button onclick="toggleTheme()" class="btn-action" style="background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; color: #334155;" title="Toggle Light / Dark Mode">
+                <span id="campHrThemeIcon">🌙</span> Theme
+            </button>
+            <button type="button" onclick="openHrExportModal()" class="btn-action" style="background: #10b981; color: white;">
+                <span>📊</span> Export Workforce
+            </button>
+            <button type="button" onclick="openQuickLeaveModal()" class="btn-action" style="background: #f59e0b; color: white;">
+                <span>🏖️</span> Mark Worker Leave
+            </button>
+            <button onclick="openAddWorkerModal()" class="btn-action" style="background: #16a34a; color: white;">
+                <span>➕</span> Onboard New Worker
+            </button>
+            <a href="{% url 'camp_dashboard_view' %}" class="btn-action" style="background: #475569; color: white;">
+                <span>⬅️</span> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <span id="hr_sync_time" style="display:none;"></span>
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-val" id="hr_kpi_active" style="color: #2563eb;">{{ active_count }}</div>
+            <div class="kpi-label">Active Workforce</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val" id="hr_kpi_inside" style="color: #16a34a;">{{ inside_count }}</div>
+            <div class="kpi-label">Inside Camp Now</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val" id="hr_kpi_outside" style="color: #ea580c;">{{ outside_count }}</div>
+            <div class="kpi-label">Outside Camp / On-Duty</div>
+        </div>
+        <div class="kpi-card" onclick="openOnLeaveModal()" style="cursor: pointer; position: relative; border-left: 4px solid #f59e0b; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='none';" title="Click to view detailed On Leave & Absent workforce breakdown with filters">
+            <div style="position: absolute; top: 6px; right: 8px; font-size: 0.68rem; font-weight: 800; color: #b45309; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">🔍 Details</div>
+            <div class="kpi-val" id="hr_kpi_leave" style="color: #d97706;">{{ leave_count }}</div>
+            <div class="kpi-label">🏖️ On Leave / Absent</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val" id="hr_kpi_terminated" style="color: #dc2626;">{{ terminated_count }}</div>
+            <div class="kpi-label">Left / Exited</div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="table-card">
+        <form method="GET" action="{% url 'camp_hr_view' %}" class="filter-row" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+            <div style="flex: 2; min-width: 200px;">
+                <input type="text" name="q" value="{{ search_q }}" placeholder="🔍 Search by Name, Emp ID, Room, Contact..." class="form-control">
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <select name="status" class="form-control">
+                    <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>All Statuses</option>
+                    <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>🟢 Active Workers</option>
+                    <option value="On Leave" {% if selected_status == 'On Leave' %}selected{% endif %}>🏖️ On Leave</option>
+                    <option value="Terminated" {% if selected_status == 'Terminated' %}selected{% endif %}>🔴 Exited / Left Company</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <select name="department" class="form-control">
+                    <option value="ALL">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn-action" style="background: #0284c7; color: white;">
+                    Apply Filter
+                </button>
+                <a href="{% url 'camp_hr_view' %}" class="btn-action" style="background: #f1f5f9; color: #475569;">
+                    Reset
+                </a>
+            </div>
+        </form>
+
+        <!-- Workers Table -->
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #64748b; font-size: 0.78rem; text-transform: uppercase;">
+                        <th style="padding: 12px 10px;">Worker Details</th>
+                        <th style="padding: 12px 10px;">Emp ID</th>
+                        <th style="padding: 12px 10px;">Camp Room / Block</th>
+                        <th style="padding: 12px 10px;">Shift &amp; Mess</th>
+                        <th style="padding: 12px 10px;">Camp Status</th>
+                        <th style="padding: 12px 10px;">Employment</th>
+                        <th style="padding: 12px 10px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in workers %}
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                        <td style="padding: 12px 10px;">
+                            <div style="font-weight: 800; color: #1e293b;">{{ w.name }}</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">
+                                {{ w.designation|default:"Staff" }} &bull; {{ w.department|default:"General" }}
+                            </div>
+                            {% if w.contact_info %}
+                            <div style="font-size: 0.75rem; color: #0284c7; margin-top: 2px;">
+                                📞 {{ w.contact_info }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px; font-weight: 800; color: #2563eb;">
+                            {% if '@' in w.emp_id %}EMP-{{ w.id|stringformat:"04d" }}{% else %}{{ w.emp_id }}{% endif %}
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            <span style="font-weight: 700; color: #334155; background: #f1f5f9; padding: 4px 10px; border-radius: 8px;">
+                                🛏️ {{ w.camp_room|default:"Unassigned" }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            <span style="font-size: 0.82rem; font-weight: 600; display: block; color: #475569;">
+                                ⏱️ {{ w.current_shift|default:"Day" }} Shift
+                            </span>
+                            <span style="font-size: 0.75rem; color: #64748b;">
+                                🍱 {{ w.assigned_mess.name|default:"Main Mess" }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 10px;" id="worker_camp_status_td_{{ w.id }}">
+                            {% if w.camp_status == 'INSIDE' %}
+                                <span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">
+                                    🟢 Inside Camp
+                                </span>
+                            {% elif w.camp_status == 'OUTSIDE' %}
+                                <span style="background: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">
+                                    🔴 Outside Camp
+                                </span>
+                            {% else %}
+                                <span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">
+                                    🏖️ On Leave
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px;" id="worker_employment_status_td_{{ w.id }}">
+                            {% if w.status == 'Active' %}
+                                <span style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px;">
+                                    Active
+                                </span>
+                            {% elif w.status == 'Terminated' %}
+                                <span style="background: #fef2f2; color: #991b1b; font-weight: 700; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px;">
+                                    Exited ({{ w.exit_date|date:"d M Y" }})
+                                </span>
+                                {% if w.exit_reason %}
+                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">{{ w.exit_reason }}</div>
+                                {% endif %}
+                            {% else %}
+                                <span style="background: #f8fafc; color: #475569; font-weight: 700; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px;">
+                                    {{ w.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                            {% if w.status == 'Active' %}
+                            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                                <button onclick="openLeaveModalForWorker('{{ w.id }}', '{{ w.name|escapejs }}', '{% if '@' in w.emp_id %}EMP-{{ w.id|stringformat:'04d' }}{% else %}{{ w.emp_id|escapejs }}{% endif %}')" 
+                                        class="btn-action" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 5px 9px; font-size: 0.78rem;" title="Mark On Leave">
+                                    <span>🏖️</span> Leave
+                                </button>
+                                <button onclick="openExitModal('{{ w.id }}', '{{ w.name|escapejs }}', '{% if '@' in w.emp_id %}EMP-{{ w.id|stringformat:'04d' }}{% else %}{{ w.emp_id|escapejs }}{% endif %}')" 
+                                        class="btn-action" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 5px 9px; font-size: 0.78rem;" title="Mark Left Company">
+                                    <span>🚪</span> Exit
+                                </button>
+                            </div>
+                            {% elif w.status == 'On Leave' or w.status == 'Absent' %}
+                            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                                <button onclick="returnWorkerFromLeave('{{ w.id }}', '{{ w.name|escapejs }}')" 
+                                        class="btn-action" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 5px 9px; font-size: 0.78rem;" title="Return to Active Camp">
+                                    <span>🟢</span> Return
+                                </button>
+                                <button onclick="openExitModal('{{ w.id }}', '{{ w.name|escapejs }}', '{% if '@' in w.emp_id %}EMP-{{ w.id|stringformat:'04d' }}{% else %}{{ w.emp_id|escapejs }}{% endif %}')" 
+                                        class="btn-action" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 5px 9px; font-size: 0.78rem;" title="Mark Offboarded / Exit">
+                                    <span>🚪</span> Exit
+                                </button>
+                            </div>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">Offboarded</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                            No workers found matching the current search / filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Add New Worker (Joinee) -->
+<div id="addWorkerModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>➕</span> Onboard New Worker / Joinee
+            </h2>
+            <button onclick="closeAddWorkerModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+        </div>
+
+        <form id="addWorkerForm" onsubmit="submitAddWorker(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Employee ID *</label>
+                    <input type="text" id="new_emp_id" required placeholder="e.g. EMP-1052" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="new_name" required placeholder="e.g. Ramesh Kumar" class="form-control">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Designation</label>
+                    <input type="text" id="new_designation" placeholder="e.g. Mason / Driver / Helper" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" id="new_department" placeholder="e.g. Civil / Plant &amp; Machinery" class="form-control">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Camp Room / Block Allocation</label>
+                    <input type="text" id="new_camp_room" placeholder="e.g. Block B, Room 204" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Assigned Shift</label>
+                    <select id="new_shift" class="form-control">
+                        <option value="Day">Day Shift</option>
+                        <option value="Night">Night Shift</option>
+                        <option value="General">General Shift</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Assigned Mess</label>
+                    <select id="new_mess_id" class="form-control">
+                        <option value="">Default Mess</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Mobile / Contact Phone</label>
+                    <input type="text" id="new_phone" placeholder="e.g. +975 17XXXXXX" class="form-control">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Contractor / Agency</label>
+                    <input type="text" id="new_contractor" placeholder="e.g. Direct / Agency Name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Nationality</label>
+                    <input type="text" id="new_nationality" value="Indian" class="form-control">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeAddWorkerModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">
+                    Cancel
+                </button>
+                <button type="submit" id="addBtn" class="btn-action" style="background: #16a34a; color: white;">
+                    <span>💾</span> Save &amp; Onboard Worker
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 2: Mark Worker Left Company / Terminated -->
+<div id="exitWorkerModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 480px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: #dc2626; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>🚪</span> Mark Worker Left Company
+            </h2>
+            <button onclick="closeExitModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+        </div>
+
+        <p style="color: #475569; font-size: 0.9rem; margin-bottom: 16px;">
+            You are recording offboarding for: <strong id="exitWorkerName" style="color: #1e293b;"></strong> (<span id="exitWorkerCode" style="color: #2563eb; font-weight: 700;"></span>).
+            Their camp room and active privileges will be deactivated.
+        </p>
+
+        <form id="exitWorkerForm" onsubmit="submitExitWorker(event)">
+            <input type="hidden" id="exit_worker_id">
+
+            <div class="form-group">
+                <label>Exit / Resignation Date *</label>
+                <input type="date" id="exit_date" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Reason for Leaving *</label>
+                <select id="exit_reason_select" class="form-control" onchange="toggleCustomReason(this.value)">
+                    <option value="Resigned / Personal Reasons">Resigned / Personal Reasons</option>
+                    <option value="Contract Period Completed">Contract Period Completed</option>
+                    <option value="Transferred to Another Site">Transferred to Another Site</option>
+                    <option value="Medical / Health Grounds">Medical / Health Grounds</option>
+                    <option value="Terminated by Management">Terminated by Management</option>
+                    <option value="Other">Other Reason...</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customReasonWrap" style="display: none;">
+                <label>Specify Reason</label>
+                <input type="text" id="exit_reason_custom" placeholder="Details of exit reason..." class="form-control">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeExitModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">
+                    Cancel
+                </button>
+                <button type="submit" id="exitBtn" class="btn-action" style="background: #dc2626; color: white;">
+                    <span>🚪</span> Confirm Worker Exit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 3: Mark Worker On Leave (Direct Row Click) -->
+<div id="leaveWorkerModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 480px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <h2 style="font-size: 1.22rem; font-weight: 800; color: #b45309; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>🏖️</span> Mark Worker On Leave
+            </h2>
+            <button onclick="closeLeaveModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+        </div>
+
+        <p style="color: #475569; font-size: 0.88rem; margin-bottom: 16px;">
+            Recording authorized leave for: <strong id="leaveWorkerName" style="color: #1e293b;"></strong> (<span id="leaveWorkerCode" style="color: #2563eb; font-weight: 700;"></span>).
+            Worker will be recorded as <strong>On Leave</strong> and outside camp.
+        </p>
+
+        <form id="leaveWorkerForm" onsubmit="submitMarkLeave(event)">
+            <input type="hidden" id="leave_worker_id">
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Status Category *</label>
+                <select id="leave_action_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="MARK_LEAVE">🏖️ Authorized Leave (Home / Medical / Holiday)</option>
+                    <option value="MARK_ABSENT">❌ Absent (Uninformed Absence / Duty Miss)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Reason / Remarks *</label>
+                <select id="leave_reason_select" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="Home Leave / Family Visit">Home Leave / Family Visit</option>
+                    <option value="Medical Treatment / Sick Leave">Medical Treatment / Sick Leave</option>
+                    <option value="Festival / Annual Leave">Festival / Annual Leave</option>
+                    <option value="Emergency Leave">Emergency Leave</option>
+                    <option value="Uninformed Absence / Duty Miss">Uninformed Absence / Duty Miss</option>
+                    <option value="Official Duty Leave">Official Duty Leave</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Leave Start Date</label>
+                    <input type="date" id="leave_start_date" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Expected Return Date</label>
+                    <input type="date" id="leave_return_date" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <button type="button" onclick="closeLeaveModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">
+                    Cancel
+                </button>
+                <button type="submit" id="leaveSubmitBtn" class="btn-action" style="background: #f59e0b; color: white;">
+                    <span>🏖️</span> Confirm Mark Leave
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 4: Quick Search & Mark Leave (For Top Header Button) -->
+<div id="quickLeaveSearchModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 540px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <h2 style="font-size: 1.22rem; font-weight: 800; color: #b45309; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>🔍</span> Search Worker to Mark Leave
+            </h2>
+            <button onclick="closeQuickLeaveModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+            <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Search Employee (Name, ID, or Phone)</label>
+            <input type="text" id="quickLeaveSearchInput" placeholder="Type name, emp id (e.g. 2843)..." oninput="handleQuickLeaveSearch(this.value)" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+        </div>
+
+        <div id="quickLeaveResultsList" style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 14px; display: none;">
+            <!-- Rendered results -->
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+            <button type="button" onclick="closeQuickLeaveModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Close</button>
+        </div>
+<!-- ON LEAVE & ABSENT WORKFORCE BREAKDOWN MODAL -->
+<div id="onLeaveDetailsModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 900px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>🏖️</span> On Leave &amp; Absent Workforce Register
+                </h3>
+                <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: #64748b; font-weight: 600;">
+                    Complete details of workers currently away from camp on authorized leave or absent.
+                </p>
+            </div>
+            <button type="button" onclick="closeOnLeaveModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="flex: 2; min-width: 200px;">
+                <input type="text" id="onLeaveSearchInput" oninput="renderOnLeaveTable()" placeholder="🔍 Search by Name, Emp ID, Room, Remarks..." class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <select id="onLeaveDeptFilter" onchange="renderOnLeaveTable()" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">🏢 All Departments</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <select id="onLeaveStatusFilter" onchange="renderOnLeaveTable()" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">📌 All Statuses</option>
+                    <option value="ON_LEAVE">🏖️ On Leave Only</option>
+                    <option value="ABSENT">❌ Absent Only</option>
+                </select>
+            </div>
+            <div>
+                <span id="onLeaveCountBadge" style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 0.8rem; padding: 8px 12px; border-radius: 8px; border: 1px solid #fde68a;">0 Workers</span>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; max-height: 440px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.76rem; text-transform: uppercase; position: sticky; top: 0; z-index: 2;">
+                        <th style="padding: 10px 12px;">Employee</th>
+                        <th style="padding: 10px 12px;">Department &amp; Role</th>
+                        <th style="padding: 10px 12px;">Room &amp; Mess</th>
+                        <th style="padding: 10px 12px;">Status</th>
+                        <th style="padding: 10px 12px;">Out Time &amp; Remarks</th>
+                        <th style="padding: 10px 12px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="onLeaveTableBody">
+                    <tr><td colspan="6" style="text-align: center; padding: 24px; color: #94a3b8;">Loading leave details...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            <small style="color: #64748b;">ℹ️ Returning a worker marks them active and restores them to camp headcount &amp; mess counts.</small>
+            <button type="button" onclick="closeOnLeaveModal()" class="btn-action" style="background: #64748b; color: white; border: none; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-weight: 700;">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAddWorkerModal() {
+        document.getElementById('addWorkerModal').style.display = 'flex';
+    }
+    function closeAddWorkerModal() {
+        document.getElementById('addWorkerModal').style.display = 'none';
+    }
+
+    function openExitModal(empId, empName, empCode) {
+        document.getElementById('exit_worker_id').value = empId;
+        document.getElementById('exitWorkerName').innerText = empName;
+        document.getElementById('exitWorkerCode').innerText = empCode;
+        document.getElementById('exit_date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('exitWorkerModal').style.display = 'flex';
+    }
+    function closeExitModal() {
+        document.getElementById('exitWorkerModal').style.display = 'none';
+    }
+
+    function toggleCustomReason(val) {
+        document.getElementById('customReasonWrap').style.display = (val === 'Other') ? 'block' : 'none';
+    }
+
+    async function submitAddWorker(e) {
+        e.preventDefault();
+        const btn = document.getElementById('addBtn');
+        btn.disabled = true;
+        btn.innerText = 'Onboarding...';
+
+        const payload = {
+            emp_id: document.getElementById('new_emp_id').value.trim(),
+            name: document.getElementById('new_name').value.trim(),
+            designation: document.getElementById('new_designation').value.trim(),
+            department: document.getElementById('new_department').value.trim(),
+            camp_room: document.getElementById('new_camp_room').value.trim(),
+            current_shift: document.getElementById('new_shift').value,
+            assigned_mess_id: document.getElementById('new_mess_id').value || null,
+            contact_info: document.getElementById('new_phone').value.trim(),
+            contractor_agency: document.getElementById('new_contractor').value.trim(),
+            nationality: document.getElementById('new_nationality').value.trim()
+        };
+
+        try {
+            const res = await fetch("{% url 'api_hr_add_employee' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                alert('✅ ' + data.msg);
+                window.location.reload();
+            } else {
+                alert('❌ ' + data.msg);
+                btn.disabled = false;
+                btn.innerText = 'Save & Onboard Worker';
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = 'Save & Onboard Worker';
+        }
+    }
+
+    async function submitExitWorker(e) {
+        e.preventDefault();
+        const btn = document.getElementById('exitBtn');
+        btn.disabled = true;
+        btn.innerText = 'Processing Exit...';
+
+        let reason = document.getElementById('exit_reason_select').value;
+        if (reason === 'Other') {
+            reason = document.getElementById('exit_reason_custom').value.trim() || 'Other';
+        }
+
+        const payload = {
+            employee_id: document.getElementById('exit_worker_id').value,
+            exit_date: document.getElementById('exit_date').value,
+            exit_reason: reason
+        };
+
+        try {
+            const res = await fetch("{% url 'api_hr_deactivate_employee' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                alert('✅ ' + data.msg);
+                window.location.reload();
+            } else {
+                alert('❌ ' + data.msg);
+                btn.disabled = false;
+                btn.innerText = 'Confirm Worker Exit';
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = 'Confirm Worker Exit';
+        }
+    }
+
+    // ON LEAVE BREAKDOWN MODAL CONTROLS
+    let globalOnLeaveList = [];
+
+    function openOnLeaveModal() {
+        const modal = document.getElementById('onLeaveDetailsModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        fetchOnLeaveData();
+    }
+
+    function closeOnLeaveModal() {
+        const modal = document.getElementById('onLeaveDetailsModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function fetchOnLeaveData() {
+        try {
+            const res = await fetch("{% url 'api_camp_live_stats' %}");
+            const data = await res.json();
+            if (data.status === 'success' && data.on_leave_list) {
+                globalOnLeaveList = data.on_leave_list;
+                populateOnLeaveDeptFilter();
+                renderOnLeaveTable();
+            }
+        } catch(e) {
+            console.error('Error fetching leave details:', e);
+        }
+    }
+
+    function populateOnLeaveDeptFilter() {
+        const select = document.getElementById('onLeaveDeptFilter');
+        if (!select) return;
+        const currentVal = select.value || 'ALL';
+        const depts = [...new Set(globalOnLeaveList.map(item => item.department).filter(Boolean))].sort();
+        select.innerHTML = '<option value="ALL">🏢 All Departments</option>' + 
+            depts.map(d => `<option value="${d}" ${d === currentVal ? 'selected' : ''}>${d}</option>`).join('');
+    }
+
+    function renderOnLeaveTable() {
+        const body = document.getElementById('onLeaveTableBody');
+        if (!body) return;
+
+        const searchVal = (document.getElementById('onLeaveSearchInput')?.value || '').toLowerCase().trim();
+        const deptVal = document.getElementById('onLeaveDeptFilter')?.value || 'ALL';
+        const statusVal = document.getElementById('onLeaveStatusFilter')?.value || 'ALL';
+
+        const filtered = globalOnLeaveList.filter(item => {
+            const matchesSearch = !searchVal || 
+                item.name.toLowerCase().includes(searchVal) ||
+                item.emp_id.toLowerCase().includes(searchVal) ||
+                item.camp_room.toLowerCase().includes(searchVal) ||
+                item.remarks.toLowerCase().includes(searchVal);
+
+            const matchesDept = (deptVal === 'ALL') || (item.department === deptVal);
+            const matchesStatus = (statusVal === 'ALL') || 
+                (statusVal === 'ON_LEAVE' && item.status === 'On Leave') ||
+                (statusVal === 'ABSENT' && item.status === 'Absent');
+
+            return matchesSearch && matchesDept && matchesStatus;
+        });
+
+        const badge = document.getElementById('onLeaveCountBadge');
+        if (badge) badge.innerText = `${filtered.length} Workers`;
+
+        if (filtered.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #94a3b8; font-weight: 600;">No workers currently on leave or absent matching the criteria.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = filtered.map(item => `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 12px;">
+                    <strong style="color: #0f172a; display: block; font-size: 0.88rem;">${item.name}</strong>
+                    <small style="color: #2563eb; font-weight: 700;">${item.emp_id}</small>
+                </td>
+                <td style="padding: 10px 12px;">
+                    <span style="font-weight: 600; color: #334155;">${item.department}</span>
+                    <small style="display: block; color: #64748b; font-size: 0.78rem;">${item.designation}</small>
+                </td>
+                <td style="padding: 10px 12px;">
+                    <small style="display: block; color: #475569;">📍 ${item.camp_room}</small>
+                    <small style="color: #64748b; font-size: 0.78rem;">🍲 ${item.assigned_mess}</small>
+                </td>
+                <td style="padding: 10px 12px;">
+                    ${item.status === 'Absent' 
+                        ? `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid #fca5a5;">❌ Absent</span>`
+                        : `<span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid #fde68a;">🏖️ On Leave</span>`
+                    }
+                </td>
+                <td style="padding: 10px 12px;">
+                    <small style="display: block; color: #1e293b; font-weight: 600;">🕒 ${item.out_time}</small>
+                    <small style="color: #64748b; font-size: 0.78rem;">📝 ${item.remarks}</small>
+                </td>
+                <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
+                    <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                        <button type="button" onclick="returnWorkerFromModal('${item.id}', '${item.name.replace(/'/g, "\\'")}')" class="btn-action" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.78rem; padding: 5px 9px; font-weight: 700; border-radius: 6px; cursor: pointer;" title="Return to Active Camp">
+                            🟢 Return
+                        </button>
+                        <button type="button" onclick="openExitModalFromOnLeave('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.emp_id}')" class="btn-action" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.78rem; padding: 5px 9px; font-weight: 700; border-radius: 6px; cursor: pointer;" title="Mark Permanent Exit / Offboard">
+                            🚪 Exit
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openExitModalFromOnLeave(empId, empName, empCode) {
+        closeOnLeaveModal();
+        openExitModal(empId, empName, empCode);
+    }
+
+    async function returnWorkerFromModal(empId, empName) {
+        if (!confirm(`Are you sure you want to return ${empName} back to Active Camp status?`)) return;
+        try {
+            const res = await fetch("{% url 'api_hr_mark_leave' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    employee_id: empId,
+                    action_type: 'RETURN_FROM_LEAVE'
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                alert('✅ ' + data.msg);
+                fetchOnLeaveData();
+                window.location.reload();
+            } else {
+                alert('⚠️ ' + data.msg);
+            }
+        } catch(e) {
+            alert('⚠️ Server connection error.');
+        }
+    }
+
+    // LEAVE MANAGEMENT CONTROLS
+    function openLeaveModalForWorker(empId, name, code) {
+        document.getElementById('leave_worker_id').value = empId;
+        document.getElementById('leaveWorkerName').innerText = name;
+        document.getElementById('leaveWorkerCode').innerText = code;
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('leave_start_date').value = todayStr;
+        document.getElementById('leaveWorkerModal').style.display = 'flex';
+    }
+
+    function closeLeaveModal() {
+        document.getElementById('leaveWorkerModal').style.display = 'none';
+    }
+
+    function openQuickLeaveModal() {
+        const modal = document.getElementById('quickLeaveSearchModal');
+        modal.style.display = 'flex';
+        const input = document.getElementById('quickLeaveSearchInput');
+        input.value = '';
+        document.getElementById('quickLeaveResultsList').style.display = 'none';
+        setTimeout(() => input.focus(), 100);
+    }
+
+    function closeQuickLeaveModal() {
+        document.getElementById('quickLeaveSearchModal').style.display = 'none';
+    }
+
+    let searchTimer = null;
+    async function handleQuickLeaveSearch(query) {
+        clearTimeout(searchTimer);
+        const list = document.getElementById('quickLeaveResultsList');
+        if (!query || query.trim().length < 2) {
+            list.style.display = 'none';
+            return;
+        }
+
+        searchTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/camp/api/lookup-worker/?q=${encodeURIComponent(query.trim())}`);
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.workers && data.workers.length > 0) {
+                    list.style.display = 'block';
+                    list.innerHTML = data.workers.map(w => `
+                        <div style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                            <div>
+                                <strong style="color: #0f172a; font-size: 0.9rem;">${w.name}</strong>
+                                <small style="display: block; color: #2563eb; font-weight: 700;">${w.emp_id} &bull; ${w.designation || 'Staff'}</small>
+                                <small style="color: #64748b;">📍 ${w.camp_room || 'Room unassigned'} &bull; Status: <strong>${w.status || 'Active'}</strong></small>
+                            </div>
+                            <div>
+                                ${(w.status === 'On Leave' || w.status === 'Absent' || w.camp_status === 'ON_LEAVE') 
+                                    ? `<button type="button" onclick="closeQuickLeaveModal(); returnWorkerFromLeave('${w.id}', '${w.name.replace(/'/g, "\\'")}')" class="btn-action" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.78rem; padding: 6px 10px;">🟢 Return to Camp</button>`
+                                    : `<button type="button" onclick="closeQuickLeaveModal(); openLeaveModalForWorker('${w.id}', '${w.name.replace(/'/g, "\\'")}', '${w.emp_id}')" class="btn-action" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.78rem; padding: 6px 10px;">🏖️ Mark Leave / Absent</button>`}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.style.display = 'block';
+                    list.innerHTML = `<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 0.85rem;">No workers found matching "${query}".</div>`;
+                }
+            } catch(e) {
+                list.style.display = 'none';
+            }
+        }, 250);
+    }
+
+    async function submitMarkLeave(e) {
+        e.preventDefault();
+        const btn = document.getElementById('leaveSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Processing...';
+
+        const empId = document.getElementById('leave_worker_id').value;
+        const actionType = document.getElementById('leave_action_type').value;
+        const reason = document.getElementById('leave_reason_select').value;
+        const startDate = document.getElementById('leave_start_date').value;
+        const returnDate = document.getElementById('leave_return_date').value;
+
+        try {
+            const res = await fetch("{% url 'api_hr_mark_leave' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    employee_id: empId,
+                    action_type: actionType,
+                    leave_reason: reason,
+                    start_date: startDate,
+                    expected_return_date: returnDate
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                alert('✅ ' + data.msg);
+                closeLeaveModal();
+                window.location.reload();
+            } else {
+                alert('⚠️ Error: ' + data.msg);
+            }
+        } catch(err) {
+            alert('⚠️ Network error while marking leave.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🏖️</span> Confirm Mark Leave';
+        }
+    }
+
+    async function returnWorkerFromLeave(empId, name) {
+        if (!confirm(`Confirm return from leave for worker: ${name}?\n\nThis will restore their status to Active and mark them Inside Camp.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch("{% url 'api_hr_mark_leave' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    employee_id: empId,
+                    action_type: 'RETURN_FROM_LEAVE'
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                alert('✅ ' + data.msg);
+                window.location.reload();
+            } else {
+                alert('⚠️ Error: ' + data.msg);
+            }
+        } catch(err) {
+            alert('⚠️ Network error returning worker from leave.');
+        }
+    }
+
+    // Real-Time HR Live Poll - Syncs worker in/out and headcounts
+    async function pollHrLiveStats() {
+        try {
+            const res = await fetch("{% url 'api_camp_live_stats' %}");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.status !== 'success') return;
+
+            // 1. Update KPIs
+            const k = data.kpis;
+            if (k) {
+                const elActive = document.getElementById('hr_kpi_active');
+                if (elActive && elActive.innerText != k.active_count) elActive.innerText = k.active_count;
+
+                const elInside = document.getElementById('hr_kpi_inside');
+                if (elInside && elInside.innerText != k.inside_count) {
+                    elInside.innerText = k.inside_count;
+                    elInside.style.transform = 'scale(1.15)';
+                    setTimeout(() => { elInside.style.transform = 'scale(1)'; }, 300);
+                }
+
+                const elOutside = document.getElementById('hr_kpi_outside');
+                if (elOutside && elOutside.innerText != k.outside_count) {
+                    elOutside.innerText = k.outside_count;
+                    elOutside.style.transform = 'scale(1.15)';
+                    setTimeout(() => { elOutside.style.transform = 'scale(1)'; }, 300);
+                }
+
+                const elLeave = document.getElementById('hr_kpi_leave');
+                if (elLeave && elLeave.innerText != k.leave_count) elLeave.innerText = k.leave_count;
+
+                const elTerm = document.getElementById('hr_kpi_terminated');
+                if (elTerm && elTerm.innerText != k.terminated_count) elTerm.innerText = k.terminated_count;
+            }
+
+            const syncEl = document.getElementById('hr_sync_time');
+            if (syncEl) syncEl.innerText = data.server_time || 'Active';
+
+            // 2. Update visible worker rows live status
+            if (data.workers_map) {
+                for (const [wId, info] of Object.entries(data.workers_map)) {
+                    const tdCamp = document.getElementById(`worker_camp_status_td_${wId}`);
+                    if (tdCamp) {
+                        let badgeHtml = '';
+                        if (info.camp_status === 'INSIDE') {
+                            badgeHtml = `<span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">🟢 Inside Camp</span>`;
+                        } else if (info.camp_status === 'OUTSIDE') {
+                            badgeHtml = `<span style="background: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">🔴 Outside Camp</span>`;
+                        } else {
+                            badgeHtml = `<span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">🏖️ On Leave</span>`;
+                        }
+                        if (tdCamp.innerHTML.trim() !== badgeHtml) {
+                            tdCamp.innerHTML = badgeHtml;
+                            tdCamp.style.backgroundColor = '#ecfdf5';
+                            setTimeout(() => { tdCamp.style.backgroundColor = ''; }, 2000);
+                        }
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn("HR live poll error:", e);
+        }
+    }
+
+    // Auto poll every 3.5 seconds
+    setInterval(pollHrLiveStats, 3500);
+
+    // Theme Icon Sync
+    function updateThemeIcon() {
+        const icon = document.getElementById('campHrThemeIcon');
+        if (!icon) return;
+        const current = document.documentElement.getAttribute('data-theme');
+        icon.innerText = (current === 'dark') ? '☀️' : '🌙';
+    }
+    updateThemeIcon();
+    const origToggleTheme = window.toggleTheme;
+    window.toggleTheme = function() {
+        if (typeof origToggleTheme === 'function') origToggleTheme();
+        setTimeout(updateThemeIcon, 50);
+    };
+
+    // HR Export Modal
+    function openHrExportModal() {
+        const modal = document.getElementById('hrExportModal');
+        if (modal) modal.style.display = 'flex';
+    }
+    function closeHrExportModal() {
+        const modal = document.getElementById('hrExportModal');
+        if (modal) modal.style.display = 'none';
+    }
+    function runHrExport(format) {
+        const status = document.getElementById('hr_export_status') ? document.getElementById('hr_export_status').value : 'ALL';
+        const campStatus = document.getElementById('hr_export_camp_status') ? document.getElementById('hr_export_camp_status').value : 'ALL';
+        const dept = document.getElementById('hr_export_dept') ? document.getElementById('hr_export_dept').value : 'ALL';
+        const q = document.getElementById('hr_export_q') ? document.getElementById('hr_export_q').value : '';
+
+        const baseUrl = format === 'excel' ? "{% url 'export_camp_hr_excel' %}" : "{% url 'export_camp_hr_pdf' %}";
+        const url = `${baseUrl}?status=${encodeURIComponent(status)}&camp_status=${encodeURIComponent(campStatus)}&department=${encodeURIComponent(dept)}&q=${encodeURIComponent(q)}`;
+        window.open(url, '_blank');
+        closeHrExportModal();
+    }
+</script>
+
+<!-- CAMP HR WORKFORCE EXPORT MODAL -->
+<div id="hrExportModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 520px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>👥</span> Export Camp Workforce Roster
+            </h3>
+            <button type="button" onclick="closeHrExportModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="hrExportForm" onsubmit="event.preventDefault();">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Employee Status</label>
+                    <select id="hr_export_status" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Active" selected>🟢 Active Workforce Only</option>
+                        <option value="On Leave">🏖️ On Leave Only</option>
+                        <option value="Terminated">🔴 Exited / Left Company</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Camp Presence</label>
+                    <select id="hr_export_camp_status" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All (Inside &amp; Outside)</option>
+                        <option value="INSIDE">🟢 Currently Inside Camp</option>
+                        <option value="OUTSIDE">🔴 Outside Camp / On Duty</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Department</label>
+                    <select id="hr_export_dept" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Departments</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Search Worker / Room</label>
+                    <input type="text" id="hr_export_q" placeholder="Name, ID, Room No..." class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px; flex-wrap: wrap;">
+                <button type="button" onclick="closeHrExportModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Cancel</button>
+                <button type="button" onclick="runHrExport('excel')" class="btn-action" style="background: #10b981; color: white;">
+                    <span>📗</span> Download Excel
+                </button>
+                <button type="button" onclick="runHrExport('pdf')" class="btn-action" style="background: #ef4444; color: white;">
+                    <span>📄</span> Print / PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

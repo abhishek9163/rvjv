@@ -1,0 +1,1803 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Overtime Management &amp; Audit Dashboard | P&M System{% endblock %}
+
+{% block content %}
+<style>
+    .ot-dash-container {
+        padding: 8px 0 130px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Page Header */
+    .ot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .ot-title h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .ot-title-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        background: rgba(139, 92, 246, 0.15);
+        color: #8b5cf6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+    .ot-header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* Executive KPI Grid */
+    .ot-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .ot-kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .ot-kpi-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+    .ot-kpi-info {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+    }
+    .ot-kpi-num {
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1.15;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ot-kpi-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr 1.2fr 1fr 1fr 1fr auto;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .filter-field {
+        min-width: 0;
+    }
+    .filter-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-bottom: 4px;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .filter-input, .filter-select {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.82rem;
+        font-weight: 600;
+        outline: none;
+        box-sizing: border-box;
+        height: 38px;
+    }
+    .filter-input:focus, .filter-select:focus {
+        border-color: var(--primary);
+    }
+
+    /* Section Card */
+    .section-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .custom-table th {
+        background: var(--bg-color);
+        color: var(--sidebar-text);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 9px 11px;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+    }
+    .custom-table td {
+        padding: 10px 11px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+        vertical-align: middle;
+    }
+    .custom-table tr:hover td {
+        background: rgba(99, 102, 241, 0.03);
+    }
+
+    /* Action Buttons */
+    .action-btn-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        justify-content: center;
+        flex-wrap: nowrap;
+    }
+
+    .btn-act {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+    }
+    .btn-act-approve {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+    .btn-act-approve:hover {
+        background: #10b981;
+        color: white;
+    }
+    .btn-act-reject {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-act-reject:hover {
+        background: #ef4444;
+        color: white;
+    }
+    .btn-act-edit {
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--primary);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    .btn-act-edit:hover {
+        background: var(--primary);
+        color: white;
+    }
+    .btn-act-delete {
+        background: rgba(244, 63, 94, 0.12);
+        color: #f43f5e;
+        border-color: rgba(244, 63, 94, 0.3);
+    }
+    .btn-act-delete:hover {
+        background: #f43f5e;
+        color: white;
+    }
+
+    /* Generic Modal Overlay */
+    .ot-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+    .ot-modal-content {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        width: 100%;
+        max-width: 650px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        animation: modalScale 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes modalScale {
+        from { transform: scale(0.92); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .ot-modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .ot-modal-header h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .ot-modal-body {
+        padding: 20px;
+    }
+    .modal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .modal-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .modal-field label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+    }
+    .modal-field input, .modal-field select, .modal-field textarea {
+        padding: 8px 10px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.85rem;
+        font-weight: 600;
+        outline: none;
+    }
+    .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus {
+        border-color: var(--primary);
+    }
+    .ot-modal-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Preset Date Range Pills */
+    .preset-pills-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .preset-pill-btn {
+        padding: 4px 9px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .preset-pill-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 992px) {
+        .filter-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ot-dash-container {
+            padding: 4px 0 135px !important;
+        }
+        .ot-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+        .ot-title h2 {
+            font-size: 1.15rem;
+        }
+        .ot-header-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+        }
+        .ot-hdr-btn {
+            width: 100% !important;
+            justify-content: center !important;
+            font-size: 0.78rem !important;
+            padding: 8px 6px !important;
+            white-space: nowrap;
+        }
+        .ot-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
+        }
+        .ot-kpi-card {
+            padding: 10px 8px !important;
+            gap: 8px !important;
+            border-radius: 12px !important;
+        }
+        .ot-kpi-icon {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            font-size: 0.95rem !important;
+            border-radius: 8px !important;
+        }
+        .ot-kpi-num {
+            font-size: 1.05rem !important;
+        }
+        .ot-kpi-label {
+            font-size: 0.62rem !important;
+        }
+        .filter-card {
+            padding: 12px !important;
+            border-radius: 12px !important;
+            margin-bottom: 16px !important;
+        }
+        .filter-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+        }
+        .filter-col-full {
+            grid-column: 1 / -1 !important;
+        }
+        .filter-col-half {
+            grid-column: span 1 !important;
+        }
+        .filter-actions {
+            grid-column: 1 / -1 !important;
+            display: flex !important;
+            gap: 8px !important;
+            width: 100% !important;
+            margin-top: 4px;
+        }
+        .filter-btn-apply {
+            flex: 1 !important;
+            height: 38px !important;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            justify-content: center !important;
+        }
+        .filter-btn-reset {
+            width: 42px !important;
+            height: 38px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 8px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .ot-header-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="ot-dash-container">
+    <!-- Header -->
+    <div class="ot-header">
+        <div class="ot-title">
+            <h2>
+                <div class="ot-title-icon"><i class="fas fa-business-time"></i></div>
+                <span>RVJV Overtime Management System</span>
+            </h2>
+        </div>
+        <div class="ot-header-actions">
+            <a href="{% url 'overtime_scan' %}" class="btn btn-primary ot-hdr-btn" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                <i class="fas fa-qrcode"></i> <span>Time Keeper Scanner</span>
+            </a>
+            {% if user.system_role != 'TIME_KEEPER' %}
+            <!-- EXPORT POPUP BUTTON (MANAGER/ADMIN ONLY) -->
+            <button type="button" onclick="openExportModal()" class="btn btn-outline ot-hdr-btn" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; color:var(--primary); border-color:var(--primary); background:rgba(99, 102, 241, 0.08);">
+                <i class="fas fa-file-export"></i> <span>Export Reports &amp; PDF</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Executive KPI Grid -->
+    <div class="ot-kpi-grid">
+        <div class="ot-kpi-card">
+            <div class="ot-kpi-icon" style="background:rgba(99, 102, 241, 0.12); color:#6366f1;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="ot-kpi-info">
+                <div class="ot-kpi-num" id="kpi_total_hours">{{ total_hours }} hrs</div>
+                <div class="ot-kpi-label">Total OT Hours</div>
+            </div>
+        </div>
+        {% if user.system_role != 'TIME_KEEPER' %}
+        <div class="ot-kpi-card">
+            <div class="ot-kpi-icon" style="background:rgba(16, 185, 129, 0.12); color:#10b981;">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="ot-kpi-info">
+                <div class="ot-kpi-num" id="kpi_total_amount">Nu. {{ total_amount }}</div>
+                <div class="ot-kpi-label">Estimated OT Pay</div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="ot-kpi-card">
+            <div class="ot-kpi-icon" style="background:rgba(37, 99, 235, 0.12); color:#2563eb;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="ot-kpi-info">
+                <div class="ot-kpi-num" id="kpi_unique_workers">{{ unique_workers }}</div>
+                <div class="ot-kpi-label">Workers on OT</div>
+            </div>
+        </div>
+        <div class="ot-kpi-card">
+            <div class="ot-kpi-icon" style="background:rgba(245, 158, 11, 0.12); color:#f59e0b;">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div class="ot-kpi-info">
+                <div class="ot-kpi-num" id="kpi_pending_count">{{ pending_count }}</div>
+                <div class="ot-kpi-label">Pending Approval</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar (With Time Keeper Filter) -->
+    <div class="filter-card">
+        <form method="GET" action="{% url 'overtime_dashboard' %}" id="overtimeFilterForm">
+            <div class="filter-grid">
+                <div class="filter-field filter-col-full">
+                    <label class="filter-label"><i class="fas fa-magnifying-glass"></i> Search</label>
+                    <input type="text" name="q" id="filter_q" value="{{ q }}" placeholder="Emp ID, name, task, vehicle..." class="filter-input">
+                </div>
+                <div class="filter-field filter-col-half">
+                    <label class="filter-label">From Date</label>
+                    <input type="date" name="date_from" id="filter_date_from" value="{{ date_from }}" class="filter-input">
+                </div>
+                <div class="filter-field filter-col-half">
+                    <label class="filter-label">To Date</label>
+                    <input type="date" name="date_to" id="filter_date_to" value="{{ date_to }}" class="filter-input">
+                </div>
+                <div class="filter-field filter-col-full">
+                    <label class="filter-label"><i class="fas fa-user-clock" style="color:var(--primary);"></i> Time Keeper</label>
+                    <select name="time_keeper" id="filter_time_keeper" class="filter-select">
+                        <option value="All">All Time Keepers</option>
+                        {% for tk in all_time_keepers %}
+                        <option value="{{ tk.id }}" {% if time_keeper_id == tk.id|stringformat:"i" %}selected{% endif %}>{{ tk.full_name|default:tk.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field filter-col-half">
+                    <label class="filter-label">Zone</label>
+                    <select name="zone" id="filter_zone" class="filter-select">
+                        <option value="All">All Zones</option>
+                        {% for z in zones %}
+                        <option value="{{ z }}" {% if zone == z %}selected{% endif %}>{{ z }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field filter-col-half">
+                    <label class="filter-label">Shift</label>
+                    <select name="shift" id="filter_shift" class="filter-select">
+                        <option value="All">All Shifts</option>
+                        <option value="Day" {% if shift == 'Day' %}selected{% endif %}>Day</option>
+                        <option value="Night" {% if shift == 'Night' %}selected{% endif %}>Night</option>
+                        <option value="General" {% if shift == 'General' %}selected{% endif %}>General</option>
+                        {% for s in shifts %}
+                        {% if s != 'Day' and s != 'Night' and s != 'General' %}
+                        <option value="{{ s }}" {% if shift == s %}selected{% endif %}>{{ s }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field filter-col-full">
+                    <label class="filter-label">Status</label>
+                    <select name="status" id="filter_status" class="filter-select">
+                        <option value="All">All Status</option>
+                        <option value="Pending" {% if status == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Approved" {% if status == 'Approved' %}selected{% endif %}>Approved</option>
+                        <option value="Rejected" {% if status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button type="button" onclick="fetchLiveOvertimeData()" class="btn btn-primary filter-btn-apply">
+                        <i class="fas fa-filter"></i> Apply
+                    </button>
+                    <button type="button" onclick="resetLiveFilters()" class="btn btn-outline filter-btn-reset" title="Reset Filters">
+                        <i class="fas fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Master Records Table & Card View -->
+    <div class="section-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" class="btn btn-outline" onclick="bulkApproveSelected()" style="font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:#10b981;">
+                    <i class="fas fa-check-circle"></i> Bulk Approve
+                </button>
+                <button type="button" class="btn btn-outline" onclick="bulkDeleteSelected()" style="font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; color:#ef4444; border-color:#ef4444;">
+                    <i class="fas fa-trash-can"></i> Bulk Delete
+                </button>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:12px;">
+                <!-- View Mode Toggle -->
+                <div class="view-switch-grp" style="display:inline-flex; background:rgba(0,0,0,0.06); padding:3px; border-radius:10px; border:1px solid var(--border);">
+                    <button type="button" id="btnViewList" onclick="setOvertimeView('list')" style="padding:5px 12px; font-size:0.75rem; font-weight:800; border:none; border-radius:7px; cursor:pointer; background:var(--card-bg); color:var(--text-color); box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; align-items:center; gap:5px;">
+                        <i class="fas fa-list"></i> List
+                    </button>
+                    <button type="button" id="btnViewCards" onclick="setOvertimeView('cards')" style="padding:5px 12px; font-size:0.75rem; font-weight:800; border:none; border-radius:7px; cursor:pointer; background:transparent; color:var(--sidebar-text); display:flex; align-items:center; gap:5px;">
+                        <i class="fas fa-table-cells-large"></i> Cards
+                    </button>
+                </div>
+                <span id="showingEntriesCount" style="font-size:0.75rem; color:var(--sidebar-text); font-weight:700;">
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ total_records }} entries
+                </span>
+            </div>
+        </div>
+
+        <!-- 1. TABLE / LIST VIEW -->
+        <div class="table-container" id="overtimeTableContainer">
+            <table class="custom-table" id="masterOvertimeTable">
+                <thead>
+                    <tr>
+                        <th style="width:25px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)"></th>
+                        <th style="min-width:105px;">Date &amp; Time</th>
+                        <th style="min-width:150px;">Employee</th>
+                        <th style="min-width:140px;">Designation / Dept</th>
+                        <th style="min-width:100px;">Shift &amp; Zone</th>
+                        <th style="min-width:110px;">In / Out</th>
+                        <th style="text-align:center; min-width:85px;">OT Hours</th>
+                        {% if user.system_role != 'TIME_KEEPER' %}
+                        <th style="text-align:right; min-width:90px;">Rate</th>
+                        <th style="text-align:right; min-width:115px;">Amount</th>
+                        {% endif %}
+                        <th style="min-width:115px;">Time Keeper</th>
+                        <th style="text-align:center; min-width:90px;">Status</th>
+                        <th style="text-align:center; min-width:110px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr id="ot-row-{{ r.id }}">
+                        <td><input type="checkbox" class="ot-record-checkbox" value="{{ r.id }}"></td>
+                        <td style="white-space:nowrap; font-size:0.78rem;">
+                            <strong id="cell-date-{{ r.id }}">{{ r.date|date:"d M Y" }}</strong>
+                            <div style="color:var(--sidebar-text); font-size:0.7rem;">{{ r.created_at|date:"h:i A" }}</div>
+                        </td>
+                        <td>
+                            <div id="cell-name-{{ r.id }}" style="font-weight:800; color:var(--text-color);">{{ r.employee_name }}</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">
+                                <span id="cell-empid-{{ r.id }}" style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; font-weight:700;">{{ r.emp_id_snapshot }}</span>
+                                {% if user.system_role != 'TIME_KEEPER' %}
+                                {% if r.account_number or r.employee.account_number %}
+                                <span class="badge" style="background:rgba(16, 185, 129, 0.12); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;" title="Bank Account Number">
+                                    <i class="fas fa-building-columns" style="font-size:0.6rem;"></i> <span id="cell-acct-{{ r.id }}">{{ r.account_number|default:r.employee.account_number }}</span>
+                                </span>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div id="cell-desig-{{ r.id }}" style="font-weight:600;">{{ r.designation }}</div>
+                            <div id="cell-dept-{{ r.id }}" style="font-size:0.7rem; color:var(--sidebar-text);">{{ r.department }}</div>
+                        </td>
+                        <td>
+                            <span id="cell-shift-{{ r.id }}" class="badge" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); font-size:0.7rem;">{{ r.shift }}</span>
+                            <div id="cell-zone-{{ r.id }}" style="font-size:0.72rem; color:var(--sidebar-text); margin-top:2px;">{{ r.location_zone }}</div>
+                        </td>
+                        <td style="white-space:nowrap; font-size:0.75rem;">
+                            <div>IN: <span id="cell-in-{{ r.id }}">{{ r.in_time|default:"-" }}</span></div>
+                            <div>OUT: <span id="cell-out-{{ r.id }}">{{ r.out_time|default:"-" }}</span></div>
+                        </td>
+                        <td style="text-align:center; font-weight:800; color:var(--primary); font-size:0.9rem; white-space:nowrap;">
+                            <span id="cell-hours-{{ r.id }}">{{ r.overtime_hours }}</span> hrs
+                        </td>
+                        {% if user.system_role != 'TIME_KEEPER' %}
+                        <td style="text-align:right; font-size:0.75rem; color:var(--sidebar-text); white-space:nowrap;">
+                            Nu. <span id="cell-rate-{{ r.id }}">{{ r.overtime_rate }}</span>
+                        </td>
+                        <td style="text-align:right; font-weight:800; color:#059669; font-size:0.92rem; white-space:nowrap; font-variant-numeric:tabular-nums;">
+                            Nu. <span id="cell-amount-{{ r.id }}">{{ r.overtime_amount }}</span>
+                        </td>
+                        {% endif %}
+                        <td style="font-size:0.75rem;">
+                            <span class="badge" style="background:rgba(99, 102, 241, 0.12); color:#4338ca; font-weight:700; font-size:0.75rem; padding:4px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
+                                <i class="fas fa-user-clock" style="color:#4338ca;"></i> {{ r.time_keeper_name|default:"Self" }}
+                            </span>
+                        </td>
+                        <td style="text-align:center;">
+                            <span id="cell-status-{{ r.id }}">
+                                {% if r.status == 'Approved' %}
+                                <span class="badge" style="background:#10b981; color:white; font-size:0.7rem;">Approved</span>
+                                {% elif r.status == 'Rejected' %}
+                                <span class="badge" style="background:#ef4444; color:white; font-size:0.7rem;">Rejected</span>
+                                {% else %}
+                                <span class="badge" style="background:#f59e0b; color:white; font-size:0.7rem;">Pending</span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td style="text-align:center;">
+                            <div class="action-btn-group">
+                                <!-- Approve quick toggle -->
+                                {% if r.status != 'Approved' %}
+                                <button type="button" class="btn-act btn-act-approve" onclick="approveRecord({{ r.id }}, 'Approve')" title="Approve OT">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                {% endif %}
+                                {% if r.status != 'Rejected' %}
+                                <button type="button" class="btn-act btn-act-reject" onclick="approveRecord({{ r.id }}, 'Reject')" title="Reject OT">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
+                                {% endif %}
+                                
+                                <!-- Edit Button ALWAYS AVAILABLE -->
+                                <button type="button" class="btn-act btn-act-edit" onclick="openEditModal({{ r.id }})" title="Edit Details">
+                                    <i class="fas fa-pen-to-square"></i>
+                                </button>
+
+                                <!-- Delete Button ALWAYS AVAILABLE -->
+                                <button type="button" class="btn-act btn-act-delete" onclick="confirmDeleteRecord({{ r.id }}, '{{ r.employee_name|escapejs }}')" title="Delete Entry">
+                                    <i class="fas fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="12" style="text-align:center; padding:35px 15px; color:var(--sidebar-text);">
+                            <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                            No overtime records found matching the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. CARD VIEW (RESPONSIVE GRID) -->
+        <div id="overtimeCardsContainer" style="display:none; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap:16px; margin-top:10px;">
+            {% for r in records %}
+            <div class="ot-card" id="ot-card-{{ r.id }}" style="background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; justify-content:space-between; position:relative; transition:all 0.2s ease;">
+                <div>
+                    <!-- Card Top -->
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                            <input type="checkbox" class="ot-record-checkbox" value="{{ r.id }}" onchange="syncCardCheckbox(this)" style="flex:0 0 auto;">
+                            <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex:0 0 40px;">
+                                {{ r.employee_name|slice:":1"|upper }}
+                            </div>
+                            <div style="min-width:0; overflow:hidden;">
+                                <div id="card-name-{{ r.id }}" style="font-weight:800; font-size:0.95rem; color:var(--text-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ r.employee_name }}</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">
+                                    <span id="card-empid-{{ r.id }}" style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; font-weight:700;">{{ r.emp_id_snapshot }}</span>
+                                    {% if user.system_role != 'TIME_KEEPER' %}
+                                    {% if r.account_number or r.employee.account_number %}
+                                    <span class="badge" style="background:rgba(16, 185, 129, 0.12); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;" title="Bank Account Number">
+                                        <i class="fas fa-building-columns" style="font-size:0.6rem;"></i> <span id="card-acct-{{ r.id }}">{{ r.account_number|default:r.employee.account_number }}</span>
+                                    </span>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div id="card-status-{{ r.id }}" style="flex:0 0 auto;">
+                            {% if r.status == 'Approved' %}
+                            <span class="badge" style="background:#10b981; color:white; font-size:0.7rem;">Approved</span>
+                            {% elif r.status == 'Rejected' %}
+                            <span class="badge" style="background:#ef4444; color:white; font-size:0.7rem;">Rejected</span>
+                            {% else %}
+                            <span class="badge" style="background:#f59e0b; color:white; font-size:0.7rem;">Pending</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Role & Dept -->
+                    <div id="card-desig-{{ r.id }}" style="font-size:0.8rem; font-weight:700; color:var(--text-color); margin-bottom:2px;">
+                        {{ r.designation }}
+                    </div>
+                    <div id="card-dept-{{ r.id }}" style="font-size:0.72rem; color:var(--sidebar-text); margin-bottom:10px;">
+                        {{ r.department }}
+                    </div>
+
+                    <!-- Shift, Zone & Date Badges -->
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+                        <span id="card-shift-{{ r.id }}" class="badge" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); font-size:0.7rem;">{{ r.shift }}</span>
+                        <span id="card-zone-{{ r.id }}" class="badge" style="background:rgba(0,0,0,0.05); font-size:0.7rem;">{{ r.location_zone }}</span>
+                        <span id="card-date-{{ r.id }}" class="badge" style="background:rgba(0,0,0,0.04); font-size:0.7rem; color:var(--sidebar-text);">
+                            <i class="fas fa-calendar-day" style="font-size:0.65rem;"></i> {{ r.date|date:"d M Y" }}
+                        </span>
+                    </div>
+
+                    <!-- Stat Box (In/Out, OT Hours & Pay) -->
+                    <div style="background:var(--bg-color); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; font-size:0.78rem;">
+                            <div><span style="color:var(--sidebar-text); font-size:0.7rem; font-weight:700; text-transform:uppercase; display:block;">In Time</span> <strong id="card-in-{{ r.id }}" style="color:var(--text-color);">{{ r.in_time|default:"-" }}</strong></div>
+                            <div><span style="color:var(--sidebar-text); font-size:0.7rem; font-weight:700; text-transform:uppercase; display:block;">Out Time</span> <strong id="card-out-{{ r.id }}" style="color:var(--text-color);">{{ r.out_time|default:"-" }}</strong></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
+                            <div>
+                                <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--sidebar-text); display:block;">OT Hours</span>
+                                <strong style="color:var(--primary); font-size:0.92rem;"><span id="card-hours-{{ r.id }}">{{ r.overtime_hours }}</span> hrs</strong>
+                            </div>
+                            {% if user.system_role != 'TIME_KEEPER' %}
+                            <div style="text-align:right;">
+                                <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--sidebar-text); display:block;">Total Overtime Pay</span>
+                                <div style="background:rgba(16, 185, 129, 0.12); padding:3px 8px; border-radius:6px; display:inline-block;">
+                                    <strong style="color:#059669; font-size:1.02rem; white-space:nowrap; font-weight:800; font-variant-numeric:tabular-nums;">Nu. <span id="card-amount-{{ r.id }}">{{ r.overtime_amount }}</span></strong>
+                                </div>
+                                <div style="font-size:0.68rem; color:var(--sidebar-text); margin-top:2px;">(Nu. <span id="card-rate-{{ r.id }}">{{ r.overtime_rate }}</span>/h)</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Time Keeper -->
+                    <div style="font-size:0.72rem; color:var(--sidebar-text); margin-bottom:12px; display:flex; align-items:center; gap:5px;">
+                        <i class="fas fa-user-clock" style="color:#4338ca;"></i> Time Keeper: <strong style="color:var(--text-color);">{{ r.time_keeper_name|default:"Self" }}</strong>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:10px; margin-top:5px;">
+                    <div style="display:flex; gap:6px;">
+                        {% if r.status != 'Approved' %}
+                        <button type="button" class="btn-act btn-act-approve" onclick="approveRecord({{ r.id }}, 'Approve')" title="Approve OT">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        {% endif %}
+                        {% if r.status != 'Rejected' %}
+                        <button type="button" class="btn-act btn-act-reject" onclick="approveRecord({{ r.id }}, 'Reject')" title="Reject OT">
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-act btn-act-edit" onclick="openEditModal({{ r.id }})" title="Edit Details">
+                            <i class="fas fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" class="btn-act btn-act-delete" onclick="confirmDeleteRecord({{ r.id }}, '{{ r.employee_name|escapejs }}')" title="Delete Entry">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column:1/-1; text-align:center; padding:35px 15px; color:var(--sidebar-text); background:var(--card-bg); border-radius:14px; border:1px solid var(--border);">
+                <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                No overtime records found matching the selected filters.
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:14px; flex-wrap:wrap; gap:10px; font-size:0.82rem; color:var(--sidebar-text);">
+            <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+            <div style="display:flex; gap:5px;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&shift={{ shift }}&zone={{ zone }}&status={{ status }}&time_keeper={{ time_keeper_id }}&q={{ q }}" class="btn btn-outline" style="padding:4px 10px; font-size:0.8rem;">Prev</a>
+                {% endif %}
+                <span class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem;">{{ page_obj.number }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&shift={{ shift }}&zone={{ zone }}&status={{ status }}&time_keeper={{ time_keeper_id }}&q={{ q }}" class="btn btn-outline" style="padding:4px 10px; font-size:0.8rem;">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ==========================================
+     1. ADVANCE EXPORT POPUP MODAL
+=========================================== -->
+<div id="exportOvertimeModal" class="ot-modal-overlay">
+    <div class="ot-modal-content">
+        <div class="ot-modal-header">
+            <h3><i class="fas fa-file-export" style="color:var(--primary);"></i> Export Overtime &amp; Payroll Report</h3>
+            <button type="button" onclick="closeExportModal()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="ot-modal-body">
+            <!-- Quick Date Range Presets -->
+            <label style="font-size:0.72rem; font-weight:800; text-transform:uppercase; color:var(--sidebar-text); margin-bottom:4px; display:block;">Quick Date Presets</label>
+            <div class="preset-pills-row">
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('today')">Today</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('yesterday')">Yesterday</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('this_week')">This Week</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('last_7_days')">Last 7 Days</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('this_month')">This Month</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('last_month')">Last Month</button>
+                <button type="button" class="preset-pill-btn" onclick="setExportModalDate('clear')">All Time</button>
+            </div>
+
+            <div class="modal-grid">
+                <div class="modal-field">
+                    <label>From Date</label>
+                    <input type="date" id="expDateFrom" value="{{ date_from }}">
+                </div>
+                <div class="modal-field">
+                    <label>To Date</label>
+                    <input type="date" id="expDateTo" value="{{ date_to }}">
+                </div>
+                <div class="modal-field">
+                    <label>Work Zone</label>
+                    <select id="expZone">
+                        <option value="All">All Zones</option>
+                        {% for z in zones %}
+                        <option value="{{ z }}" {% if zone == z %}selected{% endif %}>{{ z }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Shift</label>
+                    <select id="expShift">
+                        <option value="All">All Shifts</option>
+                        <option value="Day">Day</option>
+                        <option value="Night">Night</option>
+                        <option value="General">General</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-grid">
+                <div class="modal-field">
+                    <label>Approval Status</label>
+                    <select id="expStatus">
+                        <option value="All">All Status</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Time Keeper</label>
+                    <select id="expTimeKeeper">
+                        <option value="All">All Time Keepers</option>
+                        {% for tk in all_time_keepers %}
+                        <option value="{{ tk.id }}" {% if time_keeper_id == tk.id|stringformat:"i" %}selected{% endif %}>{{ tk.full_name|default:tk.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-field" style="grid-column: span 2;">
+                    <label>Search / Keyword</label>
+                    <input type="text" id="expSearch" value="{{ q }}" placeholder="Emp ID, name, designation...">
+                </div>
+            </div>
+
+            <!-- Signatory Setup -->
+            <div style="background:var(--bg-color); border:1px solid var(--border); border-radius:12px; padding:12px; margin-top:8px;">
+                <label style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--primary); margin-bottom:8px; display:block;">
+                    <i class="fas fa-file-signature"></i> Official PDF Document Header &amp; Signatories
+                </label>
+                <div class="modal-field" style="margin-bottom:8px;">
+                    <label>Report Header Title</label>
+                    <input type="text" id="expReportTitle" value="Sunday Night Emergency Patrolling Team">
+                </div>
+                <div class="modal-grid" style="margin-bottom:0; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="modal-field">
+                        <label>1st Sign Title / Label</label>
+                        <input type="text" id="expCustomLabel" value="Checked By" placeholder="e.g. Checked By" style="margin-bottom:3px;">
+                        <input type="text" id="expCustomName" value="Dorji Wangchuk" placeholder="Name" style="margin-bottom:3px;">
+                        <input type="text" id="expCustomDesig" value="Site Supervisor" placeholder="Designation">
+                    </div>
+                    <div class="modal-field">
+                        <label>Prepared By (Name &amp; Post)</label>
+                        <input type="text" id="expPrepName" value="Sonam Lhamo" placeholder="Name" style="margin-bottom:3px;">
+                        <input type="text" id="expPrepDesig" value="HR Assistant" placeholder="Designation">
+                    </div>
+                    <div class="modal-field">
+                        <label>Verified By (Name &amp; Post)</label>
+                        <input type="text" id="expVerName" value="Jasthola" placeholder="Name" style="margin-bottom:3px;">
+                        <input type="text" id="expVerDesig" value="Head HR & Admin" placeholder="Designation">
+                    </div>
+                    <div class="modal-field">
+                        <label>Approved By (Name &amp; Post)</label>
+                        <input type="text" id="expApprName" value="Karma Tshering" placeholder="Name" style="margin-bottom:3px;">
+                        <input type="text" id="expApprDesig" value="Project Manager" placeholder="Designation">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ot-modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeExportModal()">Close</button>
+            <button type="button" class="btn" style="background:#10b981; color:white; font-weight:700;" onclick="triggerExport('excel')">
+                <i class="fas fa-file-excel"></i> Excel (.xlsx)
+            </button>
+            <button type="button" class="btn" style="background:#ef4444; color:white; font-weight:700;" onclick="triggerExport('pdf')">
+                <i class="fas fa-file-pdf"></i> Official PDF Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     2. INTERACTIVE EDIT OVERTIME MODAL
+=========================================== -->
+<div id="editOvertimeModal" class="ot-modal-overlay">
+    <div class="ot-modal-content">
+        <div class="ot-modal-header">
+            <h3><i class="fas fa-pen-to-square" style="color:var(--primary);"></i> Edit Overtime Record</h3>
+            <button type="button" onclick="closeEditModal()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--sidebar-text);">&times;</button>
+        </div>
+        <form id="editOvertimeForm" onsubmit="submitEditForm(event)">
+            <input type="hidden" id="editRecordId">
+            <div class="ot-modal-body">
+                <div class="modal-grid">
+                    <div class="modal-field">
+                        <label>Employee Name</label>
+                        <input type="text" id="editName" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Emp ID</label>
+                        <input type="text" id="editEmpId" readonly style="opacity:0.8;">
+                    </div>
+                    <div class="modal-field">
+                        <label><i class="fas fa-building-columns" style="color:#10b981;"></i> Bank Account Number</label>
+                        <input type="text" id="editAccountNo" placeholder="e.g. 2024567890">
+                    </div>
+                    <div class="modal-field">
+                        <label>CID / National ID</label>
+                        <input type="text" id="editCidNo" placeholder="e.g. 11504002345">
+                    </div>
+                </div>
+
+                <div class="modal-grid">
+                    <div class="modal-field">
+                        <label>Designation</label>
+                        <input type="text" id="editDesignation">
+                    </div>
+                    <div class="modal-field">
+                        <label>Department</label>
+                        <input type="text" id="editDepartment">
+                    </div>
+                    <div class="modal-field">
+                        <label>Date</label>
+                        <input type="date" id="editDate" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Shift</label>
+                        <select id="editShift">
+                            <option value="Day">Day Shift</option>
+                            <option value="Night">Night Shift</option>
+                            <option value="General">General Shift</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-grid">
+                    <div class="modal-field">
+                        <label>Work Zone</label>
+                        <select id="editZone">
+                            {% for z in zones %}
+                            <option value="{{ z }}">{{ z }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Approval Status</label>
+                        <select id="editStatus">
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>In Time</label>
+                        <input type="text" id="editInTime" placeholder="08:00 AM" oninput="autoCalcHoursFromTimes()">
+                    </div>
+                    <div class="modal-field">
+                        <label>Out Time</label>
+                        <input type="text" id="editOutTime" placeholder="05:00 PM" oninput="autoCalcHoursFromTimes()">
+                    </div>
+                <div class="modal-grid">
+                    <div class="modal-field">
+                        <label>OT Hours</label>
+                        <input type="number" step="0.5" id="editHours" oninput="calcModalTotal()" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Hourly Rate (Nu. )</label>
+                        <input type="number" step="1" id="editRate" oninput="calcModalTotal()" required>
+                    </div>
+                </div>
+
+                <div style="background:rgba(16, 185, 129, 0.08); border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.85rem; font-weight:700; color:var(--text-color);">Calculated Overtime Pay:</span>
+                    <span id="editTotalAmountDisp" style="font-size:1.15rem; font-weight:800; color:#10b981;">Nu.  0.00</span>
+                </div>
+
+                <div class="modal-field" style="margin-bottom:10px;">
+                    <label>Work Description / Task Details</label>
+                    <textarea id="editWorkDesc" rows="2" placeholder="e.g. Concrete pouring, generator repair..."></textarea>
+                </div>
+                <div class="modal-field">
+                    <label>Remarks</label>
+                    <input type="text" id="editRemarks" placeholder="Optional PM remarks...">
+                </div>
+            </div>
+            <div class="ot-modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight:700;">
+                    <i class="fas fa-floppy-disk"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// EXPORT MODAL LOGIC
+// ==========================================
+function openExportModal() {
+    document.getElementById('exportOvertimeModal').style.display = 'flex';
+}
+function closeExportModal() {
+    document.getElementById('exportOvertimeModal').style.display = 'none';
+}
+
+function setExportModalDate(type) {
+    const fromInput = document.getElementById('expDateFrom');
+    const toInput = document.getElementById('expDateTo');
+    const today = new Date();
+    function fmt(d) { return d.toISOString().split('T')[0]; }
+
+    if (type === 'today') {
+        fromInput.value = fmt(today); toInput.value = fmt(today);
+    } else if (type === 'yesterday') {
+        const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+        fromInput.value = fmt(yest); toInput.value = fmt(yest);
+    } else if (type === 'this_week') {
+        const day = today.getDay(); const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        fromInput.value = fmt(new Date(today.setDate(diff))); toInput.value = fmt(new Date());
+    } else if (type === 'last_7_days') {
+        const p7 = new Date(today); p7.setDate(p7.getDate() - 6);
+        fromInput.value = fmt(p7); toInput.value = fmt(today);
+    } else if (type === 'this_month') {
+        fromInput.value = fmt(new Date(today.getFullYear(), today.getMonth(), 1)); toInput.value = fmt(today);
+    } else if (type === 'last_month') {
+        fromInput.value = fmt(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+        toInput.value = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
+    } else if (type === 'clear') {
+        fromInput.value = ''; toInput.value = '';
+    }
+}
+
+function triggerExport(format) {
+    const from = document.getElementById('expDateFrom').value;
+    const to = document.getElementById('expDateTo').value;
+    const zone = document.getElementById('expZone').value;
+    const shift = document.getElementById('expShift').value;
+    const status = document.getElementById('expStatus').value;
+    const timeKeeper = document.getElementById('expTimeKeeper').value;
+    const q = encodeURIComponent(document.getElementById('expSearch').value);
+
+    const title = encodeURIComponent(document.getElementById('expReportTitle').value || 'Sunday Night Emergency Patrolling Team');
+    const customLabel = encodeURIComponent(document.getElementById('expCustomLabel').value || 'Checked By');
+    const customName = encodeURIComponent(document.getElementById('expCustomName').value || 'Dorji Wangchuk');
+    const customDesig = encodeURIComponent(document.getElementById('expCustomDesig').value || 'Site Supervisor');
+    const prepName = encodeURIComponent(document.getElementById('expPrepName').value || 'Sonam Lhamo');
+    const prepDesig = encodeURIComponent(document.getElementById('expPrepDesig').value || 'HR Assistant');
+    const verName = encodeURIComponent(document.getElementById('expVerName').value || 'Jasthola');
+    const verDesig = encodeURIComponent(document.getElementById('expVerDesig').value || 'Head HR & Admin');
+    const apprName = encodeURIComponent(document.getElementById('expApprName').value || 'Karma Tshering');
+    const apprDesig = encodeURIComponent(document.getElementById('expApprDesig').value || 'Project Manager');
+
+    const params = `date_from=${from}&date_to=${to}&zone=${zone}&shift=${shift}&status=${status}&time_keeper=${timeKeeper}&q=${q}&report_title=${title}&custom_sign_label=${customLabel}&custom_sign_name=${customName}&custom_sign_desig=${customDesig}&prepared_by_name=${prepName}&prepared_by_desig=${prepDesig}&verified_by_name=${verName}&verified_by_desig=${verDesig}&approved_by_name=${apprName}&approved_by_desig=${apprDesig}`;
+
+    if (format === 'excel') {
+        window.location.href = `{% url 'export_overtime_excel' %}?${params}`;
+    } else if (format === 'csv') {
+        window.location.href = `{% url 'export_overtime_csv' %}?${params}`;
+    } else if (format === 'pdf') {
+        window.open(`{% url 'export_overtime_pdf' %}?${params}`, '_blank');
+    }
+}
+
+// ==========================================
+// BULK & ROW ACTIONS
+// ==========================================
+function toggleSelectAll(master) {
+    const checkboxes = document.querySelectorAll('.ot-record-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+}
+
+function approveRecord(recordId, action) {
+    const formData = new FormData();
+    formData.append('action', action);
+
+    fetch(`/api/overtime/approve/${recordId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.message || 'Error updating status');
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function bulkApproveSelected() {
+    const checked = document.querySelectorAll('.ot-record-checkbox:checked');
+    if (checked.length === 0) {
+        alert('Please select at least one record to approve.');
+        return;
+    }
+    if (!confirm(`Are you sure you want to approve all ${checked.length} selected overtime records?`)) return;
+
+    const ids = Array.from(checked).map(cb => parseInt(cb.value));
+    fetch('/api/overtime/bulk-approve/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') location.reload();
+        else alert(data.message || 'Bulk approval failed');
+    })
+    .catch(err => console.error(err));
+}
+
+function bulkDeleteSelected() {
+    const checked = document.querySelectorAll('.ot-record-checkbox:checked');
+    if (checked.length === 0) {
+        alert('Please select at least one record to delete.');
+        return;
+    }
+    if (!confirm(`⚠️ WARNING: Are you sure you want to permanently delete ${checked.length} selected overtime records?`)) return;
+
+    const ids = Array.from(checked).map(cb => parseInt(cb.value));
+    fetch('/api/overtime/bulk-delete/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') location.reload();
+        else alert(data.message || 'Bulk deletion failed');
+    })
+    .catch(err => console.error(err));
+}
+
+function confirmDeleteRecord(recordId, name) {
+    if (!confirm(`Are you sure you want to delete the overtime record for "${name}"? This action cannot be undone.`)) return;
+
+    fetch(`/api/overtime/delete/${recordId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const row = document.getElementById(`ot-row-${recordId}`);
+            if (row) {
+                row.style.background = 'rgba(239, 68, 68, 0.2)';
+                setTimeout(() => row.remove(), 400);
+            }
+            const card = document.getElementById(`ot-card-${recordId}`);
+            if (card) {
+                card.style.background = 'rgba(239, 68, 68, 0.15)';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => card.remove(), 400);
+            }
+        } else {
+            alert(data.message || 'Delete failed.');
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function openEditModal(recordId) {
+    fetch(`/api/overtime/get/${recordId}/`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const r = data.record;
+                document.getElementById('editRecordId').value = r.id;
+                document.getElementById('editName').value = r.name;
+                document.getElementById('editEmpId').value = r.emp_id;
+                document.getElementById('editAccountNo').value = r.account_number || '';
+                document.getElementById('editCidNo').value = r.cid_number || '';
+                document.getElementById('editDesignation').value = r.designation;
+                document.getElementById('editDepartment').value = r.department;
+                document.getElementById('editDate').value = r.date;
+                document.getElementById('editShift').value = r.shift;
+                document.getElementById('editZone').value = r.location_zone;
+                document.getElementById('editStatus').value = r.status;
+                document.getElementById('editInTime').value = r.in_time || '';
+                document.getElementById('editOutTime').value = r.out_time || '';
+                document.getElementById('editHours').value = r.overtime_hours;
+                document.getElementById('editRate').value = r.overtime_rate;
+                document.getElementById('editWorkDesc').value = r.work_description || '';
+                document.getElementById('editRemarks').value = r.remarks || '';
+                calcModalTotal();
+
+                document.getElementById('editOvertimeModal').style.display = 'flex';
+            } else {
+                alert(data.message || 'Could not fetch record');
+            }
+        })
+        .catch(err => console.error(err));
+}
+
+function closeEditModal() {
+    document.getElementById('editOvertimeModal').style.display = 'none';
+}
+
+function calcModalTotal() {
+    const hrs = parseFloat(document.getElementById('editHours').value) || 0.0;
+    const rate = parseFloat(document.getElementById('editRate').value) || 0.0;
+    const total = (hrs * rate).toFixed(2);
+    document.getElementById('editTotalAmountDisp').textContent = `Nu.  ${total}`;
+}
+
+function autoCalcHoursFromTimes() {
+    const inStr = (document.getElementById('editInTime').value || '').trim();
+    const outStr = (document.getElementById('editOutTime').value || '').trim();
+    if (!inStr || !outStr || inStr === '-' || outStr === '-') return;
+
+    function parseTime(tStr) {
+        const match = tStr.match(/(\d{1,2})[:.](\d{2})(?::\d{2})?\s*(AM|PM)?/i);
+        if (!match) return null;
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2], 10);
+        let ampm = (match[3] || '').toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return h * 60 + m;
+    }
+
+    const t1 = parseTime(inStr);
+    const t2 = parseTime(outStr);
+    if (t1 !== null && t2 !== null) {
+        let diff = t2 - t1;
+        if (diff < 0) diff += 24 * 60; // Crosses midnight
+        const hrs = (diff / 60).toFixed(2);
+        document.getElementById('editHours').value = parseFloat(hrs);
+        calcModalTotal();
+    }
+}
+
+function setOvertimeView(view) {
+    const tableContainer = document.getElementById('overtimeTableContainer');
+    const cardsContainer = document.getElementById('overtimeCardsContainer');
+    const btnList = document.getElementById('btnViewList');
+    const btnCards = document.getElementById('btnViewCards');
+
+    if (view === 'cards') {
+        if (tableContainer) tableContainer.style.display = 'none';
+        if (cardsContainer) cardsContainer.style.display = 'grid';
+        if (btnCards) {
+            btnCards.style.background = 'var(--card-bg)';
+            btnCards.style.color = 'var(--text-color)';
+            btnCards.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        }
+        if (btnList) {
+            btnList.style.background = 'transparent';
+            btnList.style.color = 'var(--sidebar-text)';
+            btnList.style.boxShadow = 'none';
+        }
+        localStorage.setItem('pm_ot_view_mode', 'cards');
+    } else {
+        if (tableContainer) tableContainer.style.display = 'block';
+        if (cardsContainer) cardsContainer.style.display = 'none';
+        if (btnList) {
+            btnList.style.background = 'var(--card-bg)';
+            btnList.style.color = 'var(--text-color)';
+            btnList.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        }
+        if (btnCards) {
+            btnCards.style.background = 'transparent';
+            btnCards.style.color = 'var(--sidebar-text)';
+            btnCards.style.boxShadow = 'none';
+        }
+        localStorage.setItem('pm_ot_view_mode', 'list');
+    }
+}
+
+// Restore user's saved view preference on load
+(function() {
+    const saved = localStorage.getItem('pm_ot_view_mode') || 'list';
+    if (saved === 'cards') {
+        setTimeout(() => setOvertimeView('cards'), 10);
+    }
+})();
+
+function syncCardCheckbox(cb) {
+    const id = cb.value;
+    const tableCb = document.querySelector(`#masterOvertimeTable .ot-record-checkbox[value="${id}"]`);
+    if (tableCb) tableCb.checked = cb.checked;
+}
+
+function syncTableCheckbox(cb) {
+    const id = cb.value;
+    const cardCb = document.querySelector(`#overtimeCardsContainer .ot-record-checkbox[value="${id}"]`);
+    if (cardCb) cardCb.checked = cb.checked;
+}
+
+function submitEditForm(e) {
+    e.preventDefault();
+    const recordId = document.getElementById('editRecordId').value;
+    const payload = {
+        employee_name: document.getElementById('editName').value,
+        account_number: document.getElementById('editAccountNo').value,
+        cid_number: document.getElementById('editCidNo').value,
+        designation: document.getElementById('editDesignation').value,
+        department: document.getElementById('editDepartment').value,
+        date: document.getElementById('editDate').value,
+        shift: document.getElementById('editShift').value,
+        location_zone: document.getElementById('editZone').value,
+        status: document.getElementById('editStatus').value,
+        in_time: document.getElementById('editInTime').value,
+        out_time: document.getElementById('editOutTime').value,
+        overtime_hours: parseFloat(document.getElementById('editHours').value) || 0.0,
+        overtime_rate: parseFloat(document.getElementById('editRate').value) || 0.0,
+        work_description: document.getElementById('editWorkDesc').value,
+        remarks: document.getElementById('editRemarks').value,
+    };
+
+    fetch(`/api/overtime/update/${recordId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeEditModal();
+            fetchLiveOvertimeData();
+        } else {
+            alert(data.message || 'Failed to update record.');
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// ==========================================
+// 🚀 REAL-TIME LIVE SEARCH, INSTANT FILTERING & LIVE SCANNER AUTO-SYNC
+// ==========================================
+let latestOvertimeMaxId = 0;
+let isFetchingOvertimeLive = false;
+let searchDebounceTimer = null;
+
+function getFilterParams() {
+    const q = (document.getElementById('filter_q')?.value || '').trim();
+    const date_from = document.getElementById('filter_date_from')?.value || '';
+    const date_to = document.getElementById('filter_date_to')?.value || '';
+    const time_keeper = document.getElementById('filter_time_keeper')?.value || 'All';
+    const zone = document.getElementById('filter_zone')?.value || 'All';
+    const shift = document.getElementById('filter_shift')?.value || 'All';
+    const status = document.getElementById('filter_status')?.value || 'All';
+
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (date_from) params.set('date_from', date_from);
+    if (date_to) params.set('date_to', date_to);
+    if (time_keeper !== 'All') params.set('time_keeper', time_keeper);
+    if (zone !== 'All') params.set('zone', zone);
+    if (shift !== 'All') params.set('shift', shift);
+    if (status !== 'All') params.set('status', status);
+    return params;
+}
+
+function resetLiveFilters() {
+    document.getElementById('filter_q').value = '';
+    document.getElementById('filter_date_from').value = '';
+    document.getElementById('filter_date_to').value = '';
+    document.getElementById('filter_time_keeper').value = 'All';
+    document.getElementById('filter_zone').value = 'All';
+    document.getElementById('filter_shift').value = 'All';
+    document.getElementById('filter_status').value = 'All';
+    fetchLiveOvertimeData();
+}
+
+function fetchLiveOvertimeData(isAutoPoll = false) {
+    if (isFetchingOvertimeLive) return;
+    isFetchingOvertimeLive = true;
+
+    const params = getFilterParams();
+    fetch(`/api/overtime/live-data/?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            isFetchingOvertimeLive = false;
+            if (data.status === 'success') {
+                const isNewScanDetected = isAutoPoll && latestOvertimeMaxId > 0 && data.max_id > latestOvertimeMaxId;
+                latestOvertimeMaxId = data.max_id;
+
+                // 1. Update KPI Numbers
+                if (data.kpis) {
+                    const elH = document.getElementById('kpi_total_hours');
+                    if (elH) elH.textContent = `${data.kpis.total_hours} hrs`;
+                    const elA = document.getElementById('kpi_total_amount');
+                    if (elA) elA.textContent = `Nu. ${data.kpis.total_amount}`;
+                    const elW = document.getElementById('kpi_unique_workers');
+                    if (elW) elW.textContent = data.kpis.unique_workers;
+                    const elP = document.getElementById('kpi_pending_count');
+                    if (elP) elP.textContent = data.kpis.pending_count;
+                }
+
+                // 2. Update Showing Count Text
+                const elCount = document.getElementById('showingEntriesCount');
+                if (elCount) {
+                    elCount.textContent = `Showing 1-${data.records.length} of ${data.kpis.total_records} entries`;
+                }
+
+                // 3. Render Table Rows & Cards
+                renderLiveTableRows(data.records, isNewScanDetected);
+                renderLiveCards(data.records, isNewScanDetected);
+            }
+        })
+        .catch(err => {
+            isFetchingOvertimeLive = false;
+            console.warn('Live overtime fetch error:', err);
+        });
+}
+
+const isUserTimeKeeper = {% if user.system_role == 'TIME_KEEPER' %}true{% else %}false{% endif %};
+
+function renderLiveTableRows(records, flashNew = false) {
+    const tbody = document.querySelector('#masterOvertimeTable tbody');
+    if (!tbody) return;
+
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" style="text-align:center; padding:35px 15px; color:var(--sidebar-text);">
+                    <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                    No overtime records found matching the selected filters.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let rowsHtml = '';
+    records.forEach((r, idx) => {
+        const badgeHtml = r.status === 'Approved'
+            ? '<span class="badge" style="background:#10b981; color:white; font-size:0.7rem;">Approved</span>'
+            : (r.status === 'Rejected'
+                ? '<span class="badge" style="background:#ef4444; color:white; font-size:0.7rem;">Rejected</span>'
+                : '<span class="badge" style="background:#f59e0b; color:white; font-size:0.7rem;">Pending</span>');
+
+        const approveBtn = r.status !== 'Approved'
+            ? `<button type="button" class="btn-act btn-act-approve" onclick="approveRecord(${r.id}, 'Approve')" title="Approve OT"><i class="fas fa-check"></i></button>`
+            : '';
+        const rejectBtn = r.status !== 'Rejected'
+            ? `<button type="button" class="btn-act btn-act-reject" onclick="approveRecord(${r.id}, 'Reject')" title="Reject OT"><i class="fas fa-xmark"></i></button>`
+            : '';
+
+        const acctPill = (!isUserTimeKeeper && r.account_number && r.account_number !== '-') 
+            ? `<span class="badge" style="background:rgba(16, 185, 129, 0.12); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;" title="Bank Account Number"><i class="fas fa-building-columns" style="font-size:0.6rem;"></i> ${r.account_number}</span>`
+            : '';
+
+        const rateAmountCells = !isUserTimeKeeper ? `
+            <td style="text-align:right; font-size:0.75rem; color:var(--sidebar-text); white-space:nowrap;">
+                Nu. <span id="cell-rate-${r.id}">${r.rate}</span>
+            </td>
+            <td style="text-align:right; font-weight:800; color:#059669; font-size:0.92rem; white-space:nowrap; font-variant-numeric:tabular-nums;">
+                Nu. <span id="cell-amount-${r.id}">${r.amount}</span>
+            </td>
+        ` : '';
+
+        rowsHtml += `
+            <tr id="ot-row-${r.id}" style="${flashNew && idx === 0 ? 'background:rgba(16, 185, 129, 0.15); transition:background 2s;' : ''}">
+                <td><input type="checkbox" class="ot-record-checkbox" value="${r.id}"></td>
+                <td style="white-space:nowrap; font-size:0.78rem;">
+                    <strong id="cell-date-${r.id}">${r.date}</strong>
+                    <div style="color:var(--sidebar-text); font-size:0.7rem;">${r.created_at}</div>
+                </td>
+                <td>
+                    <div id="cell-name-${r.id}" style="font-weight:800; color:var(--text-color);">${r.name}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">
+                        <span id="cell-empid-${r.id}" style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; font-weight:700;">${r.emp_id}</span>
+                        ${acctPill}
+                    </div>
+                </td>
+                <td>
+                    <div id="cell-desig-${r.id}" style="font-weight:600;">${r.designation}</div>
+                    <div id="cell-dept-${r.id}" style="font-size:0.7rem; color:var(--sidebar-text);">${r.department}</div>
+                </td>
+                <td>
+                    <span id="cell-shift-${r.id}" class="badge" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); font-size:0.7rem;">${r.shift}</span>
+                    <div id="cell-zone-${r.id}" style="font-size:0.72rem; color:var(--sidebar-text); margin-top:2px;">${r.zone}</div>
+                </td>
+                <td style="white-space:nowrap; font-size:0.75rem;">
+                    <div>IN: <span id="cell-in-${r.id}">${r.in_time}</span></div>
+                    <div>OUT: <span id="cell-out-${r.id}">${r.out_time}</span></div>
+                </td>
+                <td style="text-align:center; font-weight:800; color:var(--primary); font-size:0.9rem; white-space:nowrap;">
+                    <span id="cell-hours-${r.id}">${r.hours}</span> hrs
+                    ${r.hours_human ? `<div style="font-size:0.7rem; font-weight:600; color:var(--sidebar-text); margin-top:2px;">(${r.hours_human})</div>` : ''}
+                </td>
+                ${rateAmountCells}
+                <td style="font-size:0.75rem;">
+                    <span class="badge" style="background:rgba(99, 102, 241, 0.12); color:#4338ca; font-weight:700; font-size:0.75rem; padding:4px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
+                        <i class="fas fa-user-clock" style="color:#4338ca;"></i> ${r.time_keeper_name}
+                    </span>
+                </td>
+                <td style="text-align:center;">
+                    <span id="cell-status-${r.id}">${badgeHtml}</span>
+                </td>
+                <td style="text-align:center;">
+                    <div class="action-btn-group">
+                        ${approveBtn}
+                        ${rejectBtn}
+                        <button type="button" class="btn-act btn-act-edit" onclick="openEditModal(${r.id})" title="Edit Details">
+                            <i class="fas fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" class="btn-act btn-act-delete" onclick="confirmDeleteRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="Delete Entry">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = rowsHtml;
+}
+
+function renderLiveCards(records, flashNew = false) {
+    const container = document.getElementById('overtimeCardsContainer');
+    if (!container) return;
+
+    if (!records || records.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column:1/-1; text-align:center; padding:35px 15px; color:var(--sidebar-text); background:var(--card-bg); border-radius:14px; border:1px solid var(--border);">
+                <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                No overtime records found matching the selected filters.
+            </div>
+        `;
+        return;
+    }
+
+    let cardsHtml = '';
+    records.forEach((r, idx) => {
+        const badgeHtml = r.status === 'Approved'
+            ? '<span class="badge" style="background:#10b981; color:white; font-size:0.7rem;">Approved</span>'
+            : (r.status === 'Rejected'
+                ? '<span class="badge" style="background:#ef4444; color:white; font-size:0.7rem;">Rejected</span>'
+                : '<span class="badge" style="background:#f59e0b; color:white; font-size:0.7rem;">Pending</span>');
+
+        const approveBtn = r.status !== 'Approved'
+            ? `<button type="button" class="btn-act btn-act-approve" onclick="approveRecord(${r.id}, 'Approve')" title="Approve OT"><i class="fas fa-check"></i></button>`
+            : '';
+        const rejectBtn = r.status !== 'Rejected'
+            ? `<button type="button" class="btn-act btn-act-reject" onclick="approveRecord(${r.id}, 'Reject')" title="Reject OT"><i class="fas fa-xmark"></i></button>`
+            : '';
+
+        const acctPill = (!isUserTimeKeeper && r.account_number && r.account_number !== '-') 
+            ? `<span class="badge" style="background:rgba(16, 185, 129, 0.12); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;" title="Bank Account Number"><i class="fas fa-building-columns" style="font-size:0.6rem;"></i> ${r.account_number}</span>`
+            : '';
+
+        const cardPayBox = !isUserTimeKeeper ? `
+            <div style="text-align:right;">
+                <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--sidebar-text); display:block;">Total Overtime Pay</span>
+                <div style="background:rgba(16, 185, 129, 0.12); padding:3px 8px; border-radius:6px; display:inline-block;">
+                    <strong style="color:#059669; font-size:1.02rem; white-space:nowrap; font-weight:800; font-variant-numeric:tabular-nums;">Nu. <span id="card-amount-${r.id}">${r.amount}</span></strong>
+                </div>
+                <div style="font-size:0.68rem; color:var(--sidebar-text); margin-top:2px;">(Nu. <span id="card-rate-${r.id}">${r.rate}</span>/h)</div>
+            </div>
+        ` : '';
+
+        cardsHtml += `
+            <div class="ot-card" id="ot-card-${r.id}" style="background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; justify-content:space-between; position:relative; transition:all 0.2s ease; ${flashNew && idx === 0 ? 'border-color:#10b981; box-shadow:0 0 12px rgba(16, 185, 129, 0.3);' : ''}">
+                <div>
+                    <!-- Card Top -->
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                            <input type="checkbox" class="ot-record-checkbox" value="${r.id}" onchange="syncCardCheckbox(this)" style="flex:0 0 auto;">
+                            <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex:0 0 40px;">
+                                ${r.initial}
+                            </div>
+                            <div style="min-width:0; overflow:hidden;">
+                                <div id="card-name-${r.id}" style="font-weight:800; font-size:0.95rem; color:var(--text-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.name}</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:2px;">
+                                    <span id="card-empid-${r.id}" style="font-size:0.72rem; color:var(--sidebar-text); font-family:monospace; font-weight:700;">${r.emp_id}</span>
+                                    ${acctPill}
+                                </div>
+                            </div>
+                        </div>
+                        <div id="card-status-${r.id}" style="flex:0 0 auto;">
+                            ${badgeHtml}
+                        </div>
+                    </div>
+
+                    <!-- Role & Dept -->
+                    <div id="card-desig-${r.id}" style="font-size:0.8rem; font-weight:700; color:var(--text-color); margin-bottom:2px;">
+                        ${r.designation}
+                    </div>
+                    <div id="card-dept-${r.id}" style="font-size:0.72rem; color:var(--sidebar-text); margin-bottom:10px;">
+                        ${r.department}
+                    </div>
+
+                    <!-- Shift, Zone & Date Badges -->
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+                        <span id="card-shift-${r.id}" class="badge" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); font-size:0.7rem;">${r.shift}</span>
+                        <span id="card-zone-${r.id}" class="badge" style="background:rgba(0,0,0,0.05); font-size:0.7rem;">${r.zone}</span>
+                        <span id="card-date-${r.id}" class="badge" style="background:rgba(0,0,0,0.04); font-size:0.7rem; color:var(--sidebar-text);">
+                            <i class="fas fa-calendar-day" style="font-size:0.65rem;"></i> ${r.date}
+                        </span>
+                    </div>
+
+                    <!-- Stat Box (In/Out, OT Hours & Pay) -->
+                    <div style="background:var(--bg-color); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; font-size:0.78rem;">
+                            <div><span style="color:var(--sidebar-text); font-size:0.7rem; font-weight:700; text-transform:uppercase; display:block;">In Time</span> <strong id="card-in-${r.id}" style="color:var(--text-color);">${r.in_time}</strong></div>
+                            <div><span style="color:var(--sidebar-text); font-size:0.7rem; font-weight:700; text-transform:uppercase; display:block;">Out Time</span> <strong id="card-out-${r.id}" style="color:var(--text-color);">${r.out_time}</strong></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
+                            <div>
+                                <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--sidebar-text); display:block;">OT Hours</span>
+                                <strong style="color:var(--primary); font-size:0.92rem;"><span id="card-hours-${r.id}">${r.hours}</span> hrs</strong>
+                                ${r.hours_human ? `<span style="font-size:0.72rem; font-weight:600; color:var(--sidebar-text); margin-left:3px;">(${r.hours_human})</span>` : ''}
+                            </div>
+                            ${cardPayBox}
+                        </div>
+                    </div>
+
+                    <!-- Time Keeper -->
+                    <div style="font-size:0.72rem; color:var(--sidebar-text); margin-bottom:12px; display:flex; align-items:center; gap:5px;">
+                        <i class="fas fa-user-clock" style="color:#4338ca;"></i> Time Keeper: <strong style="color:var(--text-color);">${r.time_keeper_name}</strong>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:10px; margin-top:5px;">
+                    <div style="display:flex; gap:6px;">
+                        ${approveBtn}
+                        ${rejectBtn}
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-act btn-act-edit" onclick="openEditModal(${r.id})" title="Edit Details">
+                            <i class="fas fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" class="btn-act btn-act-delete" onclick="confirmDeleteRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="Delete Entry">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = cardsHtml;
+}
+
+// Attach instant real-time event listeners on DOM load
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Live Instant Search as user types
+    const searchInput = document.getElementById('filter_q');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                fetchLiveOvertimeData();
+            }, 180);
+        });
+    }
+
+    // 2. Live Dropdown & Date Filters on change
+    ['filter_time_keeper', 'filter_zone', 'filter_shift', 'filter_status', 'filter_date_from', 'filter_date_to'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', function() {
+                fetchLiveOvertimeData();
+            });
+        }
+    });
+
+    // 3. Form submit override
+    const form = document.getElementById('overtimeFilterForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetchLiveOvertimeData();
+        });
+    }
+
+    // 4. Initial live sync & Real-time Live Poller every 3.5 seconds
+    fetchLiveOvertimeData();
+    setInterval(() => {
+        fetchLiveOvertimeData(true);
+    }, 3500);
+});
+</script>
+{% endblock %}

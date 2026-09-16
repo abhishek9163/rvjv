@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camp Gate Entry/Exit Self-Punch</title>
+    <!-- Include html5-qrcode for badge scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --green: #16a34a;
+            --green-bg: #f0fdf4;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+        }
+
+        body.dark-mode {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #38bdf8;
+            --green-bg: #064e3b;
+            --red-bg: #450a0a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .punch-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 450px;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .btn-dir {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            font-size: 1.08rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+        }
+        .btn-dir:active { transform: scale(0.97); }
+        .btn-in { background: #16a34a; color: white; box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35); }
+        .btn-out { background: #dc2626; color: white; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35); }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+            background: var(--bg);
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+        }
+
+        .worker-card {
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: left;
+            position: relative;
+            border: 2px solid #38bdf8;
+            background: linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+        body.dark-mode .worker-card {
+            background: #1e293b;
+            border-color: #0284c7;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+        .status-inside {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        body.dark-mode .status-inside {
+            background: #064e3b;
+            color: #6ee7b7;
+            border-color: #047857;
+        }
+        .status-outside {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        body.dark-mode .status-outside {
+            background: #450a0a;
+            color: #fca5a5;
+            border-color: #991b1b;
+        }
+
+        /* OUT Reason Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            animation: fadeIn 0.2s ease-out;
+        }
+        @media (min-width: 500px) {
+            .modal-overlay {
+                align-items: center;
+                padding: 16px;
+            }
+        }
+
+        .modal-sheet {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 440px;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 24px 20px;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+            animation: slideUp 0.25s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @media (min-width: 500px) {
+            .modal-sheet {
+                border-radius: 24px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        .reason-option-btn {
+            width: 100%;
+            background: var(--bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--text-main);
+        }
+        .reason-option-btn:hover, .reason-option-btn:focus {
+            border-color: #dc2626;
+            background: #fef2f2;
+            transform: translateY(-1px);
+        }
+        body.dark-mode .reason-option-btn:hover {
+            background: #450a0a;
+            border-color: #ef4444;
+        }
+        .reason-option-btn:active {
+            transform: scale(0.98);
+        }
+        .reason-icon {
+            font-size: 1.6rem;
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 10px;
+        }
+        body.dark-mode .reason-icon {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="punch-card">
+    <!-- Top Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 2rem;">🚪</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" onclick="toggleLocalTheme()" id="themeBtn" style="background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); border-radius: 50%; width: 36px; height: 36px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Toggle Dark/Light Mode">🌙</button>
+        </div>
+    </div>
+    
+    <h2 style="margin: 0 0 4px 0; font-size: 1.45rem; font-weight: 900; color: var(--text-main);">
+        Camp Gate In / Out
+    </h2>
+    <p style="margin: 0 0 16px 0; color: var(--text-muted); font-size: 0.85rem;">
+        Official Camp Residence Entry &amp; Exit Portal
+    </p>
+
+    <!-- Geofence Status Indicator -->
+    <div id="gpsStatusBox" style="display: none; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.82rem; font-weight: 700; text-align: left; border: 1px solid #bae6fd; background: #f0f9ff; color: #0369a1;">
+        📍 <span id="gpsStatusText">Verifying Camp Gate GPS location...</span>
+    </div>
+
+    <!-- Live Punch Confirmation Alert Banner (Server Rendered or Dynamic) -->
+    <div id="punchAlertContainer">
+        {% if result %}
+            {% if result.status == 'SUCCESS' %}
+            <div style="border-radius: 16px; padding: 18px; background: {% if result.direction == 'IN' %}#f0fdf4; border: 2px solid #16a34a;{% else %}#fef2f2; border: 2px solid #dc2626;{% endif %} margin-bottom: 18px;">
+                <div style="font-size: 2.4rem; margin-bottom: 6px;">
+                    {% if result.direction == 'IN' %}🟢{% else %}🔴{% endif %}
+                </div>
+                <h3 style="margin: 0; font-size: 1.22rem; font-weight: 900; color: {% if result.direction == 'IN' %}#16a34a{% else %}#dc2626{% endif %};">
+                    {% if result.direction == 'IN' %}SUCCESSFULLY ENTERED CAMP{% else %}SUCCESSFULLY EXITED CAMP{% endif %}
+                </h3>
+                <div style="font-weight: 900; font-size: 1.15rem; color: var(--text-main); margin-top: 6px;">
+                    {{ result.name }}
+                </div>
+                <div style="font-size: 0.84rem; color: var(--text-muted); font-weight: 700;">
+                    ID: {{ result.emp_id }} • {{ result.designation }}
+                </div>
+                {% if result.direction == 'OUT' and result.purpose_display %}
+                <div style="margin-top: 6px; font-size: 0.82rem; font-weight: 700; color: #dc2626;">
+                    Reason: {{ result.purpose_display }}
+                </div>
+                {% endif %}
+                <div style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">
+                    ⏱️ Registered at {{ result.time }} ({{ today_date|date:"d M Y" }})
+                </div>
+            </div>
+
+            {% else %}
+            <div style="border-radius: 14px; padding: 16px; background: #fef2f2; border: 2px solid #ef4444; margin-bottom: 18px; color: #b91c1c; font-weight: 700;">
+                ⚠️ {{ result.msg }}
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- LOGGED IN USER IDENTIFICATION BANNER -->
+    {% if logged_in_emp %}
+    <div style="margin-bottom: 16px; padding: 10px 14px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem;">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #15803d;">
+            <span>✅</span>
+            <span>Logged in as <strong>{{ logged_in_emp.name }}</strong></span>
+        </div>
+        <button type="button" onclick="toggleSwitchWorker()" style="background: none; border: none; color: #0284c7; font-weight: 800; font-size: 0.78rem; cursor: pointer; text-decoration: underline;">
+            Change Worker
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- WORKER PROFILE CARD (Auto-populated for Logged In User, or Dynamic via AJAX for Guest) -->
+    <div id="workerCard" class="worker-card" style="{% if not logged_in_emp %}display: none;{% endif %}">
+        {% if not logged_in_emp %}
+        <button type="button" onclick="clearWorkerSelection()" style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.06); border: none; border-radius: 20px; font-size: 0.75rem; font-weight: 800; padding: 4px 10px; cursor: pointer; color: #475569;" title="Change / Clear Worker">
+            ✖ Clear
+        </button>
+        {% endif %}
+        
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #0284c7; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900;" id="workerAvatar">
+                👤
+            </div>
+            <div>
+                <div id="workerName" style="font-size: 1.15rem; font-weight: 900; color: var(--text-main); line-height: 1.2;">
+                    {% if logged_in_emp %}{{ logged_in_emp.name }}{% else %}Worker Name{% endif %}
+                </div>
+                <div style="font-size: 0.82rem; font-weight: 700; color: #0284c7; margin-top: 3px;">
+                    <span id="workerIdBadge">{% if logged_in_emp %}{% if '@' in logged_in_emp.emp_id %}EMP-{{ logged_in_emp.id|stringformat:'04d' }}{% else %}{{ logged_in_emp.emp_id }}{% endif %}{% else %}EMP-0000{% endif %}</span>
+                    • <span id="workerDesignation">{% if logged_in_emp %}{{ logged_in_emp.designation|default:"Staff" }}{% else %}Staff{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.78rem; padding: 10px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 10px;" id="workerCardGrid">
+            <div>
+                <span style="color: var(--text-muted); font-weight: 700;">🏢 Department:</span><br>
+                <strong id="workerDept" style="color: var(--text-main);">{% if logged_in_emp %}{{ logged_in_emp.department|default:"Site" }}{% else %}General{% endif %}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-weight: 700;">🛏️ Camp Room:</span><br>
+                <strong id="workerRoom" style="color: var(--text-main);">{% if logged_in_emp %}{{ logged_in_emp.camp_room|default:"Room Not Assigned" }}{% else %}Room 101{% endif %}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-weight: 700;">🍲 Mess:</span><br>
+                <strong id="workerMess" style="color: var(--text-main);">{% if logged_in_emp and logged_in_emp.assigned_mess %}{{ logged_in_emp.assigned_mess.name }}{% else %}Main Mess Hall{% endif %}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); font-weight: 700;">📍 Current Camp Status:</span><br>
+                <div id="workerCampStatus" style="margin-top: 2px;">
+                    {% if logged_in_emp %}
+                        {% if logged_in_emp.camp_status == 'INSIDE' %}
+                            <span class="status-pill status-inside">🟢 Inside Camp</span>
+                        {% else %}
+                            <span class="status-pill status-outside">🔴 Outside Camp</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="status-pill status-inside">🟢 Inside Camp</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div id="workerLastMovement" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-align: center;">
+            {% if logged_in_emp and logged_in_emp.gate_logs.first %}
+                ⏱️ Last: {{ logged_in_emp.gate_logs.first.get_direction_display }} at {{ logged_in_emp.gate_logs.first.timestamp|date:"h:i A" }} ({{ logged_in_emp.gate_logs.first.date|date:"d M Y" }})
+            {% else %}
+                ⏱️ Ready to mark Gate Movement
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- GUEST / MANUAL SEARCH SECTION (Hidden by default if logged in, unless toggled) -->
+    <div id="manualSearchSection" style="{% if logged_in_emp %}display: none;{% endif %} margin-bottom: 16px;">
+        <!-- Live Camera Scanner Trigger -->
+        <button type="button" id="btnToggleCamSelf" onclick="toggleSelfCamera()" style="width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25); margin-bottom: 10px;">
+            <span>📷</span> Scan Worker ID Card Badge
+        </button>
+
+        <div id="selfCamBox" style="display: none; margin-bottom: 12px; border-radius: 16px; overflow: hidden; background: #0f172a; border: 2px dashed #38bdf8; min-height: 220px; position: relative;">
+            <div id="self-cam-reader" style="width: 100%;"></div>
+            <div id="selfCamLoading" style="color: #94a3b8; padding: 30px 10px; text-align: center;">
+                <div style="font-size: 2rem;">📷</div>
+                <div style="font-weight: 700; color: #f1f5f9; font-size: 0.95rem; margin-top: 4px;">Starting camera...</div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">Please allow camera permissions</div>
+            </div>
+        </div>
+        <div id="selfScanMsg" style="display: none; margin-bottom: 10px; padding: 10px; border-radius: 10px; font-weight: 800; font-size: 0.88rem;"></div>
+
+        <div style="display: flex; align-items: center; margin: 12px 0; color: var(--text-muted); font-size: 0.76rem; font-weight: 700;">
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            <span style="padding: 0 10px;">OR TYPE DETAILS</span>
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        </div>
+
+        <div style="text-align: left; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-weight: 800; font-size: 0.82rem; color: var(--text-main);">Employee ID / Last 4 Digits / Phone *</label>
+            <span id="lookupHelp" style="font-size: 0.75rem; color: #0284c7; font-weight: 700;">Auto-fetches details</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="emp_identifier" name="emp_identifier" value="{{ default_emp_id }}" placeholder="e.g. 2843, EMP-2608, or Phone..." class="form-control" style="font-weight: 800; font-size: 1.05rem; letter-spacing: 0.5px; padding-right: 40px;" autocomplete="off">
+                <span id="inputStatusIcon" style="position: absolute; right: 12px; top: 12px; font-size: 1.1rem; pointer-events: none;">🔍</span>
+            </div>
+            <button type="button" id="btnManualFetch" onclick="triggerManualLookup()" style="background: #0284c7; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 0.9rem; padding: 0 16px; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25); white-space: nowrap;">
+                Fetch
+            </button>
+        </div>
+        <div id="lookupStatus" style="display: none; margin-bottom: 12px; font-size: 0.82rem; font-weight: 800;"></div>
+    </div>
+
+    <!-- PUNCH FORM -->
+    <form method="POST" id="selfPunchForm" action="{% url 'camp_gate_self_punch_view' %}">
+        {% csrf_token %}
+        <input type="hidden" name="emp_identifier" id="form_emp_identifier" value="{{ default_emp_id }}">
+        <input type="hidden" name="direction" id="form_direction" value="IN">
+        <input type="hidden" name="purpose" id="form_purpose" value="SHIFT_DUTY">
+        <input type="hidden" name="remarks" id="form_remarks" value="">
+        <input type="hidden" name="lat" id="worker_lat" value="">
+        <input type="hidden" name="lon" id="worker_lon" value="">
+
+        <!-- BIG ACTION BUTTONS -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+            <button type="button" onclick="handleMarkInClick()" id="btnMarkIn" class="btn-dir btn-in">
+                <span>🟢</span> MARK IN (Entering Camp)
+            </button>
+            <button type="button" onclick="handleMarkOutClick()" id="btnMarkOut" class="btn-dir btn-out">
+                <span>🔴</span> MARK OUT (Leaving Camp)
+            </button>
+        </div>
+    </form>
+
+    <!-- Bottom Navigation Links -->
+    <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-around; align-items: center;">
+        <a href="{% url 'camp_user_view' %}" style="color: #0284c7; text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+            📱 Resident Portal
+        </a>
+        <span style="color: var(--border-color);">•</span>
+        <a href="{% url 'camp_dashboard_view' %}" style="color: var(--text-muted); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+            📊 Camp Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- REASON MODAL FOR OUT MOVEMENT (POPUP)      -->
+<!-- Reason for Leaving Camp -->
+<!-- ========================================== -->
+<div id="outReasonModal" class="modal-overlay" style="display: none;" onclick="handleModalOverlayClick(event)">
+    <div class="modal-sheet" id="modalSheetContent">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.5rem;">🚪</span>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 900; color: #dc2626;">
+                    Reason for Leaving Camp
+                </h3>
+            </div>
+            <button type="button" onclick="closeReasonModal()" style="background: rgba(0,0,0,0.06); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center;">
+                ✕
+            </button>
+        </div>
+
+        <p style="margin: 0 0 16px 0; color: var(--text-muted); font-size: 0.86rem; text-align: left; font-weight: 600;">
+            Please select your reason for leaving camp:
+        </p>
+
+        <!-- Quick 1-Tap Option Cards -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="reason-option-btn" onclick="selectReasonAndSubmit('SHIFT_DUTY')">
+                <span class="reason-icon">🚜</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.98rem;">Shift / Site Duty</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Site Duty / Work Shift</div>
+                </div>
+            </button>
+
+            <button type="button" class="reason-option-btn" onclick="selectReasonAndSubmit('PERSONAL')">
+                <span class="reason-icon">🛍️</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.98rem;">Personal / Market Visit</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Personal Work / Market Visit</div>
+                </div>
+            </button>
+
+            <button type="button" class="reason-option-btn" onclick="selectReasonAndSubmit('MEDICAL')">
+                <span class="reason-icon">🏥</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.98rem;">Medical / Emergency</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Medical Treatment / Clinic / Hospital</div>
+                </div>
+            </button>
+
+            <button type="button" class="reason-option-btn" onclick="selectReasonAndSubmit('LEAVE')">
+                <span class="reason-icon">🏖️</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.98rem;">Home Leave / Outstation</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Home Leave / Authorized Travel</div>
+                </div>
+            </button>
+
+            <button type="button" class="reason-option-btn" onclick="showOtherReasonInput()">
+                <span class="reason-icon">📌</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.98rem;">Other Reason</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Other Reason (Please specify)</div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Custom Reason Box (Hidden until clicked) -->
+        <div id="otherReasonBox" style="display: none; margin-top: 14px; text-align: left; padding: 12px; background: var(--bg); border: 1px solid var(--border-color); border-radius: 14px;">
+            <label style="font-weight: 800; font-size: 0.8rem; color: var(--text-main); margin-bottom: 6px; display: block;">
+                Please specify reason:
+            </label>
+            <input type="text" id="otherReasonNote" placeholder="e.g. Bank visit, ATM, friend meet..." class="form-control" style="margin-bottom: 10px;">
+            <button type="button" onclick="submitOtherReason()" class="btn-dir btn-out" style="margin-bottom: 0; padding: 12px; font-size: 0.95rem;">
+                Confirm &amp; Mark OUT
+            </button>
+        </div>
+
+        <button type="button" onclick="closeReasonModal()" style="margin-top: 14px; background: none; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; font-size: 0.86rem; width: 100%; text-align: center;">
+            ✕ Cancel
+        </button>
+    </div>
+</div>
+
+<script>
+    const geofenceEnabled = {{ camp_setting.geofence_enabled|yesno:"true,false" }};
+    const isLoggedIn = {{ logged_in_emp|yesno:"true,false" }};
+    let userLocation = { lat: null, lon: null, acquired: false };
+    let currentWorkerData = null;
+
+    // References
+    const empInput = document.getElementById('emp_identifier');
+    const formEmpInput = document.getElementById('form_emp_identifier');
+    const workerCard = document.getElementById('workerCard');
+    const lookupStatus = document.getElementById('lookupStatus');
+    const inputStatusIcon = document.getElementById('inputStatusIcon');
+    const btnIn = document.getElementById('btnMarkIn');
+    const btnOut = document.getElementById('btnMarkOut');
+    const outReasonModal = document.getElementById('outReasonModal');
+    const otherReasonBox = document.getElementById('otherReasonBox');
+
+    // If logged in, initialize currentWorkerData from rendered state
+    {% if logged_in_emp %}
+    currentWorkerData = {
+        emp_id: "{% if '@' in logged_in_emp.emp_id %}EMP-{{ logged_in_emp.id|stringformat:'04d' }}{% else %}{{ logged_in_emp.emp_id }}{% endif %}",
+        name: "{{ logged_in_emp.name }}",
+        camp_status: "{{ logged_in_emp.camp_status|default:'INSIDE' }}"
+    };
+    updateButtonVisualHints(currentWorkerData.camp_status);
+    {% endif %}
+
+    // GEOFENCE HANDLING
+    function fetchGpsLocation(onComplete) {
+        if (!navigator.geolocation) {
+            updateGpsBox('error', '⚠️ GPS is not supported on this device/browser.');
+            if (onComplete) onComplete(false, 'GPS not supported');
+            return;
+        }
+        updateGpsBox('loading', '📍 Acquiring Camp Gate GPS position...');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                userLocation.lat = pos.coords.latitude;
+                userLocation.lon = pos.coords.longitude;
+                userLocation.acquired = true;
+                const latIn = document.getElementById('worker_lat');
+                const lonIn = document.getElementById('worker_lon');
+                if (latIn) latIn.value = pos.coords.latitude;
+                if (lonIn) lonIn.value = pos.coords.longitude;
+                const acc = Math.round(pos.coords.accuracy);
+                updateGpsBox('success', `📍 GPS Verified at Camp Gate (Accuracy: ±${acc}m)`);
+                if (onComplete) onComplete(true);
+            },
+            (err) => {
+                userLocation.acquired = false;
+                let errMsg = 'Location access denied. Please allow location permissions to punch.';
+                if (err.code === 2) errMsg = 'Position unavailable. Check phone GPS setting.';
+                if (err.code === 3) errMsg = 'GPS request timed out. Please retry.';
+                updateGpsBox('error', `⚠️ ${errMsg}`);
+                if (onComplete) onComplete(false, errMsg);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+        );
+    }
+
+    function updateGpsBox(state, text) {
+        const box = document.getElementById('gpsStatusBox');
+        const txt = document.getElementById('gpsStatusText');
+        if (!box || !txt) return;
+        box.style.display = 'block';
+        txt.innerText = text;
+        if (state === 'success') {
+            box.style.background = '#f0fdf4';
+            box.style.borderColor = '#86efac';
+            box.style.color = '#15803d';
+        } else if (state === 'error') {
+            box.style.background = '#fef2f2';
+            box.style.borderColor = '#fca5a5';
+            box.style.color = '#b91c1c';
+        } else {
+            box.style.background = '#f0f9ff';
+            box.style.borderColor = '#bae6fd';
+            box.style.color = '#0369a1';
+        }
+    }
+
+    if (geofenceEnabled) {
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchGpsLocation();
+        });
+    }
+
+    // TOGGLE / SWITCH WORKER
+    function toggleSwitchWorker() {
+        const searchSec = document.getElementById('manualSearchSection');
+        if (searchSec.style.display === 'none') {
+            searchSec.style.display = 'block';
+            if (empInput) empInput.focus();
+        } else {
+            searchSec.style.display = 'none';
+        }
+    }
+
+    // GET EFFECTIVE EMP ID
+    function getEffectiveEmpId() {
+        if (formEmpInput && formEmpInput.value.trim()) {
+            return formEmpInput.value.trim();
+        }
+        if (empInput && empInput.value.trim()) {
+            return empInput.value.trim();
+        }
+        if (currentWorkerData && currentWorkerData.emp_id) {
+            return currentWorkerData.emp_id;
+        }
+        return '';
+    }
+
+    // MARK IN FLOW (Entering Camp - No Reason Dialog Needed)
+    function handleMarkInClick() {
+        const empId = getEffectiveEmpId();
+        if (!empId) {
+            alert("Please enter your Employee ID or Phone number.");
+            document.getElementById('manualSearchSection').style.display = 'block';
+            if (empInput) empInput.focus();
+            return;
+        }
+
+        executePunch('IN', 'SHIFT_DUTY', 'Camp Entry');
+    }
+
+    // MARK OUT FLOW (Leaving Camp - Opens OUT Reason Modal)
+    function handleMarkOutClick() {
+        const empId = getEffectiveEmpId();
+        if (!empId) {
+            alert("Please enter your Employee ID or Phone number.");
+            document.getElementById('manualSearchSection').style.display = 'block';
+            if (empInput) empInput.focus();
+            return;
+        }
+
+        // Open the reason modal
+        openReasonModal();
+    }
+
+    function openReasonModal() {
+        otherReasonBox.style.display = 'none';
+        document.getElementById('otherReasonNote').value = '';
+        outReasonModal.style.display = 'flex';
+    }
+
+    function closeReasonModal() {
+        outReasonModal.style.display = 'none';
+    }
+
+    function handleModalOverlayClick(e) {
+        if (e.target === outReasonModal) {
+            closeReasonModal();
+        }
+    }
+
+    function selectReasonAndSubmit(purposeCode) {
+        closeReasonModal();
+        executePunch('OUT', purposeCode, '');
+    }
+
+    function showOtherReasonInput() {
+        otherReasonBox.style.display = 'block';
+        document.getElementById('otherReasonNote').focus();
+    }
+
+    function submitOtherReason() {
+        const note = document.getElementById('otherReasonNote').value.trim();
+        closeReasonModal();
+        executePunch('OUT', 'OTHER', note || 'Other Reason');
+    }
+
+    // EXECUTE PUNCH (AJAX with Server fallback)
+    function executePunch(direction, purpose, remarks) {
+        const empId = getEffectiveEmpId();
+        const btn = (direction === 'IN') ? btnIn : btnOut;
+        const origHtml = btn.innerHTML;
+
+        if (geofenceEnabled && !userLocation.acquired) {
+            btn.disabled = true;
+            btn.innerHTML = `<span>⏳</span> Verifying Location...`;
+            fetchGpsLocation((success, err) => {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                if (success) {
+                    executePunch(direction, purpose, remarks);
+                } else {
+                    alert(`Location Verification Required:
+${err || 'Please allow GPS location to punch.'}`);
+                }
+            });
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span> Processing ${direction}...`;
+
+        const payload = {
+            emp_identifier: empId,
+            direction: direction,
+            purpose: purpose,
+            remarks: remarks,
+            lat: document.getElementById('worker_lat').value || null,
+            lon: document.getElementById('worker_lon').value || null,
+        };
+
+        fetch("{% url 'camp_gate_self_punch_view' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json().then(data => ({ status: res.status, data: data })))
+        .then(({ status, data }) => {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+
+            if (status === 200 && data.status === 'SUCCESS') {
+                renderSuccessAlert(data);
+                // Update worker status card live
+                updateWorkerLiveState(data);
+            } else {
+                renderErrorAlert(data.msg || "Failed to record punch.");
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            // Fallback: standard form submit
+            document.getElementById('form_emp_identifier').value = empId;
+            document.getElementById('form_direction').value = direction;
+            document.getElementById('form_purpose').value = purpose;
+            document.getElementById('form_remarks').value = remarks;
+            document.getElementById('selfPunchForm').submit();
+        });
+    }
+
+    function renderSuccessAlert(data) {
+        const container = document.getElementById('punchAlertContainer');
+        const isIn = (data.direction === 'IN');
+        const bgColor = isIn ? '#f0fdf4' : '#fef2f2';
+        const borderColor = isIn ? '#16a34a' : '#dc2626';
+        const textColor = isIn ? '#16a34a' : '#dc2626';
+        const icon = isIn ? '🟢' : '🔴';
+        const title = isIn ? 'SUCCESSFULLY ENTERED CAMP' : 'SUCCESSFULLY EXITED CAMP';
+
+        let reasonHtml = '';
+        if (!isIn && data.purpose_display) {
+            reasonHtml = `<div style="margin-top: 6px; font-size: 0.82rem; font-weight: 700; color: #dc2626;">Reason: ${data.purpose_display}</div>`;
+        }
+
+        container.innerHTML = `
+            <div style="border-radius: 16px; padding: 18px; background: ${bgColor}; border: 2px solid ${borderColor}; margin-bottom: 18px; animation: fadeIn 0.3s ease;">
+                <div style="font-size: 2.4rem; margin-bottom: 6px;">${icon}</div>
+                <h3 style="margin: 0; font-size: 1.22rem; font-weight: 900; color: ${textColor};">${title}</h3>
+                <div style="font-weight: 900; font-size: 1.15rem; color: var(--text-main); margin-top: 6px;">${data.name}</div>
+                <div style="font-size: 0.84rem; color: var(--text-muted); font-weight: 700;">ID: ${data.emp_id} • ${data.designation}</div>
+                ${reasonHtml}
+                <div style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">
+                    ⏱️ Registered at ${data.time}
+                </div>
+            </div>
+        `;
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderErrorAlert(msg) {
+        const container = document.getElementById('punchAlertContainer');
+        container.innerHTML = `
+            <div style="border-radius: 14px; padding: 16px; background: #fef2f2; border: 2px solid #ef4444; margin-bottom: 18px; color: #b91c1c; font-weight: 700; animation: fadeIn 0.3s ease;">
+                ⚠️ ${msg}
+            </div>
+        `;
+    }
+
+    function updateWorkerLiveState(data) {
+        const statusElem = document.getElementById('workerCampStatus');
+        if (data.camp_status === 'INSIDE') {
+            statusElem.innerHTML = '<span class="status-pill status-inside">🟢 Inside Camp</span>';
+        } else {
+            statusElem.innerHTML = '<span class="status-pill status-outside">🔴 Outside Camp</span>';
+        }
+        updateButtonVisualHints(data.camp_status);
+
+        const lastMove = document.getElementById('workerLastMovement');
+        if (lastMove) {
+            const dirText = (data.direction === 'IN') ? '🟢 Entry / In' : '🔴 Exit / Out';
+            lastMove.innerText = `⏱️ Last: ${dirText} at ${data.time}`;
+        }
+    }
+
+    function updateButtonVisualHints(campStatus) {
+        if (campStatus === 'INSIDE') {
+            btnOut.style.boxShadow = '0 0 0 3px #ef4444, 0 8px 20px rgba(220, 38, 38, 0.4)';
+            btnOut.style.transform = 'scale(1.02)';
+            btnIn.style.boxShadow = 'none';
+            btnIn.style.transform = 'scale(1)';
+            btnIn.style.opacity = '0.75';
+            btnOut.style.opacity = '1';
+        } else {
+            btnIn.style.boxShadow = '0 0 0 3px #22c55e, 0 8px 20px rgba(22, 163, 74, 0.4)';
+            btnIn.style.transform = 'scale(1.02)';
+            btnOut.style.boxShadow = 'none';
+            btnOut.style.transform = 'scale(1)';
+            btnOut.style.opacity = '0.75';
+            btnIn.style.opacity = '1';
+        }
+    }
+
+    // ==========================================
+    // AUTO-FETCH & SEARCH (For Guest or Switch)
+    // ==========================================
+    let lookupDebounceTimer = null;
+
+    if (empInput) {
+        empInput.addEventListener('input', function() {
+            clearTimeout(lookupDebounceTimer);
+            const query = this.value.trim();
+            if (query.length < 2) {
+                if (!isLoggedIn) hideWorkerCard();
+                inputStatusIcon.innerText = '🔍';
+                return;
+            }
+            inputStatusIcon.innerText = '⏳';
+            lookupDebounceTimer = setTimeout(() => {
+                fetchWorkerDetails(query);
+            }, 300);
+        });
+
+        empInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerManualLookup();
+            }
+        });
+    }
+
+    function triggerManualLookup() {
+        clearTimeout(lookupDebounceTimer);
+        const query = empInput.value.trim();
+        if (query.length >= 2) {
+            inputStatusIcon.innerText = '⏳';
+            fetchWorkerDetails(query);
+        } else {
+            if (!isLoggedIn) hideWorkerCard();
+            lookupStatus.style.display = 'block';
+            lookupStatus.style.color = '#dc2626';
+            lookupStatus.innerText = '⚠️ Please enter at least 2 characters.';
+        }
+    }
+
+    function fetchWorkerDetails(query) {
+        if (!query || query.length < 2) return;
+        
+        lookupStatus.style.display = 'block';
+        lookupStatus.style.color = '#0284c7';
+        lookupStatus.innerText = '🔄 Looking up worker in database...';
+
+        fetch(`{% url 'api_camp_lookup_worker' %}?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'SUCCESS' && data.worker) {
+                    showWorkerCard(data.worker);
+                    lookupStatus.style.display = 'none';
+                    inputStatusIcon.innerText = '✅';
+                    formEmpInput.value = data.worker.emp_id;
+                    try {
+                        localStorage.setItem('camp_saved_emp_id', data.worker.emp_id);
+                    } catch(e) {}
+                } else {
+                    if (!isLoggedIn) hideWorkerCard();
+                    inputStatusIcon.innerText = '❓';
+                    lookupStatus.style.display = 'block';
+                    lookupStatus.style.color = '#dc2626';
+                    lookupStatus.innerText = `⚠️ ${data.msg || 'No matching worker found in database.'}`;
+                }
+            })
+            .catch(err => {
+                inputStatusIcon.innerText = '⚠️';
+                lookupStatus.style.display = 'block';
+                lookupStatus.style.color = '#dc2626';
+                lookupStatus.innerText = '⚠️ Error connecting to server.';
+            });
+    }
+
+    function showWorkerCard(w) {
+        currentWorkerData = w;
+        document.getElementById('workerName').innerText = w.name;
+        document.getElementById('workerIdBadge').innerText = w.emp_id;
+        document.getElementById('workerDesignation').innerText = w.designation;
+        document.getElementById('workerDept').innerText = w.department;
+        document.getElementById('workerRoom').innerText = w.camp_room;
+        document.getElementById('workerMess').innerText = w.assigned_mess;
+        
+        const isInside = (w.camp_status === 'INSIDE');
+        const statusElem = document.getElementById('workerCampStatus');
+        if (isInside) {
+            statusElem.innerHTML = '<span class="status-pill status-inside">🟢 Inside Camp</span>';
+        } else {
+            statusElem.innerHTML = '<span class="status-pill status-outside">🔴 Outside Camp</span>';
+        }
+        updateButtonVisualHints(w.camp_status);
+
+        const lastMove = document.getElementById('workerLastMovement');
+        if (w.last_punch && w.last_punch.direction) {
+            lastMove.innerText = `⏱️ Last: ${w.last_punch.direction_display} at ${w.last_punch.time} (${w.last_punch.date})`;
+        } else {
+            lastMove.innerText = '⏱️ No movement records logged today';
+        }
+
+        workerCard.style.display = 'block';
+    }
+
+    function hideWorkerCard() {
+        currentWorkerData = null;
+        workerCard.style.display = 'none';
+        btnIn.style.transform = 'scale(1)';
+        btnIn.style.boxShadow = '';
+        btnIn.style.opacity = '1';
+        btnOut.style.transform = 'scale(1)';
+        btnOut.style.boxShadow = '';
+        btnOut.style.opacity = '1';
+    }
+
+    function clearWorkerSelection() {
+        if (empInput) empInput.value = '';
+        if (formEmpInput) formEmpInput.value = '';
+        try {
+            localStorage.removeItem('camp_saved_emp_id');
+        } catch(e) {}
+        hideWorkerCard();
+        lookupStatus.style.display = 'none';
+        inputStatusIcon.innerText = '🔍';
+        if (empInput) empInput.focus();
+    }
+
+    // Auto-restore saved worker ID from localStorage if not logged in
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!isLoggedIn) {
+            const savedId = localStorage.getItem('camp_saved_emp_id');
+            if (empInput && empInput.value && empInput.value.trim().length >= 2) {
+                fetchWorkerDetails(empInput.value.trim());
+            } else if (savedId && savedId.trim().length >= 2) {
+                if (empInput) empInput.value = savedId.trim();
+                fetchWorkerDetails(savedId.trim());
+            }
+        }
+    });
+
+    // ==========================================
+    // CAMERA SCANNER
+    // ==========================================
+    let selfCamScanner = null;
+    let isSelfScanning = false;
+
+    function toggleSelfCamera() {
+        if (isSelfScanning) {
+            stopSelfCamera();
+        } else {
+            startSelfCamera();
+        }
+    }
+
+    function startSelfCamera() {
+        const camBox = document.getElementById('selfCamBox');
+        const btn = document.getElementById('btnToggleCamSelf');
+        const loading = document.getElementById('selfCamLoading');
+        camBox.style.display = 'block';
+        loading.style.display = 'block';
+        btn.innerHTML = '<span>⏹️</span> Stop Camera Scanner';
+        btn.style.background = '#64748b';
+
+        if (!selfCamScanner) {
+            selfCamScanner = new Html5Qrcode("self-cam-reader");
+        }
+
+        selfCamScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            onSelfQrDetected,
+            (errMsg) => {}
+        ).then(() => {
+            isSelfScanning = true;
+            loading.style.display = 'none';
+        }).catch(err => {
+            loading.innerHTML = `
+                <div style="font-size: 1.8rem;">⚠️</div>
+                <div style="font-weight: 800; color: #ef4444; margin-top: 6px;">Camera Access Blocked</div>
+                <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">Please allow camera permission in browser</div>
+            `;
+        });
+    }
+
+    function stopSelfCamera() {
+        if (selfCamScanner && isSelfScanning) {
+            selfCamScanner.stop().then(() => {
+                isSelfScanning = false;
+                document.getElementById('selfCamBox').style.display = 'none';
+                const btn = document.getElementById('btnToggleCamSelf');
+                btn.innerHTML = '<span>📷</span> Open Camera Scanner';
+                btn.style.background = '#0284c7';
+            }).catch(() => {
+                isSelfScanning = false;
+                document.getElementById('selfCamBox').style.display = 'none';
+            });
+        } else {
+            document.getElementById('selfCamBox').style.display = 'none';
+        }
+    }
+
+    function onSelfQrDetected(decodedText) {
+        if (!decodedText) return;
+        let text = decodedText.trim();
+
+        // Detect if worker accidentally scanned the Wall Poster itself
+        if ((text.includes('/camp/gate-punch') || text.includes('ngrok')) && !text.includes('emp_id=')) {
+            const msg = document.getElementById('selfScanMsg');
+            msg.style.display = 'block';
+            msg.style.background = '#fef2f2';
+            msg.style.border = '1px solid #fca5a5';
+            msg.style.color = '#b91c1c';
+            msg.innerHTML = `⚠️ <strong>This is the Gate Wall Poster QR!</strong><br>You are already on this page. Please scan your <strong>Worker ID Card QR</strong> or enter your Employee ID below.`;
+            stopSelfCamera();
+            return;
+        }
+
+        let cleanId = text;
+        if (cleanId.startsWith('http://') || cleanId.startsWith('https://') || cleanId.includes('://')) {
+            try {
+                let url = new URL(cleanId);
+                cleanId = url.searchParams.get('emp_id') || url.searchParams.get('id') || url.searchParams.get('q') || cleanId;
+            } catch(e) {}
+        }
+        if (cleanId.includes(':') && !cleanId.includes('://')) {
+            cleanId = cleanId.split(':').pop().trim();
+        }
+
+        if (cleanId.includes('ngrok') || cleanId.includes('/camp/')) {
+            cleanId = '';
+        }
+
+        if (cleanId) {
+            if (empInput) empInput.value = cleanId;
+            const msg = document.getElementById('selfScanMsg');
+            msg.style.display = 'block';
+            msg.style.background = '#dcfce7';
+            msg.style.border = '1px solid #86efac';
+            msg.style.color = '#15803d';
+            msg.innerText = `✅ QR Scanned: ${cleanId}. Fetching details...`;
+
+            stopSelfCamera();
+            fetchWorkerDetails(cleanId);
+        } else {
+            const msg = document.getElementById('selfScanMsg');
+            msg.style.display = 'block';
+            msg.style.background = '#fef2f2';
+            msg.style.border = '1px solid #fca5a5';
+            msg.style.color = '#b91c1c';
+            msg.innerText = `⚠️ Valid Worker ID not found. Please enter your Employee ID manually.`;
+            stopSelfCamera();
+        }
+    }
+
+    // THEME HANDLING
+    function updateThemeBtn() {
+        const isDark = document.body.classList.contains('dark-mode');
+        const btn = document.getElementById('themeBtn');
+        if (btn) btn.innerText = isDark ? '☀️' : '🌙';
+    }
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark-mode');
+    }
+    updateThemeBtn();
+
+    function toggleLocalTheme() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        updateThemeBtn();
+    }
+</script>
+</body>
+</html>

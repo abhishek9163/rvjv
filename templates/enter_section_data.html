@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>{{ section.name }}</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+    <form method="POST" enctype="multipart/form-data" id="dataForm">
+        {% csrf_token %}
+        
+        {% for field in section.fields.all %}
+            
+            {% if field.field_type == 'HEADING' %}
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">{{ field.name }}</h3>
+                
+            {% elif field.field_type == 'DESCRIPTION' %}
+                <p style="margin-bottom: 1.5rem; color: var(--sidebar-text); line-height: 1.6;">{{ field.name }}</p>
+                
+            {% else %}
+                <div class="form-group field-wrapper" style="margin-bottom: 1.5rem; {% if field.depends_on %}display: none;{% endif %}"
+                     data-depends-on="field_{{ field.depends_on.id }}" 
+                     data-depends-value="{{ field.depends_on_value }}">
+                    <label style="font-weight: 500;">
+                        {{ field.name }} 
+                        {% if field.is_required %}<span style="color:var(--error);">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.field_type == 'TEXTAREA' %}
+                        <textarea name="field_{{ field.id }}" class="form-control" rows="4" {% if field.is_required %}required{% endif %}></textarea>
+                        
+                    {% elif field.field_type == 'DROPDOWN' %}
+                        <select name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                            <option value="">-- Select Option --</option>
+                            {% for opt in field.option_list %}
+                                <option value="{{ opt }}">{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                    {% elif field.field_type == 'RADIO' %}
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                            {% for opt in field.option_list %}
+                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                <input type="radio" name="field_{{ field.id }}" value="{{ opt }}" {% if field.is_required %}required{% endif %}> 
+                                {{ opt }}
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                    {% elif field.field_type == 'CHECKBOX' %}
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                            {% for opt in field.option_list %}
+                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                <input type="checkbox" name="field_{{ field.id }}[]" value="{{ opt }}"> 
+                                {{ opt }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                        
+                    {% elif field.field_type == 'FILE' %}
+                        <input type="file" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% elif field.field_type == 'DATE' %}
+                        <input type="date" name="field_{{ field.id }}" class="form-control" value="{% now 'Y-m-d' %}" {% if field.is_required %}required{% endif %}>
+                    {% elif field.field_type == 'TIME' %}
+                        <input type="time" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% elif field.field_type == 'NUMBER' %}
+                        <input type="number" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% else %}
+                        <input type="text" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+        {% empty %}
+        <p style="text-align:center; padding: 2rem; color:var(--sidebar-text);">No fields have been defined for this module yet.</p>
+        {% endfor %}
+        
+        {% if section.fields.count > 0 %}
+        <hr style="border-top: 1px solid var(--border); margin: 2rem 0;">
+        <button type="submit" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem; width:100%;">Submit Data</button>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('dataForm');
+    if (!form) return;
+    
+    const wrappers = document.querySelectorAll('.field-wrapper[data-depends-on]');
+    
+    function evaluateDependencies() {
+        wrappers.forEach(wrapper => {
+            const dependsOnName = wrapper.getAttribute('data-depends-on');
+            const dependsOnValue = wrapper.getAttribute('data-depends-value');
+            if (!dependsOnName) return;
+            
+            // Find the parent field element(s)
+            const parentElements = form.querySelectorAll(`[name="${dependsOnName}"], [name="${dependsOnName}[]"]`);
+            if (parentElements.length === 0) return;
+            
+            let parentValue = null;
+            
+            // Check if radio or checkbox
+            if (parentElements[0].type === 'radio' || parentElements[0].type === 'checkbox') {
+                const checkedEl = form.querySelector(`[name="${parentElements[0].name}"]:checked`);
+                if (checkedEl) parentValue = checkedEl.value;
+            } else {
+                parentValue = parentElements[0].value;
+            }
+            
+            // Show or hide based on match
+            const inputElements = wrapper.querySelectorAll('input, select, textarea');
+            if (parentValue && parentValue.toString().toLowerCase() === dependsOnValue.toString().toLowerCase()) {
+                wrapper.style.display = 'block';
+                // Restore required status if it was required originally
+                inputElements.forEach(el => {
+                    if (wrapper.getAttribute('data-is-required') === 'true') {
+                        el.required = true;
+                    }
+                });
+            } else {
+                wrapper.style.display = 'none';
+                inputElements.forEach(el => {
+                    el.required = false;
+                });
+            }
+        });
+    }
+
+    // Attach change listeners to all inputs to trigger evaluation
+    const allInputs = form.querySelectorAll('input, select, textarea');
+    allInputs.forEach(input => {
+        input.addEventListener('change', evaluateDependencies);
+        if(input.tagName === 'SELECT' || input.type === 'radio' || input.type === 'checkbox') {
+            input.addEventListener('input', evaluateDependencies);
+        }
+    });
+
+    // Store initial required states
+    wrappers.forEach(wrapper => {
+        const inputElements = wrapper.querySelectorAll('input, select, textarea');
+        let isReq = false;
+        inputElements.forEach(el => { if (el.required) isReq = true; });
+        wrapper.setAttribute('data-is-required', isReq ? 'true' : 'false');
+    });
+
+    // Initial evaluation
+    evaluateDependencies();
+});
+</script>
+{% endblock %}

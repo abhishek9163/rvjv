@@ -1,0 +1,1279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Time Keeper QR Scanner — RVJV Overtime Management System | P&M System{% endblock %}
+
+{% block content %}
+<!-- Direct CDN Scripts for Robust QR Code Recognition -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+    .ot-scan-container {
+        padding: 6px 10px 95px;
+        max-width: 580px;
+        margin: 0 auto;
+    }
+
+    /* Page Top Header */
+    .scan-top-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .scan-top-header h2 {
+        margin: 0;
+        font-size: 1.22rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .scan-top-header p {
+        margin: 2px 0 0;
+        font-size: 0.74rem;
+        color: var(--sidebar-text);
+    }
+
+    /* Zone & Shift Selection */
+    .zone-shift-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    }
+    @media (max-width: 480px) {
+        .zone-shift-bar {
+            grid-template-columns: 1fr 1fr;
+            padding: 8px 10px;
+            gap: 6px;
+        }
+    }
+    .bar-field label {
+        display: block;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-bottom: 3px;
+    }
+    .bar-field select {
+        width: 100%;
+        padding: 7px 8px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    /* Big Punch Mode Switcher */
+    .punch-toggle-box {
+        display: flex;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 10px;
+        gap: 6px;
+    }
+    .punch-pill-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        color: var(--sidebar-text);
+        font-weight: 800;
+        font-size: 0.88rem;
+        border-radius: 9px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    .punch-pill-btn.active.pill-in {
+        background: #10b981;
+        color: white;
+        box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35);
+    }
+    .punch-pill-btn.active.pill-out {
+        background: #f59e0b;
+        color: white;
+        box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
+    }
+
+    /* Scanner Card */
+    .camera-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        text-align: center;
+    }
+
+    /* Top Controls Row */
+    .top-controls-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+    .btn-main-scanner {
+        flex: 1 1 auto;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 800;
+        border: none;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
+        transition: all 0.2s;
+        min-height: 42px;
+    }
+    .btn-main-scanner.running {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        box-shadow: 0 3px 12px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-sub-ctrl {
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        min-height: 42px;
+        box-sizing: border-box;
+    }
+
+    /* Camera Viewport Container */
+    .viewport-box {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        height: 260px;
+        margin: 0 auto;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #090e17;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid rgba(255, 255, 255, 0.12);
+    }
+    @media (min-width: 480px) {
+        .viewport-box {
+            height: 290px;
+        }
+    }
+    #qrReader {
+        width: 100% !important;
+        height: 100% !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        overflow: hidden;
+        z-index: 2;
+    }
+    #qrReader video {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: 14px !important;
+        background: #000;
+    }
+    #qrReader__scan_region {
+        background: transparent !important;
+    }
+    #qrReader__dashboard, #qrReader__header_message {
+        display: none !important;
+    }
+    #cameraVideo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+        z-index: 2;
+        background: #000;
+    }
+    #cameraCanvas {
+        display: none;
+    }
+    #cameraStandbyNotice {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #090e17;
+        color: rgba(255, 255, 255, 0.85);
+        text-align: center;
+        padding: 15px;
+        z-index: 3;
+        box-sizing: border-box;
+    }
+
+    /* Target Reticle Corners */
+    .reticle-corner {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        border-color: #10b981;
+        border-style: solid;
+        z-index: 5;
+        pointer-events: none;
+    }
+    .corner-tl { top: 16px; left: 16px; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+    .corner-tr { top: 16px; right: 16px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+    .corner-bl { bottom: 16px; left: 16px; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+    .corner-br { bottom: 16px; right: 16px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+
+    /* Laser Scanning Animation */
+    .laser-beam {
+        position: absolute;
+        top: 0;
+        left: 6%;
+        width: 88%;
+        height: 2.5px;
+        background: linear-gradient(90deg, transparent, #10b981, #34d399, transparent);
+        box-shadow: 0 0 14px 3px rgba(16, 185, 129, 0.85);
+        z-index: 6;
+        animation: laserScan 2s infinite ease-in-out;
+        display: none;
+    }
+    @keyframes laserScan {
+        0% { top: 15%; opacity: 0.2; }
+        50% { top: 85%; opacity: 1; }
+        100% { top: 15%; opacity: 0.2; }
+    }
+
+    /* Live HUD Toast Popup */
+    .hud-toast {
+        margin: 10px auto 0;
+        width: 100%;
+        box-sizing: border-box;
+        background: linear-gradient(135deg, #065f46, #059669);
+        color: white;
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+        animation: slideDown 0.3s ease-out;
+        text-align: left;
+    }
+    @keyframes slideDown {
+        from { transform: translateY(-10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .hud-avatar {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+    .hud-name {
+        font-size: 0.98rem;
+        font-weight: 800;
+        margin: 0;
+    }
+    .hud-sub {
+        font-size: 0.74rem;
+        opacity: 0.92;
+        margin-top: 1px;
+    }
+
+    /* Manual Search Box */
+    .search-box-row {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .search-input {
+        flex: 1;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.85rem;
+        font-weight: 700;
+        outline: none;
+    }
+
+    /* Activity Feed */
+    .activity-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+    }
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .activity-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .feed-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        padding: 3px 8px;
+        border-radius: 10px;
+    }
+    .feed-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+    }
+    .feed-table th {
+        text-align: left;
+        padding: 6px 8px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        border-bottom: 1px solid var(--border);
+    }
+    .feed-table td {
+        padding: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+</style>
+
+<!-- JSQR Decoder Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<div class="ot-scan-container">
+    <!-- Top Header -->
+    <div class="scan-top-header">
+        <div>
+            <h2><i class="fas fa-qrcode" style="color:#10b981;"></i> QR Scanner</h2>
+            <p>Instant attendance &amp; overtime scanning</p>
+        </div>
+        {% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}
+        <a href="{% url 'overtime_dashboard' %}" class="btn-sub-ctrl" style="padding:6px 10px; font-size:0.75rem;">
+            <i class="fas fa-chart-pie" style="color:var(--primary);"></i> PM Hub
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 1. Work Zone & Shift Selection -->
+    <div class="zone-shift-bar">
+        <div class="bar-field">
+            <label><i class="fas fa-location-dot" style="color:#ef4444;"></i> Zone</label>
+            <select id="selectZone">
+                {% for z in zones %}
+                <option value="{{ z }}">{{ z }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="bar-field">
+            <label><i class="fas fa-calendar-day" style="color:var(--primary);"></i> Shift</label>
+            <select id="selectShift">
+                <option value="Day">☀️ Day Shift</option>
+                <option value="Night">🌙 Night Shift</option>
+                <option value="General">🕒 General Shift</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 2. Punch Mode Switcher -->
+    <div class="punch-toggle-box">
+        <button type="button" class="punch-pill-btn pill-in active" id="btnPunchIn" onclick="setPunchType('IN')">
+            <i class="fas fa-sign-in-alt"></i> PUNCH IN
+        </button>
+        <button type="button" class="punch-pill-btn pill-out" id="btnPunchOut" onclick="setPunchType('OUT')">
+            <i class="fas fa-sign-out-alt"></i> PUNCH OUT
+        </button>
+    </div>
+
+    <!-- 3. Scanner Card -->
+    <div class="camera-card">
+        <!-- TOP CONTROLS ROW -->
+        <div class="top-controls-row">
+            <button type="button" id="btnToggleCamera" class="btn-main-scanner" onclick="toggleScanner()">
+                <i class="fas fa-camera" id="cameraIcon"></i>
+                <span id="cameraBtnText">START LIVE SCANNER</span>
+            </button>
+            <button type="button" id="btnSwitchCamera" class="btn-sub-ctrl" onclick="switchCamera()" style="display:none;" title="Flip Camera">
+                <i class="fas fa-rotate"></i>
+            </button>
+            <button type="button" id="btnTorch" class="btn-sub-ctrl" onclick="toggleTorch()" style="display:none;" title="Flashlight">
+                <i class="fas fa-bolt"></i>
+            </button>
+            <!-- Native Mobile Photo Shutter -->
+            <label class="btn-sub-ctrl" style="cursor:pointer; margin-bottom:0; background:rgba(2, 132, 199, 0.15); color:#0284c7; border:1px solid rgba(2, 132, 199, 0.3);" title="Snap Photo with Phone Camera">
+                <i class="fas fa-camera-retro"></i> Snap
+                <input type="file" id="qrImageInput" accept="image/*" capture="environment" style="display:none;" onchange="scanFromImageFile(this)">
+            </label>
+        </div>
+
+        <!-- CAMERA VIEWPORT -->
+        <div class="viewport-box" id="viewportBox">
+            <div id="qrReader"></div>
+            <video id="cameraVideo" playsinline webkit-playsinline autoplay muted style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:2; background:#000; display:none;"></video>
+            <canvas id="cameraCanvas" style="display:none;"></canvas>
+
+            <!-- Reticles & Laser -->
+            <div class="reticle-corner corner-tl"></div>
+            <div class="reticle-corner corner-tr"></div>
+            <div class="reticle-corner corner-bl"></div>
+            <div class="reticle-corner corner-br"></div>
+            <div class="laser-beam" id="scanLaserLine" style="display:none;"></div>
+
+            <!-- Standby Notice with 1-Tap Trigger -->
+            <div id="cameraStandbyNotice" onclick="startScanner()" style="cursor:pointer; color:rgba(255,255,255,0.85); text-align:center; padding:15px; z-index:3; position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#090e17;">
+                <i class="fas fa-camera" style="font-size:2.6rem; color:#10b981; margin-bottom:10px; display:block;"></i>
+                <div style="font-weight:800; font-size:1.05rem; color:#fff;">Tap to Start Camera</div>
+                <div style="font-size:0.75rem; margin-top:6px; opacity:0.9; background:rgba(16,185,129,0.25); color:#34d399; font-weight:700; padding:5px 14px; border-radius:20px; border:1px solid #10b981;">
+                    <i class="fas fa-play"></i> START LIVE SCANNER
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct Instant Snap Button (Fail-Safe for all phones) -->
+        <div style="margin-top:10px;">
+            <button type="button" class="btn-main-scanner" style="width:100%; background:linear-gradient(135deg, #0284c7, #0ea5e9); font-size:0.85rem;" onclick="document.getElementById('qrImageInput').click()">
+                <i class="fas fa-camera-retro"></i> 📸 SNAP QR PHOTO WITH PHONE CAMERA
+            </button>
+        </div>
+
+        <!-- LIVE HUD SUCCESS TOAST -->
+        <div id="scanSuccessOverlay" class="hud-toast" style="display:none;">
+            <div class="hud-avatar" id="popAvatar">A</div>
+            <div style="min-width:0; flex:1;">
+                <div style="font-size:0.62rem; font-weight:800; text-transform:uppercase; background:rgba(255,255,255,0.25); padding:2px 5px; border-radius:4px; display:inline-block; margin-bottom:2px;" id="popBadge">PUNCH IN SAVED</div>
+                <h4 class="hud-name" id="popEmpName">Abhishek Anand</h4>
+                <div class="hud-sub" id="popEmpSub">🆔 HR-EMP-26082843 • Supervisor • 08:00 AM • Ready</div>
+            </div>
+        </div>
+
+        <!-- MANUAL SEARCH BOX -->
+        <div class="search-box-row">
+            <input type="text" id="manualEmpInput" class="search-input" placeholder="⚡ Type last 4 digits (e.g. 2843) or ID..." onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupEmployee(this.value, false);}">
+            <button type="button" class="btn-main-scanner" style="flex:0 0 auto; padding:8px 14px; font-size:0.82rem;" onclick="lookupEmployee(document.getElementById('manualEmpInput').value, false)">
+                <i class="fas fa-search"></i> Match
+            </button>
+        </div>
+        <div id="scanStatusMessage" style="margin-top:8px; font-size:0.78rem; font-weight:700; text-align:center; min-height:16px;"></div>
+    </div>
+
+    <!-- 4. Today's Activity Table -->
+    <div class="activity-card">
+        <div class="activity-header">
+            <h3><i class="fas fa-list-check" style="color:var(--primary);"></i> Today's Logged Punches</h3>
+            <span class="feed-pill" id="scanCountBadge">{{ total_logged_today }} Logged</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="feed-table" id="recentPunchesTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Emp ID</th>
+                        <th>Name</th>
+                        <th>Zone</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        {% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}
+                        <th style="text-align:center;">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody id="recentPunchesTbody">
+                    {% for p in recent_punches %}
+                    <tr id="punchRow_{{ p.id }}">
+                        <td style="font-weight:700; white-space:nowrap;">{{ p.created_at|date:"h:i A" }}</td>
+                        <td><strong>{{ p.emp_id_snapshot }}</strong></td>
+                        <td>{{ p.employee_name }}</td>
+                        <td><span class="badge" style="background:rgba(0,0,0,0.05); font-size:0.68rem;">{{ p.location_zone }}</span></td>
+                        <td>
+                            {% if p.punch_type == 'IN' %}
+                            <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-weight:700;">IN</span>
+                            {% else %}
+                            <span class="badge" style="background:rgba(245, 158, 11, 0.15); color:#f59e0b; font-weight:700;">OUT</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.status == 'Approved' %}
+                            <span class="badge" style="background:#10b981; color:white; font-size:0.62rem;">Approved</span>
+                            {% else %}
+                            <span class="badge" style="background:#f59e0b; color:white; font-size:0.62rem;">Pending</span>
+                            {% endif %}
+                        </td>
+                        {% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}
+                        <td style="text-align:center;">
+                            <button type="button" onclick="deletePunchRecord({{ p.id }}, this)" style="background:rgba(239, 68, 68, 0.12); color:#ef4444; border:none; border-radius:6px; padding:4px 8px; font-size:0.75rem; cursor:pointer;" title="Delete Record">
+                                <i class="fas fa-trash-can"></i>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr id="noRecentPunchesRow"><td colspan="{% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}7{% else %}6{% endif %}" style="text-align:center; color:var(--sidebar-text); padding:14px;">No punches recorded today yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="font-size:0.72rem; color:var(--sidebar-text); margin-top:10px; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-shield-halved" style="color:var(--primary);"></i>
+            <span>Recorded punches are securely locked. For any correction or deletion, please contact Project Manager.</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 1. SOUND EFFECTS
+// ==========================================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playConfirmSound() {
+    try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880.00, now + 0.08);
+        osc.frequency.setValueAtTime(1174.66, now + 0.16);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+        if (navigator.vibrate) navigator.vibrate([70, 30, 70]);
+    } catch(e) {}
+}
+
+function playErrorSound() {
+    try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.setValueAtTime(160, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } catch(e) {}
+}
+
+// ==========================================
+// 2. HTML5-QRCODE & HARDWARE CAMERA ENGINE
+// ==========================================
+let html5QrCode = null;
+let mediaStream = null;
+let scanAnimationId = null;
+let isScannerRunning = false;
+let currentPunchType = 'IN';
+let activeEmployeeData = null;
+let currentFacingMode = "environment";
+let isTorchOn = false;
+let totalLoggedCount = {{ total_logged_today|default:0 }};
+let scannedEmployeeCooldown = {};
+let isCameraInitializing = false;
+let cameraTimeoutTimer = null;
+
+function setPunchType(type) {
+    currentPunchType = type;
+    document.getElementById('btnPunchIn').className = 'punch-pill-btn pill-in ' + (type === 'IN' ? 'active' : '');
+    document.getElementById('btnPunchOut').className = 'punch-pill-btn pill-out ' + (type === 'OUT' ? 'active' : '');
+}
+
+function toggleScanner() {
+    if (isScannerRunning) {
+        stopScanner();
+    } else {
+        startScanner();
+    }
+}
+
+async function startScanner() {
+    if (isCameraInitializing || isScannerRunning) return;
+    isCameraInitializing = true;
+
+    const standby = document.getElementById('cameraStandbyNotice');
+    const laser = document.getElementById('scanLaserLine');
+    const btn = document.getElementById('btnToggleCamera');
+
+    setStatusMessage('⌛ Opening Camera...', 'var(--primary)');
+
+    clearTimeout(cameraTimeoutTimer);
+    cameraTimeoutTimer = setTimeout(() => {
+        if (isCameraInitializing && !isScannerRunning) {
+            isCameraInitializing = false;
+            setStatusMessage('⚠️ Camera timed out. Tap "START LIVE SCANNER" or use "📸 Snap Photo".', '#f59e0b');
+            stopScanner();
+        }
+    }, 6000);
+
+    // Method A: Use Html5Qrcode (Most reliable on all Android / iPhone browsers)
+    if (window.Html5Qrcode) {
+        try {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qrReader");
+            }
+
+            const qrConfig = {
+                fps: 15,
+                qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    return {
+                        width: Math.floor(minEdge * 0.75),
+                        height: Math.floor(minEdge * 0.75)
+                    };
+                },
+                aspectRatio: 1.0,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
+            };
+
+            await html5QrCode.start(
+                { facingMode: currentFacingMode },
+                qrConfig,
+                (decodedText, decodedResult) => {
+                    handleDecodedQR(decodedText);
+                },
+                (errorMessage) => {
+                    // Frame scan attempt (silent)
+                }
+            );
+
+            clearTimeout(cameraTimeoutTimer);
+            isScannerRunning = true;
+            isCameraInitializing = false;
+
+            standby.style.display = 'none';
+            laser.style.display = 'block';
+
+            btn.classList.add('running');
+            document.getElementById('cameraIcon').className = 'fas fa-stop';
+            document.getElementById('cameraBtnText').textContent = 'STOP SCANNER';
+            document.getElementById('btnSwitchCamera').style.display = 'inline-flex';
+
+            // Check torch support
+            try {
+                const capabilities = html5QrCode.getRunningTrackCapabilities();
+                if (capabilities && capabilities.torch) {
+                    document.getElementById('btnTorch').style.display = 'inline-flex';
+                }
+            } catch(e) {}
+
+            setStatusMessage('📷 Camera Active! Point at employee QR card...', '#10b981');
+            return;
+
+        } catch(html5Err) {
+            console.warn('Html5Qrcode start error, attempting native video fallback:', html5Err);
+        }
+    }
+
+    // Method B: Native getUserMedia Fallback
+    try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Direct camera not supported in this browser mode. Use 'Snap Photo' button.");
+        }
+
+        let stream = null;
+        const constraintsList = [
+            { video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+            { video: { facingMode: currentFacingMode }, audio: false },
+            { video: { facingMode: "environment" }, audio: false },
+            { video: true, audio: false }
+        ];
+
+        for (const constraints of constraintsList) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                if (stream) break;
+            } catch(e) {}
+        }
+
+        if (!stream) {
+            throw new Error("Camera permission needed or camera busy.");
+        }
+
+        clearTimeout(cameraTimeoutTimer);
+        mediaStream = stream;
+        const video = document.getElementById('cameraVideo');
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+        video.style.display = 'block';
+        await video.play();
+
+        isScannerRunning = true;
+        isCameraInitializing = false;
+        standby.style.display = 'none';
+        laser.style.display = 'block';
+
+        btn.classList.add('running');
+        document.getElementById('cameraIcon').className = 'fas fa-stop';
+        document.getElementById('cameraBtnText').textContent = 'STOP SCANNER';
+        document.getElementById('btnSwitchCamera').style.display = 'inline-flex';
+
+        setStatusMessage('📷 Camera Active! Point at employee QR card...', '#10b981');
+        if (scanAnimationId) cancelAnimationFrame(scanAnimationId);
+        scanAnimationId = requestAnimationFrame(processVideoFrame);
+
+    } catch(err) {
+        console.warn('All camera start methods failed:', err);
+        clearTimeout(cameraTimeoutTimer);
+        isCameraInitializing = false;
+        isScannerRunning = false;
+        standby.style.display = 'flex';
+        laser.style.display = 'none';
+
+        btn.classList.remove('running');
+        document.getElementById('cameraIcon').className = 'fas fa-camera';
+        document.getElementById('cameraBtnText').textContent = 'START LIVE SCANNER';
+
+        setStatusMessage(`⚠️ Camera notice: ${err.message || 'Access needed'}. Use "📸 Snap Photo" below or type Emp ID.`, '#ef4444');
+    }
+}
+
+async function stopScanner() {
+    isScannerRunning = false;
+    isCameraInitializing = false;
+    clearTimeout(cameraTimeoutTimer);
+
+    if (scanAnimationId) {
+        cancelAnimationFrame(scanAnimationId);
+        scanAnimationId = null;
+    }
+
+    if (html5QrCode) {
+        try {
+            if (html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+        } catch(e) {}
+    }
+
+    if (mediaStream) {
+        try {
+            mediaStream.getTracks().forEach(t => t.stop());
+        } catch(e) {}
+        mediaStream = null;
+    }
+
+    const video = document.getElementById('cameraVideo');
+    if (video) {
+        video.srcObject = null;
+        video.style.display = 'none';
+    }
+
+    document.getElementById('cameraStandbyNotice').style.display = 'flex';
+    document.getElementById('scanLaserLine').style.display = 'none';
+
+    const btn = document.getElementById('btnToggleCamera');
+    if (btn) {
+        btn.classList.remove('running');
+        document.getElementById('cameraIcon').className = 'fas fa-camera';
+        document.getElementById('cameraBtnText').textContent = 'START LIVE SCANNER';
+    }
+    const switchBtn = document.getElementById('btnSwitchCamera');
+    if (switchBtn) switchBtn.style.display = 'none';
+    const torchBtn = document.getElementById('btnTorch');
+    if (torchBtn) torchBtn.style.display = 'none';
+    setStatusMessage('', '');
+}
+
+async function switchCamera() {
+    currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+    await stopScanner();
+    setTimeout(startScanner, 250);
+}
+
+async function toggleTorch() {
+    isTorchOn = !isTorchOn;
+    let applied = false;
+
+    if (html5QrCode && html5QrCode.isScanning) {
+        try {
+            await html5QrCode.applyVideoConstraints({
+                advanced: [{ torch: isTorchOn }]
+            });
+            applied = true;
+        } catch(e) {}
+    }
+
+    if (!applied && mediaStream) {
+        try {
+            const track = mediaStream.getVideoTracks()[0];
+            if (track && track.applyConstraints) {
+                await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+                applied = true;
+            }
+        } catch(e) {}
+    }
+
+    const torchBtn = document.getElementById('btnTorch');
+    if (torchBtn) {
+        torchBtn.style.background = isTorchOn ? '#f59e0b' : '';
+        torchBtn.style.color = isTorchOn ? 'white' : '';
+    }
+}
+
+let lastScanTime = 0;
+async function processVideoFrame(timestamp) {
+    if (!isScannerRunning) return;
+
+    const video = document.getElementById('cameraVideo');
+    if (video && video.readyState >= 2 && (!timestamp || timestamp - lastScanTime > 60)) {
+        lastScanTime = timestamp || 0;
+        let decodedText = null;
+
+        if (window.jsQR && video.videoWidth > 0) {
+            const canvas = document.getElementById('cameraCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            const targetWidth = Math.min(video.videoWidth, 540);
+            const targetHeight = Math.floor(video.videoHeight * (targetWidth / video.videoWidth));
+            
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+            }
+            
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+            
+            const code = jsQR(imageData.data, targetWidth, targetHeight, {
+                inversionAttempts: "dontInvert",
+            });
+            if (code && code.data) {
+                decodedText = code.data;
+            }
+        }
+
+        if (decodedText) {
+            handleDecodedQR(decodedText);
+        }
+    }
+
+    if (isScannerRunning) {
+        scanAnimationId = requestAnimationFrame(processVideoFrame);
+    }
+}
+
+function handleDecodedQR(decodedText) {
+    const rawId = (decodedText || '').trim();
+    if (!rawId) return;
+
+    const now = Date.now();
+    // 1.5 second cooldown per employee card to allow immediate continuous scans of different cards
+    if (scannedEmployeeCooldown[rawId] && (now - scannedEmployeeCooldown[rawId] < 1500)) {
+        return;
+    }
+    scannedEmployeeCooldown[rawId] = now;
+
+    lookupEmployee(rawId, true);
+}
+
+function scanFromImageFile(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    setStatusMessage('🖼️ Reading QR card...', 'var(--primary)');
+
+    // 1. Try Html5Qrcode.scanFile if available
+    if (window.Html5Qrcode) {
+        const html5Qr = new Html5Qrcode("cameraCanvas");
+        html5Qr.scanFile(file, true)
+            .then(decodedText => {
+                lookupEmployee(decodedText, true);
+            })
+            .catch(err => {
+                // Fallback to manual canvas jsQR
+                decodeViaCanvasJsQR(file);
+            });
+    } else {
+        decodeViaCanvasJsQR(file);
+    }
+}
+
+function decodeViaCanvasJsQR(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.getElementById('cameraCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            // Try standard size
+            const maxDim = 1000;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                    h = Math.round(h * (maxDim / w));
+                    w = maxDim;
+                } else {
+                    w = Math.round(w * (maxDim / h));
+                    h = maxDim;
+                }
+            }
+
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            let decodedText = null;
+            if (window.jsQR) {
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const code = jsQR(imgData.data, w, h, { inversionAttempts: "dontInvert" });
+                if (code && code.data) decodedText = code.data;
+            }
+
+            if (decodedText) {
+                lookupEmployee(decodedText, true);
+            } else {
+                playErrorSound();
+                setStatusMessage('❌ No QR found in photo. Please retake photo closely with good light or type ID below.', '#ef4444');
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function setStatusMessage(msg, color) {
+    const el = document.getElementById('scanStatusMessage');
+    if (el) {
+        el.innerHTML = msg;
+        el.style.color = color || 'var(--text-color)';
+    }
+}
+
+// ==========================================
+// 3. LOOKUP & AUTO-SUBMIT
+// ==========================================
+let lookupTimer = null;
+function debouncedLookup(val) {
+    clearTimeout(lookupTimer);
+    if (!val || val.trim().length < 3) return;
+    lookupTimer = setTimeout(() => {
+        lookupEmployee(val.trim(), false);
+    }, 350);
+}
+
+function lookupEmployee(query, autoSubmit = false) {
+    if (!query || query.trim() === '') {
+        playErrorSound();
+        setStatusMessage('⚠️ Please enter an Employee ID', '#ef4444');
+        return;
+    }
+
+    setStatusMessage('🔍 Searching Employee...', 'var(--primary)');
+
+    fetch(`/api/overtime/employee-lookup/?q=${encodeURIComponent(query.trim())}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.employee) {
+                activeEmployeeData = data.employee;
+
+                if (autoSubmit) {
+                    submitOvertimePunch(true);
+                } else {
+                    playConfirmSound();
+                    submitOvertimePunch(true);
+                }
+            } else {
+                playErrorSound();
+                activeEmployeeData = null;
+                setStatusMessage(`❌ ${data.message || 'Employee not found.'}`, '#ef4444');
+            }
+        })
+        .catch(err => {
+            playErrorSound();
+            console.error('Lookup error:', err);
+            setStatusMessage('⚠️ Network error looking up employee.', '#ef4444');
+        });
+}
+
+function showLiveSuccessToast(name, emp_id, desig, in_time, zone, isDuplicate = false) {
+    const toast = document.getElementById('scanSuccessOverlay');
+    document.getElementById('popAvatar').textContent = (name || 'E').charAt(0).toUpperCase();
+    
+    if (isDuplicate) {
+        toast.style.background = 'linear-gradient(135deg, #b45309, #d97706)';
+        document.getElementById('popBadge').textContent = 'ALREADY PUNCHED IN';
+        document.getElementById('popEmpSub').innerHTML = `🆔 <strong>${emp_id}</strong> • Already recorded at ${in_time} today.`;
+    } else {
+        toast.style.background = 'linear-gradient(135deg, #065f46, #059669)';
+        document.getElementById('popBadge').textContent = currentPunchType === 'IN' ? 'PUNCH IN SAVED' : 'PUNCH OUT SAVED';
+        document.getElementById('popEmpSub').innerHTML = `🆔 <strong>${emp_id}</strong> • ${desig} • ${in_time} • Ready`;
+    }
+    
+    document.getElementById('popEmpName').textContent = name;
+    toast.style.display = 'flex';
+    
+    setTimeout(() => {
+        if (toast) toast.style.display = 'none';
+    }, 4000);
+}
+
+function formatCurrentTime() {
+    const d = new Date();
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+}
+
+// ==========================================
+// 4. SUBMIT PUNCH
+// ==========================================
+function submitOvertimePunch(isAutoScan = false) {
+    if (!activeEmployeeData) {
+        playErrorSound();
+        alert('Please scan or select a valid employee first.');
+        return;
+    }
+
+    const payload = {
+        emp_id: activeEmployeeData.emp_id,
+        employee_name: activeEmployeeData.name,
+        designation: activeEmployeeData.designation,
+        department: activeEmployeeData.department,
+        cid_number: activeEmployeeData.cid_number,
+        account_number: activeEmployeeData.account_number,
+        contact_info: activeEmployeeData.contact_info,
+        overtime_rate: activeEmployeeData.overtime_rate,
+        location_zone: document.getElementById('selectZone').value,
+        shift: document.getElementById('selectShift').value,
+        punch_type: currentPunchType,
+        in_time: currentPunchType === 'IN' ? formatCurrentTime() : '',
+        out_time: currentPunchType === 'OUT' ? formatCurrentTime() : '',
+        overtime_hours: 0.0,
+        work_description: 'Field Attendance & Overtime',
+    };
+
+    fetch('/api/overtime/submit-punch/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            playConfirmSound();
+            
+            const isDup = Boolean(data.is_duplicate);
+            showLiveSuccessToast(
+                payload.employee_name,
+                payload.emp_id,
+                payload.designation,
+                (data.record && data.record.in_time) || payload.in_time,
+                payload.location_zone,
+                isDup
+            );
+            
+            if (!isDup) {
+                addRecentPunchRow(data.record || {
+                    emp_id: payload.emp_id,
+                    name: payload.employee_name,
+                    zone: payload.location_zone,
+                    punch_type: payload.punch_type,
+                    hours: payload.overtime_hours,
+                    status: 'Pending'
+                });
+
+                totalLoggedCount += 1;
+                document.getElementById('scanCountBadge').textContent = `${totalLoggedCount} Logged`;
+                setStatusMessage(`⚡ Saved: <strong>${payload.employee_name}</strong>! Ready for next card.`, '#10b981');
+            } else {
+                setStatusMessage(`⚠️ <strong>${payload.employee_name}</strong> already Punched IN earlier!`, '#f59e0b');
+            }
+
+            document.getElementById('manualEmpInput').value = '';
+        } else {
+            playErrorSound();
+            setStatusMessage(`⚠️ ${data.message}`, '#ef4444');
+        }
+    })
+    .catch(err => {
+        playErrorSound();
+        console.error('Submit error:', err);
+    });
+}
+
+const isManagerUser = {% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}true{% else %}false{% endif %};
+
+function addRecentPunchRow(r) {
+    const tbody = document.getElementById('recentPunchesTbody');
+    const noRow = document.getElementById('noRecentPunchesRow');
+    if (noRow) noRow.remove();
+
+    const nowTime = formatCurrentTime();
+    const typeBadge = currentPunchType === 'IN'
+        ? '<span class="badge" style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-weight:700;">IN</span>'
+        : '<span class="badge" style="background:rgba(245, 158, 11, 0.15); color:#f59e0b; font-weight:700;">OUT</span>';
+
+    const tr = document.createElement('tr');
+    tr.id = 'punchRow_' + (r.id || '');
+    tr.style.background = 'rgba(16, 185, 129, 0.08)';
+    tr.style.transition = 'background 1.5s';
+    let rowHtml = `
+        <td style="font-weight:700; white-space:nowrap;">${nowTime}</td>
+        <td><strong>${r.emp_id}</strong></td>
+        <td><strong>${r.name}</strong></td>
+        <td><span class="badge" style="background:rgba(0,0,0,0.05); font-size:0.68rem;">${r.zone}</span></td>
+        <td>${typeBadge}</td>
+        <td><span class="badge" style="background:#f59e0b; color:white; font-size:0.62rem;">Pending</span></td>
+    `;
+    if (isManagerUser) {
+        rowHtml += `
+        <td style="text-align:center;">
+            <button type="button" onclick="deletePunchRecord(${r.id || 0}, this)" style="background:rgba(239, 68, 68, 0.12); color:#ef4444; border:none; border-radius:6px; padding:4px 8px; font-size:0.75rem; cursor:pointer;" title="Delete Record">
+                <i class="fas fa-trash-can"></i>
+            </button>
+        </td>`;
+    }
+    tr.innerHTML = rowHtml;
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    setTimeout(() => {
+        tr.style.background = '';
+    }, 2500);
+}
+
+function deletePunchRecord(recordId, btn) {
+    if (!recordId) return;
+    if (!confirm('Are you sure you want to delete this punch entry?')) return;
+
+    fetch(`/api/overtime/delete/${recordId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            playConfirmSound();
+            const tr = btn.closest('tr');
+            if (tr) {
+                tr.style.background = 'rgba(239, 68, 68, 0.2)';
+                tr.style.transition = 'all 0.3s';
+                setTimeout(() => {
+                    tr.remove();
+                    const tbody = document.getElementById('recentPunchesTbody');
+                    if (tbody && tbody.children.length === 0) {
+                        tbody.innerHTML = '<tr id="noRecentPunchesRow"><td colspan="7" style="text-align:center; color:var(--sidebar-text); padding:14px;">No punches recorded today yet.</td></tr>';
+                    }
+                }, 300);
+            }
+            totalLoggedCount = Math.max(0, totalLoggedCount - 1);
+            document.getElementById('scanCountBadge').textContent = `${totalLoggedCount} Logged`;
+            setStatusMessage('🗑️ Punch record deleted successfully!', '#10b981');
+        } else {
+            playErrorSound();
+            alert(data.message || 'Error deleting record.');
+        }
+    })
+    .catch(err => {
+        playErrorSound();
+        console.error('Delete error:', err);
+    });
+}
+
+document.getElementById('selectZone').addEventListener('change', function() {
+    localStorage.setItem('pm_ot_selected_zone', this.value);
+});
+const savedZone = localStorage.getItem('pm_ot_selected_zone');
+if (savedZone) {
+    document.getElementById('selectZone').value = savedZone;
+}
+
+// Try soft auto-start on desktop, or prompt tap on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // Try gentle auto-start if permissions previously granted
+        navigator.permissions?.query({ name: 'camera' }).then(res => {
+            if (res.state === 'granted') {
+                startScanner();
+            }
+        }).catch(() => {});
+    }
+});
+</script>
+{% endblock %}

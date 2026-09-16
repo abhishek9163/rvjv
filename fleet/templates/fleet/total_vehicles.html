@@ -1,0 +1,1120 @@
+{% extends 'base.html' %}
+{% block title %}Total Vehicles - P&M Portal{% endblock %}
+
+{% block content %}
+<!-- FontAwesome Icons Link (fallback check) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    .vehicle-container {
+        max-width: 1200px;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+    }
+    .page-header-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .header-title-section h2 {
+        margin: 0;
+        color: var(--text-color);
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+    .header-title-section p {
+        margin: 4px 0 0 0;
+        font-size: 0.9rem;
+        color: var(--sidebar-text);
+    }
+    
+    /* Stats grid */
+    .stats-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .status-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .status-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .status-card-info {
+        flex: 1;
+    }
+    .status-card-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1.2;
+    }
+    .status-card-lbl {
+        font-size: 0.8rem;
+        color: var(--sidebar-text);
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 2px;
+    }
+
+    /* Filter bar */
+    .vehicle-filter-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    .filter-item {
+        flex: 1;
+        min-width: 200px;
+    }
+    .filter-item label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+    .filter-input-wrap {
+        position: relative;
+    }
+    .filter-input-wrap i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--sidebar-text);
+        font-size: 0.9rem;
+    }
+    .filter-input-wrap input, .filter-input-wrap select {
+        width: 100%;
+        padding: 10px 10px 10px 34px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .filter-input-wrap input:focus, .filter-input-wrap select:focus {
+        border-color: var(--primary);
+    }
+    .clear-filter-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: 0.2s;
+        height: 42px;
+    }
+    .clear-filter-btn:hover {
+        background: var(--bg-subtle);
+    }
+
+    /* Grid & Cards */
+    .vehicle-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    .vehicle-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .vehicle-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    .vehicle-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    .vehicle-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0;
+    }
+    .vehicle-subtitle {
+        font-size: 0.8rem;
+        color: var(--sidebar-text);
+        font-weight: 600;
+        margin-top: 2px;
+    }
+    .status-badge {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .status-running {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+    }
+    .status-workshop {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+    }
+    
+    /* Driver box */
+    .driver-assignment-box {
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .driver-shift-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .driver-shift-lbl {
+        font-weight: 700;
+        color: var(--sidebar-text);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+    }
+    .driver-name-val {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .vehicle-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+    }
+    .vehicle-actions button, .vehicle-actions a {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: 0.2s;
+    }
+
+    /* Modal Layout styling */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+    .modal-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: var(--shadow-lg);
+        animation: scaleUp 0.2s ease-out;
+        overflow: hidden;
+    }
+    .modal-header {
+        padding: 1.25rem 1.5rem;
+        background: var(--bg-subtle);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 {
+        margin: 0;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    .modal-header .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--sidebar-text);
+    }
+    .modal-body {
+        padding: 1.5rem;
+    }
+    .modal-form-group {
+        margin-bottom: 1.25rem;
+    }
+    .modal-form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 6px;
+    }
+
+    @keyframes scaleUp {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Mobile Responsive styling */
+    @media (max-width: 768px) {
+        .page-header-wrap {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        .header-title-section {
+            margin-bottom: 10px;
+        }
+        .page-header-wrap .btn, .page-header-wrap a {
+            width: 100%;
+            justify-content: center;
+        }
+        .vehicle-filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-item {
+            width: 100%;
+            min-width: unset;
+        }
+        .clear-filter-btn {
+            width: 100%;
+        }
+        .vehicle-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .vehicle-actions {
+            flex-direction: column;
+        }
+        .vehicle-actions button, .vehicle-actions a {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="vehicle-container">
+<div class="page-header-wrap">
+        <div class="header-title-section">
+            <h2>Total Vehicles (P&M)</h2>
+            <p>Manage fleet machines, registration details, and active driver assignments.</p>
+        </div>
+        
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a class="btn btn-outline" href="{% url 'fleet:vehicle_movements' %}" style="text-decoration:none;"><i class="fas fa-route"></i> Movement Register</a>
+            <button class="btn btn-outline" style="color: #22c55e; border-color: #22c55e;" onclick="openExportModal()"><i class="fas fa-file-export"></i> Advanced Export</button>
+            <button class="btn btn-primary" onclick="document.getElementById('addVehicleModal').style.display='flex'">
+                <i class="fas fa-plus"></i> Add Vehicle
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+        </div>
+    </div>
+
+        <!-- View Toggle Selector -->
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 15px; align-items:center;">
+        <span style="font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text); margin-right:auto;">VIEW MODE:</span>
+        <button id="btnViewCard" class="btn" style="background: var(--primary); color: white; border: none; padding: 6px 12px; font-size: 0.85rem;" onclick="switchView('card')">
+            <i class="fas fa-th-large"></i> Card View
+        </button>
+        <button id="btnViewList" class="btn" style="background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border); padding: 6px 12px; font-size: 0.85rem;" onclick="switchView('list')">
+            <i class="fas fa-list"></i> List/Table View
+        </button>
+    </div>
+
+    <!-- Stats summary counters -->
+    <div class="stats-card-grid">
+        <div class="status-card">
+            <div class="status-card-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="status-card-info">
+                <div class="status-card-val" id="count-total">{{ vehicles.count }}</div>
+                <div class="status-card-lbl">Total Fleet</div>
+            </div>
+        </div>
+        <div class="status-card">
+            <div class="status-card-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                <i class="fas fa-play"></i>
+            </div>
+            <div class="status-card-info">
+                <div class="status-card-val" id="count-running">0</div>
+                <div class="status-card-lbl">Running</div>
+            </div>
+        </div>
+        <div class="status-card">
+            <div class="status-card-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="status-card-info">
+                <div class="status-card-val" id="count-workshop">0</div>
+                <div class="status-card-lbl">In Workshop</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="vehicle-filter-bar">
+        <div class="filter-item">
+            <label>Search Vehicles</label>
+            <div class="filter-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="vehicleSearch" placeholder="Search Door No, Regn, Model..." onkeyup="applyVehicleFilters()">
+            </div>
+        </div>
+        
+        <div class="filter-item">
+            <label>Department / Post</label>
+            <div class="filter-input-wrap">
+                <i class="fas fa-building"></i>
+                <select id="vehicleDept" onchange="applyVehicleFilters()">
+                    <option value="ALL">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.name }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-item">
+            <label>Status</label>
+            <div class="filter-input-wrap">
+                <i class="fas fa-info-circle"></i>
+                <select id="vehicleStatus" onchange="applyVehicleFilters()">
+                    <option value="ALL">All Statuses</option>
+                    <option value="Running">Running</option>
+                    <option value="In Workshop">In Workshop</option>
+                </select>
+            </div>
+        </div>
+        
+        <button class="clear-filter-btn" onclick="clearVehicleFilters()">
+            Clear Filters
+        </button>
+    </div>
+
+    <!-- Vehicle Cards Grid -->
+    <div class="vehicle-grid" id="vehicleGridContainer">
+        {% for veh in vehicles %}
+        <div class="vehicle-card" data-dno="{{ veh.dno|lower }}" data-regn="{{ veh.regn|lower }}" data-model="{{ veh.model_name|lower }}" data-dept="{{ veh.department.name|default:'unassigned' }}" data-status="{{ veh.status }}">
+            <div class="vehicle-card-header">
+                <div>
+                    <h3 class="vehicle-title">{{ veh.dno }}</h3>
+                    <div class="vehicle-subtitle">{{ veh.model_name|default:"Unknown Model" }}</div>
+                </div>
+                <span class="status-badge {% if veh.status == 'Running' %}status-running{% else %}status-workshop{% endif %}">
+                    <i class="fas {% if veh.status == 'Running' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                    {{ veh.status }}
+                </span>
+            </div>
+
+            <div style="font-size: 0.9rem; color: var(--text-color);">
+                <div style="margin-bottom: 4px;"><strong>Registration No:</strong> {{ veh.regn|default:"-" }}</div>
+                <div><strong>Department:</strong> {{ veh.department.name|default:"Unassigned" }}</div>
+            </div>
+
+            <!-- Linked Shift Drivers block -->
+            <div class="driver-assignment-box">
+                <div style="font-weight: 700; font-size: 0.75rem; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 4px;">
+                    <i class="fas fa-clock"></i> Active Shift Assignments
+                </div>
+                <div class="driver-shift-row">
+                    <span class="driver-shift-lbl"><i class="fas fa-sun" style="color: #f59e0b;"></i> Day:</span>
+                    <span class="driver-name-val">
+                        {% if veh.day_driver %}
+                        <a href="{% url 'shifts' %}?q={{ veh.day_driver.name }}" style="text-decoration:none; color:var(--text-color); font-weight:700;">{{ veh.day_driver.name }}</a>
+                        {% else %}
+                        <span style="color: var(--sidebar-text); font-style: italic;">None</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="driver-shift-row">
+                    <span class="driver-shift-lbl"><i class="fas fa-moon" style="color: #6366f1;"></i> Night:</span>
+                    <span class="driver-name-val">
+                        {% if veh.night_driver %}
+                        <a href="{% url 'shifts' %}?q={{ veh.night_driver.name }}" style="text-decoration:none; color:var(--text-color); font-weight:700;">{{ veh.night_driver.name }}</a>
+                        {% else %}
+                        <span style="color: var(--sidebar-text); font-style: italic;">None</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Vehicle Recent Activity block -->
+            <div class="activity-summary-box" style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; margin-bottom: 10px;">
+                <div style="font-weight: 700; font-size: 0.75rem; color: #10b981; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-history"></i> Recent Updates
+                </div>
+                <div style="font-size: 0.78rem; display: flex; flex-direction: column; gap: 4px; color: var(--text-color);">
+                    {% if veh.last_movement or veh.last_lubrication or veh.last_spare or veh.last_tyre or veh.last_deployment %}
+                        {% if veh.last_movement %}
+                        <div>
+                            <span style="color: var(--sidebar-text); font-weight: 600;"><i class="fas fa-route"></i> Movement:</span>
+                            {{ veh.last_movement.movement_date|date:"d-m-Y" }} &rarr; {{ veh.last_movement.destination }} ({{ veh.last_movement.purpose }})
+                        </div>
+                        {% endif %}
+                        {% if veh.last_lubrication %}
+                        <div>
+                            <span style="color: var(--sidebar-text); font-weight: 600;"><i class="fas fa-oil-can"></i> Lubricants:</span>
+                            {{ veh.last_lubrication.date|date:"d-m-Y" }} &rarr; {{ veh.last_lubrication.oil_type }} ({{ veh.last_lubrication.qty }} {{ veh.last_lubrication.unit }})
+                        </div>
+                        {% endif %}
+                        {% if veh.last_spare %}
+                        <div>
+                            <span style="color: var(--sidebar-text); font-weight: 600;"><i class="fas fa-cog"></i> Spare Parts:</span>
+                            {{ veh.last_spare.date|date:"d-m-Y" }} &rarr; {{ veh.last_spare.part.part_name }} (Qty: {{ veh.last_spare.quantity }}, Nu. {{ veh.last_spare.total_amount }})
+                        </div>
+                        {% endif %}
+                        {% if veh.last_tyre %}
+                        <div>
+                            <span style="color: var(--sidebar-text); font-weight: 600;"><i class="fas fa-circle-notch"></i> Tyre:</span>
+                            {{ veh.last_tyre.date|date:"d-m-Y" }} &rarr; Punctures: {{ veh.last_tyre.punctures }} (Nu. {{ veh.last_tyre.total_amount }})
+                        </div>
+                        {% endif %}
+                        {% if veh.last_deployment %}
+                        <div>
+                            <span style="color: var(--sidebar-text); font-weight: 600;"><i class="fas fa-map-marker-alt"></i> Deployment:</span>
+                            {{ veh.last_deployment.date|date:"d-m-Y" }} &rarr;
+                            {% if veh.last_deployment.zone_1_2_day or veh.last_deployment.zone_1_2_night %} Zone 1 & 2{% endif %}
+                            {% if veh.last_deployment.zone_3_4_day or veh.last_deployment.zone_3_4_night %} Zone 3 & 4{% endif %}
+                            {% if veh.last_deployment.borrow_area_day or veh.last_deployment.borrow_area_night %} Borrow Area{% endif %}
+                            {% if veh.last_deployment.culvert_area_day or veh.last_deployment.culvert_area_night %} Culvert Area{% endif %}
+                            {% if veh.last_deployment.batching_plant_day or veh.last_deployment.batching_plant_night %} Batching Plant{% endif %}
+                            {% if veh.last_deployment.crushing_plant_day or veh.last_deployment.crushing_plant_night %} Crushing Plant{% endif %}
+                            {% if veh.last_deployment.road_maint_day or veh.last_deployment.road_maint_night %} Road Maint{% endif %}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div style="color: var(--sidebar-text); font-style: italic;">No recent updates.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="vehicle-actions">
+                <a href="{% url 'fleet:kundali' veh.id %}" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: transparent;">
+                    <i class="fas fa-history"></i> Kundali
+                </a>
+                <button class="btn btn-outline" onclick="openEditVehicleModal('{{ veh.id }}', '{{ veh.dno|escapejs }}', '{{ veh.regn|escapejs }}', '{{ veh.model_name|escapejs }}', '{{ veh.department.id|default:'' }}', '{{ veh.extra_data.ownership|default:'In-house'|escapejs }}', '{{ veh.extra_data.owner_name|default:''|escapejs }}', '{{ veh.extra_data.contract_ref|default:''|escapejs }}', '{{ veh.extra_data.contract_status|default:'Active'|escapejs }}')" style="border-color: var(--border); color: var(--text-color); background: transparent;">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <form action="{% url 'fleet:api_delete_vehicle' veh.id %}" method="POST" onsubmit="return confirm('Are you sure you want to delete vehicle {{ veh.dno }}?');" style="margin: 0; display: inline; flex: 1;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; width: 100%;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--sidebar-text);">
+            <p>No vehicles found. Click "+ Add Vehicle" to create one.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Vehicle List Table View (Hidden by default) -->
+    <div id="vehicleListContainer" style="display:none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; overflow-x: auto; margin-bottom: 2rem; box-shadow: var(--shadow-sm);">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background: var(--bg-color); border-bottom: 2px solid var(--border);">
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">DOOR NO</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">REGISTRATION NO</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">MAKE / MODEL</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">OWNERSHIP</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">OWNER / CONTRACT</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">DEPARTMENT</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text);">STATUS</th>
+                    <th style="padding: 12px 16px; font-weight: 700; font-size: 0.85rem; color: var(--sidebar-text); text-align:center;">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for veh in vehicles %}
+                <tr class="vehicle-row-item" style="border-bottom: 1px solid var(--border);" data-dno="{{ veh.dno|lower }}" data-regn="{{ veh.regn|lower }}" data-model="{{ veh.model_name|lower }}" data-dept="{{ veh.department.name|default:'unassigned' }}" data-status="{{ veh.status }}">
+                    <td style="padding: 12px 16px; font-weight: 800; font-size: 0.9rem;">{{ veh.dno }}</td>
+                    <td style="padding: 12px 16px; font-weight: 700; color: var(--primary);">{{ veh.regn|default:"-" }}</td>
+                    <td style="padding: 12px 16px; font-size: 0.85rem;">{{ veh.model_name|default:"Unknown Model" }}</td>
+                    <td style="padding: 12px 16px; font-size: 0.85rem;">
+                        {% if veh.extra_data.ownership == 'Hired' %}
+                        <span style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">Hired</span>
+                        {% else %}
+                        <span style="background: rgba(99, 102, 241, 0.1); color: #6366f1; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">In-house</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 0.85rem;">
+                        {% if veh.extra_data.ownership == 'Hired' %}
+                        <div style="font-weight: 600; color: var(--text-color);">{{ veh.extra_data.owner_name|default:"-" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--sidebar-text);">Ref: {{ veh.extra_data.contract_ref|default:"-" }} ({{ veh.extra_data.contract_status|default:"Active" }})</div>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 0.85rem;">{{ veh.department.name|default:"Unassigned" }}</td>
+                    <td style="padding: 12px 16px;">
+                        <span class="status-badge {% if veh.status == 'Running' %}status-running{% else %}status-workshop{% endif %}">
+                            {{ veh.status }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 16px; text-align:center;">
+                        <div style="display:flex; gap:6px; justify-content:center;">
+                            <a href="{% url 'fleet:kundali' veh.id %}" class="btn" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid var(--primary); color:var(--primary);">Kundali</a>
+                            <button class="btn" onclick="openEditVehicleModal('{{ veh.id }}', '{{ veh.dno|escapejs }}', '{{ veh.regn|escapejs }}', '{{ veh.model_name|escapejs }}', '{{ veh.department.id|default:'' }}', '{{ veh.extra_data.ownership|default:'In-house'|escapejs }}', '{{ veh.extra_data.owner_name|default:''|escapejs }}', '{{ veh.extra_data.contract_ref|default:''|escapejs }}', '{{ veh.extra_data.contract_status|default:'Active'|escapejs }}')" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid var(--border); color:var(--text-color);">Edit</button>
+                            <form action="{% url 'fleet:api_delete_vehicle' veh.id %}" method="POST" onsubmit="return confirm('Are you sure?');" style="margin: 0; display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal-backdrop" id="addVehicleModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Add New Vehicle</h3>
+            <button class="close-btn" onclick="document.getElementById('addVehicleModal').style.display='none'">&times;</button>
+        </div>
+        <form action="{% url 'fleet:api_add_vehicle' %}" method="POST">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="modal-form-group">
+                    <label>Ownership Type *</label>
+                    <select name="ownership" class="form-control" style="width: 100%; font-weight:700;" onchange="toggleAddHiredFields(this.value)">
+                        <option value="In-house">In-house (Owned)</option>
+                        <option value="Hired">Hired (Rented)</option>
+                    </select>
+                </div>
+                
+                <!-- Hired details fields -->
+                <div id="add-hired-details" style="display:none; background: rgba(245, 158, 11, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed #f59e0b; margin-bottom: 15px;">
+                    <div class="modal-form-group">
+                        <label>Owner Name</label>
+                        <input type="text" name="owner_name" class="form-control" placeholder="e.g., Pradeep Transport Service" style="width: 100%;">
+                    </div>
+                    <div class="modal-form-group">
+                        <label>Hire Agreement Reference</label>
+                        <input type="text" name="contract_ref" class="form-control" placeholder="e.g., RVJ/HA/HI/26-04-50" style="width: 100%;">
+                    </div>
+                    <div class="modal-form-group">
+                        <label>Contract Status</label>
+                        <select name="contract_status" class="form-control" style="width: 100%;">
+                            <option value="Active">Active</option>
+                            <option value="Expired">Expired</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-form-group">
+                    <label>Door Number (DNo) *</label>
+                    <input type="text" name="dno" required class="form-control" placeholder="e.g., LPT-25" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Registration Number</label>
+                    <input type="text" name="regn" class="form-control" placeholder="e.g., BR-01-GB-1234" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Model Name / Description</label>
+                    <input type="text" name="model_name" class="form-control" placeholder="e.g., Tata Tiago, Ashok Leyland" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Department / Post</label>
+                    <select name="department_id" class="form-control" style="width: 100%;">
+                        <option value="">-- Unassigned --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; margin-top: 10px;">
+                    Create Vehicle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Vehicle Modal -->
+<div class="modal-backdrop" id="editVehicleModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Edit Vehicle</h3>
+            <button class="close-btn" onclick="document.getElementById('editVehicleModal').style.display='none'">&times;</button>
+        </div>
+        <form id="editVehicleForm" method="POST">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="modal-form-group">
+                    <label>Ownership Type *</label>
+                    <select name="ownership" id="edit-ownership" class="form-control" style="width: 100%; font-weight:700;" onchange="toggleEditHiredFields(this.value)">
+                        <option value="In-house">In-house (Owned)</option>
+                        <option value="Hired">Hired (Rented)</option>
+                    </select>
+                </div>
+                
+                <!-- Hired details fields -->
+                <div id="edit-hired-details" style="display:none; background: rgba(245, 158, 11, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed #f59e0b; margin-bottom: 15px;">
+                    <div class="modal-form-group">
+                        <label>Owner Name</label>
+                        <input type="text" name="owner_name" id="edit-owner-name" class="form-control" style="width: 100%;">
+                    </div>
+                    <div class="modal-form-group">
+                        <label>Hire Agreement Reference</label>
+                        <input type="text" name="contract_ref" id="edit-contract-ref" class="form-control" style="width: 100%;">
+                    </div>
+                    <div class="modal-form-group">
+                        <label>Contract Status</label>
+                        <select name="contract_status" id="edit-contract-status" class="form-control" style="width: 100%;">
+                            <option value="Active">Active</option>
+                            <option value="Expired">Expired</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-form-group">
+                    <label>Door Number (DNo) *</label>
+                    <input type="text" name="dno" id="edit-dno" required class="form-control" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Registration Number</label>
+                    <input type="text" name="regn" id="edit-regn" class="form-control" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Model Name / Description</label>
+                    <input type="text" name="model_name" id="edit-model" class="form-control" style="width: 100%;">
+                </div>
+                <div class="modal-form-group">
+                    <label>Department / Post</label>
+                    <select name="department_id" id="edit-dept" class="form-control" style="width: 100%;">
+                        <option value="">-- Unassigned --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; margin-top: 10px;">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function updateVehicleCounters() {
+        const visibleCards = document.querySelectorAll('.vehicle-card:not([style*="display: none"])');
+        let runningCount = 0;
+        let workshopCount = 0;
+        
+        visibleCards.forEach(card => {
+            const status = card.getAttribute('data-status');
+            if (status === 'Running') runningCount++;
+            else if (status === 'In Workshop') workshopCount++;
+        });
+        
+        document.getElementById('count-total').innerText = visibleCards.length;
+        document.getElementById('count-running').innerText = runningCount;
+        document.getElementById('count-workshop').innerText = workshopCount;
+    }
+
+    function applyVehicleFilters() {
+        const searchVal = document.getElementById('vehicleSearch').value.toLowerCase();
+        const deptVal = document.getElementById('vehicleDept').value;
+        const statusVal = document.getElementById('vehicleStatus').value;
+        
+        const cards = document.querySelectorAll('.vehicle-card');
+        
+        cards.forEach(card => {
+            const dno = card.getAttribute('data-dno');
+            const regn = card.getAttribute('data-regn');
+            const model = card.getAttribute('data-model');
+            const dept = card.getAttribute('data-dept');
+            const status = card.getAttribute('data-status');
+            
+            const matchSearch = dno.includes(searchVal) || regn.includes(searchVal) || model.includes(searchVal);
+            const matchDept = (deptVal === 'ALL') || (dept === deptVal);
+            const matchStatus = (statusVal === 'ALL') || (status === statusVal);
+            
+            if (matchSearch && matchDept && matchStatus) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        updateVehicleCounters();
+    }
+
+    function clearVehicleFilters() {
+        document.getElementById('vehicleSearch').value = '';
+        document.getElementById('vehicleDept').value = 'ALL';
+        document.getElementById('vehicleStatus').value = 'ALL';
+        applyVehicleFilters();
+    }
+
+    function openEditVehicleModal(id, dno, regn, model, deptId) {
+        document.getElementById('editVehicleForm').action = "/fleet/vehicle/edit/" + id + "/";
+        document.getElementById('edit-dno').value = dno;
+        document.getElementById('edit-regn').value = regn;
+        document.getElementById('edit-model').value = model;
+        document.getElementById('edit-dept').value = deptId || '';
+        document.getElementById('editVehicleModal').style.display = 'flex';
+    }
+    
+    // Close modals on background click
+    window.onclick = function(event) {
+        const modals = [document.getElementById('addVehicleModal'), document.getElementById('editVehicleModal')];
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    // Init count on load
+    document.addEventListener("DOMContentLoaded", () => {
+        updateVehicleCounters();
+    });
+
+    function toggleAddHiredFields(val) {
+        document.getElementById('add-hired-details').style.display = (val === 'Hired') ? 'block' : 'none';
+    }
+    
+    function toggleEditHiredFields(val) {
+        document.getElementById('edit-hired-details').style.display = (val === 'Hired') ? 'block' : 'none';
+    }
+
+    function switchView(mode) {
+        const cardGrid = document.getElementById('vehicleGridContainer');
+        const listTable = document.getElementById('vehicleListContainer');
+        const btnCard = document.getElementById('btnViewCard');
+        const btnList = document.getElementById('btnViewList');
+        
+        if (mode === 'card') {
+            cardGrid.style.display = 'grid';
+            listTable.style.display = 'none';
+            btnCard.style.background = 'var(--primary)';
+            btnCard.style.color = 'white';
+            btnCard.style.border = 'none';
+            btnList.style.background = 'var(--bg-color)';
+            btnList.style.color = 'var(--text-color)';
+            btnList.style.border = '1px solid var(--border)';
+        } else {
+            cardGrid.style.display = 'none';
+            listTable.style.display = 'block';
+            btnList.style.background = 'var(--primary)';
+            btnList.style.color = 'white';
+            btnList.style.border = 'none';
+            btnCard.style.background = 'var(--bg-color)';
+            btnCard.style.color = 'var(--text-color)';
+            btnCard.style.border = '1px solid var(--border)';
+        }
+    }
+
+    // Update filter logic to search in table row too
+    const oldApplyFilters = applyVehicleFilters;
+    applyVehicleFilters = function() {
+        const q = document.getElementById("vehicleSearch").value.toLowerCase();
+        const dept = document.getElementById("vehicleDept").value;
+        const status = document.getElementById("vehicleStatus").value;
+        
+        const rows = document.querySelectorAll('.vehicle-row-item');
+        let totalCount = 0;
+        let runningCount = 0;
+        let workshopCount = 0;
+        
+        // Filter table rows
+        rows.forEach(row => {
+            const dno = row.getAttribute('data-dno');
+            const regn = row.getAttribute('data-regn');
+            const model = row.getAttribute('data-model');
+            const rdept = row.getAttribute('data-dept');
+            const rstatus = row.getAttribute('data-status');
+            
+            const matchQ = !q || dno.includes(q) || regn.includes(q) || model.includes(q);
+            const matchDept = (dept === 'ALL') || (rdept === dept);
+            const matchStatus = (status === 'ALL') || (rstatus === status);
+            
+            if (matchQ && matchDept && matchStatus) {
+                row.style.display = '';
+                totalCount++;
+                if (rstatus === 'Running') runningCount++;
+                else if (rstatus === 'In Workshop') workshopCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Now let cards filter execute
+        const cards = document.querySelectorAll('.vehicle-card');
+        cards.forEach(card => {
+            const dno = card.getAttribute('data-dno');
+            const regn = card.getAttribute('data-regn');
+            const model = card.getAttribute('data-model');
+            const cdept = card.getAttribute('data-dept');
+            const cstatus = card.getAttribute('data-status');
+            
+            const matchQ = !q || dno.includes(q) || regn.includes(q) || model.includes(q);
+            const matchDept = (dept === 'ALL') || (cdept === dept);
+            const matchStatus = (status === 'ALL') || (cstatus === status);
+            
+            if (matchQ && matchDept && matchStatus) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Update counts
+        document.getElementById('count-total').innerText = totalCount;
+        document.getElementById('count-running').innerText = runningCount;
+        document.getElementById('count-workshop').innerText = workshopCount;
+    }
+
+    function openExportModal() {
+        // Sync current page filters to modal inputs as defaults
+        document.getElementById('export_veh_q').value = document.getElementById('vehicleSearch').value;
+        document.getElementById('export_veh_dept').value = document.getElementById('vehicleDept').value;
+        document.getElementById('export_veh_status').value = document.getElementById('vehicleStatus').value;
+        document.getElementById('exportVehiclesModal').style.display = 'flex';
+    }
+
+    function submitVehiclesExport() {
+        const fmt = document.getElementById('export_veh_format').value;
+        const ownership = document.getElementById('export_veh_ownership').value;
+        const dept = document.getElementById('export_veh_dept').value;
+        const status = document.getElementById('export_veh_status').value;
+        const q = document.getElementById('export_veh_q').value;
+        
+        const baseUrl = fmt === 'PDF' ? "/fleet/vehicles/export-pdf/" : "/fleet/vehicles/export-excel/";
+        const params = `?q=${encodeURIComponent(q)}&department=${encodeURIComponent(dept)}&status=${encodeURIComponent(status)}&ownership=${encodeURIComponent(ownership)}`;
+        window.open(baseUrl + params, '_blank');
+        document.getElementById('exportVehiclesModal').style.display = 'none';
+    }
+
+    let currentExportTab = 'list';
+    function switchExportTab(tab) {
+        currentExportTab = tab;
+        if (tab === 'list') {
+            document.getElementById('export-list-content').style.display = 'block';
+            document.getElementById('export-report-content').style.display = 'none';
+            document.getElementById('btn-export-list').style.color = 'var(--primary)';
+            document.getElementById('btn-export-list').style.borderBottom = '2px solid var(--primary)';
+            document.getElementById('btn-export-report').style.color = 'var(--sidebar-text)';
+            document.getElementById('btn-export-report').style.borderBottom = 'none';
+            document.getElementById('btn-submit-export').setAttribute('onclick', 'submitVehiclesExport()');
+        } else {
+            document.getElementById('export-list-content').style.display = 'none';
+            document.getElementById('export-report-content').style.display = 'block';
+            document.getElementById('btn-export-list').style.color = 'var(--sidebar-text)';
+            document.getElementById('btn-export-list').style.borderBottom = 'none';
+            document.getElementById('btn-export-report').style.color = 'var(--primary)';
+            document.getElementById('btn-export-report').style.borderBottom = '2px solid var(--primary)';
+            document.getElementById('btn-submit-export').setAttribute('onclick', 'submitSingleVehicleReport()');
+            
+            // Initialize select2 on the vehicle selector
+            $('#export_rep_vehicle').select2({
+                dropdownParent: $('#exportVehiclesModal'),
+                width: '100%'
+            });
+        }
+    }
+
+    function submitSingleVehicleReport() {
+        const vehicleId = document.getElementById('export_rep_vehicle').value;
+        if (!vehicleId) {
+            alert('Please select a vehicle first.');
+            return;
+        }
+        const fmt = document.getElementById('export_rep_format').value;
+        const from = document.getElementById('export_rep_from').value;
+        const to = document.getElementById('export_rep_to').value;
+        
+        const incRepairs = document.getElementById('export_rep_inc_repairs').checked;
+        const incLubricants = document.getElementById('export_rep_inc_lubricants').checked;
+        const incSpares = document.getElementById('export_rep_inc_spares').checked;
+        const incTyres = document.getElementById('export_rep_inc_tyres').checked;
+        const incMovements = document.getElementById('export_rep_inc_movements').checked;
+        
+        const baseUrl = fmt === 'PDF' ? "/fleet/api/vehicle-report-pdf/" : "/fleet/api/vehicle-report/";
+        const params = `?vehicle_id=${vehicleId}&start_date=${from}&end_date=${to}&inc_repairs=${incRepairs}&inc_lubricants=${incLubricants}&inc_spares=${incSpares}&inc_tyres=${incTyres}&inc_movements=${incMovements}`;
+        window.open(baseUrl + params, '_blank');
+        document.getElementById('exportVehiclesModal').style.display = 'none';
+    }
+</script>
+
+<!-- Advanced Export Modal -->
+<div id="exportVehiclesModal" class="sp-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 500px; border-radius: 16px; background: var(--card-bg); border: 1px solid var(--border);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; border-radius: 16px 16px 0 0;">
+            <h3 style="margin: 0; color: var(--primary); font-size: 1.2rem;"><i class="fas fa-file-export"></i> Advanced Fleet Export</h3>
+            <button onclick="document.getElementById('exportVehiclesModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div style="padding: 1.2rem;">
+            <!-- Tabs -->
+            <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                <button type="button" onclick="switchExportTab('list')" id="btn-export-list" style="flex: 1; padding: 10px; border: none; background: transparent; color: var(--primary); border-bottom: 2px solid var(--primary); font-weight: 700; cursor: pointer; font-family:inherit;">Export Fleet List</button>
+                <button type="button" onclick="switchExportTab('report')" id="btn-export-report" style="flex: 1; padding: 10px; border: none; background: transparent; color: var(--sidebar-text); font-weight: 700; cursor: pointer; font-family:inherit;">Export Vehicle Kundali</button>
+            </div>
+
+            <!-- Tab 1 Body: List Export -->
+            <div id="export-list-content" style="display: block;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Export Format *</label>
+                        <select id="export_veh_format" class="filter-select" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                            <option value="EXCEL">Excel Spreadsheet (.xlsx)</option>
+                            <option value="PDF">PDF / Print Layout</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Ownership Type</label>
+                        <select id="export_veh_ownership" class="filter-select" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                            <option value="ALL">All (In-house & Hired)</option>
+                            <option value="In-house">In-house Only</option>
+                            <option value="Hired">Hired Only</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Department</label>
+                        <select id="export_veh_dept" class="filter-select" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                            <option value="ALL">All Departments</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.name }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Status</label>
+                        <select id="export_veh_status" class="filter-select" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Running">Running</option>
+                            <option value="In Workshop">In Workshop</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Search Keyword</label>
+                        <input type="text" id="export_veh_q" class="filter-input" placeholder="Search Door No, Regn, Model..." style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2 Body: Kundali Single Vehicle Report -->
+            <div id="export-report-content" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Select Vehicle *</label>
+                        <select id="export_rep_vehicle" class="filter-select select2" style="width:100%;">
+                            <option value="">-- Search / Select Vehicle --</option>
+                            {% for v in vehicles %}
+                            <option value="{{ v.id }}">{{ v.regn }}{% if v.dno %} ({{ v.dno }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Export Format *</label>
+                        <select id="export_rep_format" class="filter-select" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                            <option value="EXCEL">Excel Spreadsheet (.xlsx)</option>
+                            <option value="PDF">PDF / Print Layout</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">From Date</label>
+                            <input type="date" id="export_rep_from" class="filter-input" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">To Date</label>
+                            <input type="date" id="export_rep_to" class="filter-input" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--sidebar-text); margin-bottom:6px;">Sections to Include</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; background:var(--bg-color); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">
+                                <input type="checkbox" id="export_rep_inc_repairs" checked> Repairs & Breakdowns
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">
+                                <input type="checkbox" id="export_rep_inc_lubricants" checked> Lubricants Consumed
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">
+                                <input type="checkbox" id="export_rep_inc_spares" checked> Spare Parts
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">
+                                <input type="checkbox" id="export_rep_inc_tyres" checked> Tyre Logs
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-color); cursor:pointer; grid-column: span 2;">
+                                <input type="checkbox" id="export_rep_inc_movements" checked> Movements & Deployments
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <button type="button" onclick="document.getElementById('exportVehiclesModal').style.display='none'" class="btn btn-outline">Cancel</button>
+                <button type="button" id="btn-submit-export" onclick="submitVehiclesExport()" class="btn btn-primary" style="background:var(--primary); color:white; border:none; padding:8px 20px;">Export Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

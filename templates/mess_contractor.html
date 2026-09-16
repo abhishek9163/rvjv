@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mess Management - Contractor Ration & Wastage Hub{% endblock %}
+
+{% block content %}
+<style>
+    .contractor-container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    .header-banner {
+        background: linear-gradient(135deg, #0d9488, #115e59); color: white;
+        padding: 1.5rem 2rem; border-radius: 16px; margin-bottom: 1.5rem;
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+        box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.3);
+    }
+    .kpi-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; text-align: center;
+    }
+</style>
+
+<div class="contractor-container">
+    <div class="header-banner">
+        <div>
+            <h2 style="margin: 0; font-weight: 800; font-size: 1.5rem;">👨‍🍳 Mess Contractor &amp; Ration Audit Hub</h2>
+            <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 0.9rem;">Automated Ration Estimator, Food Wastage Tracking &amp; Daily Billing Ledgers</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <a href="{% url 'mess_monitor_view' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white; font-weight: 700; border-radius: 8px; padding: 8px 16px; text-decoration: none;">
+                ⚙️ Master Monitor
+            </a>
+            <a href="{% url 'mess_user_view' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white; font-weight: 700; border-radius: 8px; padding: 8px 16px; text-decoration: none;">
+                👤 User Portal
+            </a>
+        </div>
+    </div>
+
+
+
+    <!-- LOG WASTAGE & LEFTOVER FORM -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 16px 0;">🗑️ Food Leftover &amp; Wastage Audit Logger</h3>
+        <form method="POST" action="{% url 'api_log_mess_wastage' %}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: end;">
+            {% csrf_token %}
+            <div>
+                <label style="font-weight: 700; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 4px;">Mess Location</label>
+                <select name="mess_location_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                    {% for m in mess_locations %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="font-weight: 700; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 4px;">Meal Window</label>
+                <select name="meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                    <option value="BREAKFAST">Breakfast</option>
+                    <option value="LUNCH" selected>Lunch</option>
+                    <option value="DINNER">Dinner</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-weight: 700; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 4px;">Prepared Quantity (Kg)</label>
+                <input type="number" step="0.1" name="prepared_qty_kg" placeholder="e.g. 80.0" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+            </div>
+            <div>
+                <label style="font-weight: 700; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 4px;">Wasted / Leftover (Kg)</label>
+                <input type="number" step="0.1" name="wasted_qty_kg" placeholder="e.g. 4.5" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+            </div>
+            <div>
+                <button type="submit" class="btn" style="background: #0d9488; color: white; font-weight: 800; border-radius: 8px; padding: 9px 20px; border: none; cursor: pointer; width: 100%;">
+                    💾 Log Wastage Data
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- DATE RANGE & MULTI-FILTER BAR -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 24px; border-top: 4px solid #0d9488;">
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;">
+            <span>🔍</span> Filter Wastage &amp; Ration Audit History
+        </h3>
+        <form method="GET" action="{% url 'mess_contractor_view' %}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">From Date</label>
+                    <input type="date" name="from_date" value="{{ from_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">To Date</label>
+                    <input type="date" name="to_date" value="{{ to_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Mess Location</label>
+                    <select name="mess_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL" {% if selected_mess == 'ALL' %}selected{% endif %}>All Mess Locations</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}" {% if selected_mess == m.id|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Meal Window</label>
+                    <select name="meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL" {% if selected_meal == 'ALL' %}selected{% endif %}>All Meals</option>
+                        <option value="BREAKFAST" {% if selected_meal == 'BREAKFAST' %}selected{% endif %}>Breakfast</option>
+                        <option value="LUNCH" {% if selected_meal == 'LUNCH' %}selected{% endif %}>Lunch</option>
+                        <option value="DINNER" {% if selected_meal == 'DINNER' %}selected{% endif %}>Dinner</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <a href="{% url 'mess_contractor_view' %}" class="btn" style="background: #e2e8f0; color: #475569; font-weight: 700; border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 0.88rem;">
+                    🔄 Reset
+                </a>
+                <button type="submit" class="btn" style="background: #0d9488; color: white; font-weight: 800; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer; font-size: 0.88rem;">
+                    🔍 Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- WASTAGE AUDIT STREAM -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 16px 0;">📜 Wastage Audit History</h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                        <th style="padding: 10px;">Date &amp; Time</th>
+                        <th style="padding: 10px;">Mess Location</th>
+                        <th style="padding: 10px;">Meal</th>
+                        <th style="padding: 10px;">Prepared (Kg)</th>
+                        <th style="padding: 10px;">Wasted (Kg)</th>
+                        <th style="padding: 10px;">Efficiency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in wastage_logs %}
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px;">{{ w.created_at|date:"d M Y, H:i" }}</td>
+                        <td style="padding: 10px; font-weight: 700;">{{ w.mess_location.name|default:"General Mess" }}</td>
+                        <td style="padding: 10px;">{{ w.meal_type }}</td>
+                        <td style="padding: 10px;">{{ w.prepared_qty_kg }} kg</td>
+                        <td style="padding: 10px; font-weight: 800; color: #dc2626;">{{ w.wasted_qty_kg }} kg</td>
+                        <td style="padding: 10px;"><span style="background: #dcfce7; color: #16a34a; font-weight: 800; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">GOOD</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">No wastage logs recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

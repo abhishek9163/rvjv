@@ -1,0 +1,1214 @@
+{% extends 'base.html' %}
+{% block title %}Tyre Section - P&M Portal{% endblock %}
+
+{% block content %}
+<!-- jQuery & Select2 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<input type="hidden" id="tyre-latest-id" value="{{ latest_log_id }}">
+<input type="hidden" id="tyre-total-count" value="{{ total_log_count }}">
+
+<style>
+/* Select2 custom styling to fit project theme */
+.select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+.select2-container .select2-selection--single {
+    height: 38px !important;
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-color) !important;
+    line-height: 38px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+}
+.select2-dropdown {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+    z-index: 999999 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+}
+
+.lub-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.lub-stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.lub-stat-icon { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lub-stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-color); line-height: 1; }
+.lub-stat-label { font-size: 0.78rem; color: var(--sidebar-text); font-weight: 600; margin-top: 3px; }
+.filter-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.filter-input, .filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; }
+.filter-input { min-width: 200px; flex: 1; }
+.view-toggle-btn { padding: 7px 12px; border: 1px solid var(--border); background: var(--bg-color); color: var(--sidebar-text); border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.view-toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.lub-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.lub-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; transition: box-shadow 0.2s, transform 0.2s; }
+.lub-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.lub-card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 0.85rem; padding-bottom: 0.6rem; border-bottom: 1px dashed var(--border); flex-wrap: nowrap; }
+.lub-card-regn { font-size: 0.92rem; font-weight: 800; background: rgba(99,102,241,0.1); color: #6366f1; padding: 4px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px; border: 1px solid rgba(99,102,241,0.2); }
+.lub-card-date { font-size: 0.76rem; color: var(--sidebar-text); font-weight: 600; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex-shrink: 0; text-align: right; }
+.lub-date-text { color: var(--text-color); font-weight: 600; }
+.lub-time-badge { color: #6366f1; font-weight: 700; background: rgba(99,102,241,0.08); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(99,102,241,0.15); white-space: nowrap; font-size: 0.72rem; }
+.lub-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.lub-card-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; background: var(--bg-color); color: var(--sidebar-text); border: 1px solid var(--border); }
+.lub-card-total { font-size: 1.2rem; font-weight: 800; color: #10b981; border-top: 1px solid var(--border); padding-top: 0.8rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+@media (max-width: 480px) {
+    .lub-card { padding: 0.9rem !important; }
+    .lub-card-header { gap: 6px; margin-bottom: 0.75rem; }
+    .lub-card-regn { font-size: 0.84rem; padding: 3px 7px; }
+    .lub-card-date { font-size: 0.7rem; gap: 4px; }
+    .lub-time-badge { padding: 1px 5px; font-size: 0.68rem; }
+}
+.lub-modal { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(5px); z-index:99999; justify-content:center; align-items:center; padding:15px; box-sizing:border-box; }
+.lub-modal-box { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; overflow-x:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); box-sizing:border-box; color:var(--text-color); }
+.lub-modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card-bg); z-index:2; }
+.lub-modal-body { padding:20px; box-sizing:border-box; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; box-sizing:border-box; }
+.form-grid .full { grid-column:1/-1; }
+.form-mini-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-control { width:100% !important; box-sizing:border-box !important; max-width:100% !important; border:1px solid var(--border); border-radius:8px; padding:9px 12px; background:var(--bg-color); color:var(--text-color); font-size:0.88rem; transition:border-color 0.2s, box-shadow 0.2s; }
+.form-control:focus { outline:none; border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+.form-label { display:block; font-size:0.83rem; font-weight:600; color:var(--text-color); margin-bottom:5px; }
+
+@media (max-width: 640px){
+    .form-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .filter-input { min-width: 140px; }
+    .lub-modal {
+        padding: 10px !important;
+        align-items: center !important;
+    }
+    .lub-modal-box {
+        border-radius: 14px !important;
+        max-height: 92vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .lub-modal-header {
+        padding: 14px 16px !important;
+    }
+    .lub-modal-body {
+        padding: 16px 14px !important;
+        box-sizing: border-box !important;
+    }
+}
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem;">
+    <div>
+        <h2 style="margin:0; color:var(--text-color);">&#128095; Tyre Section</h2>
+        <p style="margin:.3rem 0 0; color:var(--sidebar-text);">Puncture repairs &amp; tyre work debit notes.</p>
+    </div>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+</div>
+
+<!-- STATS -->
+<div class="lub-stats-grid">
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(99,102,241,0.12); color:#6366f1;">&#128095;</div>
+        <div><div class="lub-stat-value">{{ total_entries }}</div><div class="lub-stat-label">Total Entries</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(16,185,129,0.12); color:#10b981; font-weight:800; font-size:0.85rem;">Nu.</div>
+        <div><div class="lub-stat-value">Nu. {{ month_amount }}</div><div class="lub-stat-label">Total Amount ({{ stats_month }})</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(249,115,22,0.12); color:#f97316;">&#128095;</div>
+        <div><div class="lub-stat-value">{{ month_punctures }}</div><div class="lub-stat-label">Punctures ({{ stats_month }})</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">&#128666;</div>
+        <div><div class="lub-stat-value">{{ month_issued_count }}</div><div class="lub-stat-label">New Tyres Issued ({{ stats_month }})</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(234,88,12,0.12); color:#ea580c;">&#128667;</div>
+        <div><div class="lub-stat-value">{{ vehicles|length }}</div><div class="lub-stat-label">Fleet Vehicles</div></div>
+    </div>
+</div>
+
+<!-- DATALISTS FOR AUTO-SUGGESTIONS -->
+<datalist id="companyList">{% for c in companies %}{% if c %}<option value="{{ c }}">{% endif %}{% endfor %}</datalist>
+<datalist id="sizeList">{% for s in sizes %}{% if s %}<option value="{{ s }}">{% endif %}{% endfor %}</datalist>
+<datalist id="plyList">{% for p in ply_numbers %}{% if p %}<option value="{{ p }}">{% endif %}{% endfor %}</datalist>
+<datalist id="driverList">{% for d in drivers %}{% if d %}<option value="{{ d }}">{% endif %}{% endfor %}</datalist>
+
+<!-- PAGE HEADER BUTTONS -->
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:1rem; justify-content:flex-end;">
+    <a class="btn btn-outline" href="/fleet/api/tyre/sample/" style="font-size:0.82rem; text-decoration:none;">&#128196; Sample Format</a>
+    <button class="btn btn-outline" onclick="document.getElementById('importModal').style.display='flex'" style="font-size:0.82rem;">&#128190; Import Excel</button>
+    <button class="btn btn-outline" onclick="document.getElementById('exportModal').style.display='flex'" style="font-size:0.82rem; color:#10b981; border-color:#10b981;">&#128196; Export Report</button>
+    <button class="btn btn-primary" onclick="openAddModal('PUNCTURE')" style="font-size:0.82rem; background:#f97316; border-color:#f97316;">+ Puncture Entry</button>
+    <button class="btn btn-primary" onclick="openAddModal('ISSUE')" style="font-size:0.82rem; background:#10b981; border-color:#10b981;">+ Issue New Tyre</button>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+    <div style="position:relative; flex:1; min-width:180px;">
+        <input type="text" id="globalSearch" class="filter-input" placeholder="Search Reg No, Tyre No, Driver, WO No..." style="padding-left:12px; width:100%;" oninput="applyFilters()">
+    </div>
+    <select id="filterEntryType" class="filter-select" onchange="applyFilters()">
+        <option value="">All Entry Types</option>
+        <option value="puncture">🚗 Puncture Repair</option>
+        <option value="issue">🆕 Issued Tyre</option>
+    </select>
+    <select id="filterLocation" class="filter-select" onchange="applyFilters()">
+        <option value="">All Locations</option>
+        {% for loc in locations %}{% if loc %}<option value="{{ loc|lower }}">{{ loc }}</option>{% endif %}{% endfor %}
+    </select>
+    <select id="filterVendor" class="filter-select" onchange="applyFilters()">
+        <option value="">All Vendors</option>
+        {% for v in vendors %}{% if v %}<option value="{{ v|lower }}">{{ v }}</option>{% endif %}{% endfor %}
+    </select>
+    <select id="filterCompany" class="filter-select" onchange="applyFilters()">
+        <option value="">All Brands / Companies</option>
+        {% for c in companies %}{% if c %}<option value="{{ c|lower }}">{{ c }}</option>{% endif %}{% endfor %}
+    </select>
+    <input type="date" id="filterFrom" class="filter-select" onchange="applyFilters()" title="From Date">
+    <input type="date" id="filterTo" class="filter-select" onchange="applyFilters()" title="To Date">
+    <button class="btn btn-outline" style="font-size:0.8rem; white-space:nowrap;" onclick="clearFilters()">&#10005; Clear</button>
+    <div style="display:flex; gap:4px; margin-left:auto;">
+        <button class="view-toggle-btn active" id="btnList" onclick="setView('list')" title="List View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+        <button class="view-toggle-btn" id="btnCard" onclick="setView('card')" title="Card View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </button>
+    </div>
+    <span id="filterCount" style="font-size:0.8rem; color:var(--sidebar-text); white-space:nowrap;">{{ logs|length }} entries</span>
+</div>
+
+<!-- LIST VIEW -->
+<div id="listView">
+<div class="card" style="padding:0; overflow:hidden; border-radius:14px; box-shadow:0 4px 15px rgba(0,0,0,0.04);">
+    <div class="table-responsive" style="overflow-x:auto;">
+        <table class="data-table" id="tyreTable" style="min-width:1150px; width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:var(--bg-subtle); border-bottom:2px solid var(--border);">
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text); text-align:center;">#</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Type</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Date &amp; Time</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Vehicle Reg No</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Location &amp; WO</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Tyre / Puncture Details</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Brand, Size &amp; Specs</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Driver / Valve Pin</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text); text-align:right;">Total Cost</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text);">Entered By</th>
+                    <th style="padding:12px 14px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sidebar-text); text-align:center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tyre-tbody">
+                {% for log in logs %}
+                <tr id="tyre-row-{{ log.id }}" data-entrytype="{{ log.entry_type|lower }}" data-reg="{{ log.vehicle.regn|lower }}" data-loc="{{ log.location|lower }}" data-vendor="{{ log.vendor|lower }}" data-company="{{ log.company|lower }}" data-driver="{{ log.driver_name|lower }}" data-size="{{ log.size_of_tyre|lower }}" data-date="{{ log.date|date:'Y-m-d' }}" style="border-bottom:1px solid var(--border); transition:background 0.15s;">
+                    <td style="padding:12px 14px; text-align:center; font-size:0.8rem; color:var(--sidebar-text); font-weight:600;">{{ forloop.counter }}</td>
+                    <td style="padding:12px 14px;">
+                        {% if log.entry_type == 'ISSUE' %}
+                            <span style="font-size:0.75rem; font-weight:800; background:rgba(16,185,129,0.12); color:#059669; padding:4px 10px; border-radius:20px; border:1px solid rgba(16,185,129,0.25); display:inline-flex; align-items:center; gap:4px;">🆕 Issued</span>
+                        {% else %}
+                            <span style="font-size:0.75rem; font-weight:800; background:rgba(245,158,11,0.12); color:#d97706; padding:4px 10px; border-radius:20px; border:1px solid rgba(245,158,11,0.25); display:inline-flex; align-items:center; gap:4px;">🚗 Puncture</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px; white-space:nowrap;">
+                        <div style="font-weight:700; font-size:0.88rem;">📅 {{ log.date|date:'d M Y' }}</div>
+                        {% if log.entered_on %}
+                            <div style="font-size:0.73rem; color:var(--sidebar-text); margin-top:2px;">⏰ {{ log.entered_on|date:'h:i A' }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px;">
+                        <span style="font-weight:800; font-size:0.88rem; background:rgba(99,102,241,0.08); color:#6366f1; padding:4px 10px; border-radius:8px; border:1px solid rgba(99,102,241,0.2); display:inline-block;">🚛 {{ log.vehicle.regn }}</span>
+                    </td>
+                    <td style="padding:12px 14px;">
+                        <div style="font-weight:600; font-size:0.85rem;">📍 {{ log.location|default:'-' }}</div>
+                        {% if log.work_order_no %}
+                            <div style="font-size:0.76rem; font-family:monospace; color:var(--sidebar-text); margin-top:2px;">WO: {{ log.work_order_no }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px;">
+                        {% if log.entry_type == 'ISSUE' %}
+                            <div style="font-weight:800; color:#059669; font-size:0.88rem;">🏷️ Tyre No: {{ log.tyre_number|default:'-' }}</div>
+                        {% else %}
+                            <div style="font-size:0.84rem; font-weight:600;">⚡ Punctures: <span style="font-weight:800; color:#d97706;">{{ log.punctures }}</span></div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px;">
+                        {% if log.entry_type == 'ISSUE' %}
+                            <div style="font-weight:700; font-size:0.85rem;">🏭 {{ log.company|default:'-' }}</div>
+                            <div style="font-size:0.76rem; color:var(--sidebar-text); margin-top:2px;">📏 Size: {{ log.size_of_tyre|default:'-' }} | Ply: {{ log.ply_number|default:'-' }}</div>
+                        {% else %}
+                            <div style="font-size:0.8rem; color:var(--sidebar-text);">🩹 Big: <strong>{{ log.big_patches }}</strong> | Small: <strong>{{ log.small_patches }}</strong> | Nozz: <strong>{{ log.nozzles }}</strong></div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px;">
+                        {% if log.entry_type == 'ISSUE' %}
+                            {% if log.driver_name %}
+                                <span style="font-weight:600; font-size:0.8rem; background:var(--bg-subtle); color:var(--text-color); padding:3px 8px; border-radius:6px; border:1px solid var(--border);">👤 {{ log.driver_name }}</span>
+                            {% else %}
+                                <span style="color:var(--sidebar-text); font-size:0.8rem;">-</span>
+                            {% endif %}
+                        {% else %}
+                            {% if log.valve_pin_number %}
+                                <div style="font-family:monospace; font-size:0.8rem; color:var(--sidebar-text);">📌 {{ log.valve_pin_number }}</div>
+                            {% else %}
+                                <span style="color:var(--sidebar-text); font-size:0.8rem;">-</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td style="padding:12px 14px; text-align:right; font-weight:800; font-size:0.95rem; color:#10b981; white-space:nowrap;">
+                        Nu. {{ log.total_amount }}
+                    </td>
+                    <td style="padding:12px 14px; font-size:0.78rem; color:var(--sidebar-text);">
+                        <div>👤 {% if log.entered_by %}{{ log.entered_by.full_name|default:log.entered_by.username }}{% else %}System{% endif %}</div>
+                    </td>
+                    <td style="padding:12px 14px; text-align:center; white-space:nowrap;">
+                        <button onclick='openEditModal({{ log.id }}, "{{ log.entry_type|default:'PUNCTURE' }}", "{{ log.date|date:'Y-m-d' }}", {{ log.vehicle.id }}, "{{ log.location|default:'' }}", "{{ log.work_order_no|default:'' }}", "{{ log.vendor|default:'' }}", {{ log.punctures }}, {{ log.big_patches }}, {{ log.small_patches }}, {{ log.nozzles }}, "{{ log.valve_pin_number|default:'' }}", {{ log.material_cost }}, {{ log.big_patches_cost }}, {{ log.small_patches_cost }}, {{ log.opening_fitting_cost }}, "{{ log.tyre_number|default:'' }}", "{{ log.company|default:'' }}", "{{ log.ply_number|default:'' }}", "{{ log.size_of_tyre|default:'' }}", "{{ log.driver_name|default:'' }}", {{ log.total_amount }})'
+                            style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); color:#6366f1; cursor:pointer; padding:6px 10px; border-radius:8px; font-size:0.78rem; font-weight:700; transition:all 0.15s;" title="Edit Entry">✏️ Edit</button>
+                        <form method="post" action="/fleet/api/tyre/delete/{{ log.id }}/" onsubmit="return confirm('Delete this entry?')" style="display:inline-block; margin-left:4px;">
+                            {% csrf_token %}
+                            <button type="submit" style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#ef4444; cursor:pointer; padding:6px 10px; border-radius:8px; font-size:0.78rem; font-weight:700; transition:all 0.15s;" title="Delete Entry">🗑️ Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11" style="text-align:center; padding:3.5rem 1rem; color:var(--sidebar-text); font-size:0.92rem;">No tyre entries found matching your filters. Click "+ Issue New Tyre" or "+ Puncture Entry" to get started.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- CARD VIEW -->
+<div id="cardView" style="display:none;">
+<div class="lub-card-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:1.2rem;">
+    {% for log in logs %}
+    <div class="lub-card tyre-card" data-entrytype="{{ log.entry_type|lower }}" data-reg="{{ log.vehicle.regn|lower }}" data-loc="{{ log.location|lower }}" data-vendor="{{ log.vendor|lower }}" data-company="{{ log.company|lower }}" data-driver="{{ log.driver_name|lower }}" data-size="{{ log.size_of_tyre|lower }}" data-date="{{ log.date|date:'Y-m-d' }}" style="{% if log.entry_type == 'ISSUE' %}border-left: 5px solid #10b981;{% else %}border-left: 5px solid #f59e0b;{% endif %} background:var(--card-bg); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:14px; padding:1.2rem; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 15px rgba(0,0,0,0.04); transition:all 0.2s;">
+        <div>
+            <!-- CARD HEADER -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; padding-bottom:0.65rem; border-bottom:1px dashed var(--border);">
+                <span style="font-weight:800; font-size:0.95rem; background:rgba(99,102,241,0.1); color:#6366f1; padding:4px 10px; border-radius:8px; border:1px solid rgba(99,102,241,0.2);">🚛 {{ log.vehicle.regn }}</span>
+                {% if log.entry_type == 'ISSUE' %}
+                    <span style="font-size:0.75rem; font-weight:800; background:rgba(16,185,129,0.12); color:#059669; padding:3px 9px; border-radius:15px; border:1px solid rgba(16,185,129,0.25);">🆕 Issued Tyre</span>
+                {% else %}
+                    <span style="font-size:0.75rem; font-weight:800; background:rgba(245,158,11,0.12); color:#d97706; padding:3px 9px; border-radius:15px; border:1px solid rgba(245,158,11,0.25);">🚗 Puncture Repair</span>
+                {% endif %}
+            </div>
+
+            <!-- CARD META PILLS -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:0.85rem;">
+                <span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:6px; background:var(--bg-subtle); color:var(--sidebar-text); border:1px solid var(--border);">📅 {{ log.date|date:'d M Y' }}</span>
+                {% if log.location %}<span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:6px; background:var(--bg-subtle); color:var(--text-color); border:1px solid var(--border);">📍 {{ log.location }}</span>{% endif %}
+                {% if log.work_order_no %}<span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:6px; background:var(--bg-subtle); color:var(--sidebar-text); border:1px solid var(--border); font-family:monospace;">WO: {{ log.work_order_no }}</span>{% endif %}
+                {% if log.vendor %}<span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:6px; background:var(--bg-subtle); color:var(--sidebar-text); border:1px solid var(--border);">🏬 {{ log.vendor }}</span>{% endif %}
+            </div>
+
+            <!-- SPECIFIC DETAILS BOX -->
+            <div style="background:var(--bg-color); padding:10px 12px; border-radius:10px; border:1px solid var(--border); margin-bottom:0.85rem;">
+                {% if log.entry_type == 'ISSUE' %}
+                    <div style="font-weight:800; color:#059669; font-size:0.9rem; margin-bottom:4px;">🏷️ Tyre No: {{ log.tyre_number|default:'-' }}</div>
+                    <div style="font-size:0.82rem; font-weight:700; color:var(--text-color);">🏭 Brand: {{ log.company|default:'-' }}</div>
+                    <div style="font-size:0.78rem; color:var(--sidebar-text); margin-top:2px;">📏 Size: {{ log.size_of_tyre|default:'-' }} &bull; Ply: {{ log.ply_number|default:'-' }}</div>
+                    {% if log.driver_name %}
+                        <div style="font-size:0.8rem; font-weight:700; color:var(--text-color); margin-top:6px; border-top:1px dashed var(--border); padding-top:4px;">👤 Driver: {{ log.driver_name }}</div>
+                    {% endif %}
+                {% else %}
+                    <div style="font-size:0.85rem; font-weight:700; color:#d97706; margin-bottom:4px;">⚡ Punctures: {{ log.punctures }}</div>
+                    <div style="font-size:0.78rem; color:var(--sidebar-text);">🩹 Patches: Big ({{ log.big_patches }}) &bull; Small ({{ log.small_patches }}) &bull; Nozz ({{ log.nozzles }})</div>
+                    {% if log.valve_pin_number %}
+                        <div style="font-size:0.78rem; font-family:monospace; color:var(--sidebar-text); margin-top:4px;">📌 Valve Pin: {{ log.valve_pin_number }}</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <!-- TOTAL COST BAR -->
+            <div style="border-top:1px solid var(--border); padding-top:0.75rem; margin-top:0.3rem; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.8rem; color:var(--sidebar-text); font-weight:700;">Total Amount</span>
+                <span style="font-size:1.25rem; font-weight:800; color:#10b981;">Nu. {{ log.total_amount }}</span>
+            </div>
+
+            {% if log.entered_by %}
+            <div style="font-size:0.72rem; color:var(--sidebar-text); margin-top:6px; display:flex; align-items:center; gap:5px;">
+                <span>👤 By: <strong>{{ log.entered_by.full_name|default:log.entered_by.username }}</strong></span>
+                <span style="margin-left:auto; opacity:0.85;">{% if log.entered_on %}🕒 {{ log.entered_on|date:'d M, h:i A' }}{% endif %}</span>
+            </div>
+            {% endif %}
+
+            <!-- ACTION BUTTONS -->
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button onclick='openEditModal({{ log.id }}, "{{ log.entry_type|default:'PUNCTURE' }}", "{{ log.date|date:'Y-m-d' }}", {{ log.vehicle.id }}, "{{ log.location|default:'' }}", "{{ log.work_order_no|default:'' }}", "{{ log.vendor|default:'' }}", {{ log.punctures }}, {{ log.big_patches }}, {{ log.small_patches }}, {{ log.nozzles }}, "{{ log.valve_pin_number|default:'' }}", {{ log.material_cost }}, {{ log.big_patches_cost }}, {{ log.small_patches_cost }}, {{ log.opening_fitting_cost }}, "{{ log.tyre_number|default:'' }}", "{{ log.company|default:'' }}", "{{ log.ply_number|default:'' }}", "{{ log.size_of_tyre|default:'' }}", "{{ log.driver_name|default:'' }}", {{ log.total_amount }})'
+                    style="flex:1; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); color:#6366f1; cursor:pointer; padding:8px; border-radius:8px; font-size:0.82rem; font-weight:700; transition:all 0.15s;">✏️ Edit</button>
+                <form method="post" action="/fleet/api/tyre/delete/{{ log.id }}/" onsubmit="return confirm('Delete this entry?')" style="flex:1;">
+                    {% csrf_token %}
+                    <button type="submit" style="width:100%; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#ef4444; cursor:pointer; padding:8px; border-radius:8px; font-size:0.82rem; font-weight:700; transition:all 0.15s;">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column:1/-1; padding:3.5rem 1rem; text-align:center; color:var(--sidebar-text); font-size:0.92rem;">No tyre entries found matching your filters.</div>
+    {% endfor %}
+</div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="addModal" class="lub-modal">
+    <div class="lub-modal-box">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px;" id="add_modal_title">&#128095; Add Tyre Entry</h3>
+            <button onclick="document.getElementById('addModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);line-height:1;">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <!-- OPTION TABS -->
+            <div style="display:flex; gap:10px; border-bottom:2px solid var(--border); margin-bottom:18px; padding-bottom:4px;">
+                <button type="button" id="tab_btn_puncture" onclick="switchAddTab('PUNCTURE')" style="flex:1; padding:10px; font-weight:700; border:none; background:none; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.2s;">🚗 Puncture Repair Entry</button>
+                <button type="button" id="tab_btn_issue" onclick="switchAddTab('ISSUE')" style="flex:1; padding:10px; font-weight:700; border:none; background:none; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.2s;">🆕 Issue New Tyre (Store)</button>
+            </div>
+
+            <form method="post" action="/fleet/api/tyre/add/">
+                {% csrf_token %}
+                <input type="hidden" name="entry_type" id="add_entry_type" value="PUNCTURE">
+
+                <div class="form-grid">
+                    <div>
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" id="add_tyre_date">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px;">
+                            <label class="form-label" style="margin-bottom:0;">Vehicle (Reg No)</label>
+                            <button type="button" id="add_veh_toggle_btn" onclick="toggleVehicleMode('add')" style="font-size:0.75rem; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.25); cursor:pointer; font-weight:700; white-space:nowrap; flex-shrink:0;">✨ + New Vehicle</button>
+                        </div>
+                        <div id="add_veh_select_wrap">
+                            <select name="vehicle_id" id="add_vehicle" class="form-control" onchange="onVehicleSelectChange('add', this)">
+                                <option value="">-- Select Vehicle --</option>
+                                <option value="__NEW__" style="color:#6366f1; font-weight:bold;">➕ + Type New / Custom Vehicle...</option>
+                                {% for v in vehicles %}<option value="{{ v.id }}" data-regn="{{ v.regn }}">{{ v.regn }}{% if v.dno %} ({{ v.dno }}){% endif %}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div id="add_veh_custom_wrap" style="display:none;">
+                            <input type="text" name="vehicle_regn" id="add_vehicle_custom" class="form-control" placeholder="Enter Vehicle Reg No" oninput="hireFillCustom('add', this.value)">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label">WO No <small style="color:var(--sidebar-text);">(Autofill)</small></label>
+                        <input type="text" name="work_order_no" class="form-control" placeholder="Enter WO No" id="add_wo" list="tyreWoList">
+                        <datalist id="tyreWoList">{% for wo in work_orders %}<option value="{{ wo }}">{% endfor %}</datalist>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Vendor <small style="color:var(--sidebar-text);">(Autofill)</small></label>
+                        <input type="text" name="vendor" class="form-control" placeholder="Enter Vendor Name" id="add_vendor" list="tyreVendorList">
+                        <datalist id="tyreVendorList">{% for v in vendors %}<option value="{{ v }}">{% endfor %}</datalist>
+                    </div>
+
+                    <div class="full">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location" class="form-control" placeholder="Enter Location" list="tyreLocList">
+                        <datalist id="tyreLocList">{% for loc in locations %}<option value="{{ loc }}">{% endfor %}</datalist>
+                    </div>
+
+                    <!-- FIELDS FOR ISSUE NEW TYRE -->
+                    <div class="full add-issue-field" style="display:none; background:rgba(16,185,129,0.05); padding:12px; border-radius:10px; border:1px solid rgba(16,185,129,0.2);">
+                        <h4 style="margin:0 0 10px; color:#10b981; font-size:0.92rem;">🆕 New Tyre Details</h4>
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label">Tyre Number / Serial No</label>
+                                <input type="text" name="tyre_number" id="add_tyre_number" class="form-control" placeholder="Enter Tyre Number">
+                            </div>
+                            <div>
+                                <label class="form-label">Company / Brand</label>
+                                <input type="text" name="company" class="form-control" placeholder="Enter Company / Brand" list="companyList">
+                            </div>
+                            <div>
+                                <label class="form-label">Ply Number</label>
+                                <input type="text" name="ply_number" class="form-control" placeholder="Enter Ply Number" list="plyList">
+                            </div>
+                            <div>
+                                <label class="form-label">Size of Tyre</label>
+                                <input type="text" name="size_of_tyre" class="form-control" placeholder="Enter Size of Tyre" list="sizeList">
+                            </div>
+                            <div class="full">
+                                <label class="form-label">Driver Name</label>
+                                <select name="driver_name" id="add_driver_name" class="form-control">
+                                    <option value="">-- Select or Type Driver Name --</option>
+                                    {% for d in drivers %}{% if d %}<option value="{{ d }}">{{ d }}</option>{% endif %}{% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FIELDS FOR PUNCTURE REPAIR -->
+                    <div class="full add-puncture-field">
+                        <div class="form-grid">
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Punctures</label><input type="number" min="0" name="punctures" class="form-control" value="0"></div>
+                                    <div><label class="form-label">Nozzles</label><input type="number" min="0" name="nozzles" class="form-control" value="0"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Big Patches</label><input type="number" min="0" name="big_patches" class="form-control" value="0"></div>
+                                    <div><label class="form-label">Small Patches</label><input type="number" min="0" name="small_patches" class="form-control" value="0"></div>
+                                </div>
+                            </div>
+                            <div class="full">
+                                <label class="form-label">Valve Pin Number</label>
+                                <input type="text" name="valve_pin_number" class="form-control" placeholder="Enter Valve Pin Number">
+                            </div>
+                            <div>
+                                <label class="form-label">Material Cost</label>
+                                <input type="number" step="0.01" min="0" name="material_cost" class="form-control" placeholder="0.00" oninput="calcTyreAdd()">
+                            </div>
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Big Patch Cost</label><input type="number" step="0.01" min="0" name="big_patches_cost" class="form-control" placeholder="0.00" oninput="calcTyreAdd()"></div>
+                                    <div><label class="form-label">Small Patch Cost</label><input type="number" step="0.01" min="0" name="small_patches_cost" class="form-control" placeholder="0.00" oninput="calcTyreAdd()"></div>
+                                </div>
+                            </div>
+                            <div class="full">
+                                <label class="form-label">Opening &amp; Fitting Cost</label>
+                                <input type="number" step="0.01" min="0" name="opening_fitting_cost" class="form-control" placeholder="0.00" oninput="calcTyreAdd()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="full">
+                        <label class="form-label">Total Amount / Tyre Cost <small style="color:var(--sidebar-text);">(Nu.)</small></label>
+                        <input type="number" step="0.01" name="total_amount" id="add_tyre_total" class="form-control" style="background:var(--bg-color); font-weight:700; color:#10b981;">
+                    </div>
+                </div>
+                <input type="hidden" name="add_another" id="add_another_flag" value="0">
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="document.getElementById('addModal').style.display='none'" class="btn btn-outline" style="flex:1; max-width:120px;">Cancel</button>
+                    <button type="submit" onclick="document.getElementById('add_another_flag').value='0'" class="btn btn-outline" style="color:#6366f1; border-color:#6366f1; flex:1;">Save &amp; Add</button>
+                    <button type="submit" onclick="document.getElementById('add_another_flag').value='1'" class="btn btn-primary" style="flex:1;">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="lub-modal">
+    <div class="lub-modal-box">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px;">&#9998; Edit Tyre Entry</h3>
+            <button onclick="document.getElementById('editModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);line-height:1;">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <form method="post" id="editForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="entry_type" id="edit_entry_type" value="PUNCTURE">
+
+                <div class="form-grid">
+                    <div><label class="form-label">Date</label><input type="date" name="date" class="form-control" id="edit_date"></div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px;">
+                            <label class="form-label" style="margin-bottom:0;">Vehicle (Reg No)</label>
+                            <button type="button" id="edit_veh_toggle_btn" onclick="toggleVehicleMode('edit')" style="font-size:0.75rem; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.25); cursor:pointer; font-weight:700; white-space:nowrap; flex-shrink:0;">✨ + New Vehicle</button>
+                        </div>
+                        <div id="edit_veh_select_wrap">
+                            <select name="vehicle_id" id="edit_vehicle" class="form-control" onchange="onVehicleSelectChange('edit', this)">
+                                <option value="__NEW__" style="color:#6366f1; font-weight:bold;">➕ + Type New / Custom Vehicle...</option>
+                                {% for v in vehicles %}<option value="{{ v.id }}" data-regn="{{ v.regn }}">{{ v.regn }}{% if v.dno %} ({{ v.dno }}){% endif %}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div id="edit_veh_custom_wrap" style="display:none;">
+                            <input type="text" name="vehicle_regn" id="edit_vehicle_custom" class="form-control" placeholder="Enter Vehicle Reg No" oninput="hireFillCustom('edit', this.value)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Vendor <small style="color:var(--sidebar-text);">(auto from Reg No)</small></label>
+                        <input type="text" name="vendor" class="form-control" id="edit_vendor" list="tyreVendorList" placeholder="Enter Vendor Name">
+                    </div>
+                    <div><label class="form-label">WO No</label><input type="text" name="work_order_no" class="form-control" id="edit_wo" list="tyreWoList" placeholder="Enter WO No"></div>
+                    <div class="full"><label class="form-label">Location</label><input type="text" name="location" class="form-control" id="edit_location" list="tyreLocList" placeholder="Enter Location"></div>
+
+                    <!-- FIELDS FOR ISSUE NEW TYRE -->
+                    <div class="full edit-issue-field" style="display:none; background:rgba(16,185,129,0.05); padding:12px; border-radius:10px; border:1px solid rgba(16,185,129,0.2);">
+                        <h4 style="margin:0 0 10px; color:#10b981; font-size:0.92rem;">🆕 New Tyre Details</h4>
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label">Tyre Number / Serial No</label>
+                                <input type="text" name="tyre_number" id="edit_tyre_number" class="form-control" placeholder="Enter Tyre Number">
+                            </div>
+                            <div>
+                                <label class="form-label">Company / Brand</label>
+                                <input type="text" name="company" id="edit_company" class="form-control" placeholder="Enter Company / Brand" list="companyList">
+                            </div>
+                            <div>
+                                <label class="form-label">Ply Number</label>
+                                <input type="text" name="ply_number" id="edit_ply_number" class="form-control" placeholder="Enter Ply Number" list="plyList">
+                            </div>
+                            <div>
+                                <label class="form-label">Size of Tyre</label>
+                                <input type="text" name="size_of_tyre" id="edit_size_of_tyre" class="form-control" placeholder="Enter Size of Tyre" list="sizeList">
+                            </div>
+                            <div class="full">
+                                <label class="form-label">Driver Name</label>
+                                <select name="driver_name" id="edit_driver_name" class="form-control">
+                                    <option value="">-- Select or Type Driver Name --</option>
+                                    {% for d in drivers %}{% if d %}<option value="{{ d }}">{{ d }}</option>{% endif %}{% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FIELDS FOR PUNCTURE REPAIR -->
+                    <div class="full edit-puncture-field">
+                        <div class="form-grid">
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Punctures</label><input type="number" min="0" name="punctures" class="form-control" id="edit_punctures"></div>
+                                    <div><label class="form-label">Nozzles</label><input type="number" min="0" name="nozzles" class="form-control" id="edit_nozzles"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Big Patches</label><input type="number" min="0" name="big_patches" class="form-control" id="edit_big"></div>
+                                    <div><label class="form-label">Small Patches</label><input type="number" min="0" name="small_patches" class="form-control" id="edit_small"></div>
+                                </div>
+                            </div>
+                            <div class="full"><label class="form-label">Valve Pin Number</label><input type="text" name="valve_pin_number" class="form-control" id="edit_valve_pin" placeholder="e.g. VP-001"></div>
+                            <div><label class="form-label">Material Cost</label><input type="number" step="0.01" min="0" name="material_cost" class="form-control" id="edit_material" oninput="calcTyreEdit()"></div>
+                            <div>
+                                <div class="form-mini-row">
+                                    <div><label class="form-label">Big Patch Cost</label><input type="number" step="0.01" min="0" name="big_patches_cost" class="form-control" id="edit_big_cost" oninput="calcTyreEdit()"></div>
+                                    <div><label class="form-label">Small Patch Cost</label><input type="number" step="0.01" min="0" name="small_patches_cost" class="form-control" id="edit_small_cost" oninput="calcTyreEdit()"></div>
+                                </div>
+                            </div>
+                            <div class="full"><label class="form-label">Opening &amp; Fitting Cost</label><input type="number" step="0.01" min="0" name="opening_fitting_cost" class="form-control" id="edit_opening" oninput="calcTyreEdit()"></div>
+                        </div>
+                    </div>
+
+                    <div class="full">
+                        <label class="form-label">Total Amount / Tyre Cost</label>
+                        <input type="number" step="0.01" name="total_amount" id="edit_tyre_total" class="form-control" style="background:var(--bg-color); font-weight:700; color:#10b981;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="btn btn-outline" style="flex:1; max-width:120px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Update Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div id="importModal" class="lub-modal">
+    <div class="lub-modal-box" style="max-width:500px;">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">&#128190; Import Tyre Entries</h3>
+            <button onclick="document.getElementById('importModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <form method="post" action="/fleet/api/tyre/import/" enctype="multipart/form-data">
+                {% csrf_token %}
+                <p style="margin-top:0; color:var(--text-secondary); font-size:0.9rem;">
+                    Upload the tyre debit note Excel file. Columns like SR.NO, DATE, LOCATION, WO NO, REG NO, counts and costs will be read.
+                    <br><br>
+                    <a href="/fleet/api/tyre/sample/" style="color:var(--primary); text-decoration:none; font-weight:bold;">&#128196; Download Sample Format</a>
+                </p>
+                <input type="file" name="excel_file" accept=".xlsx,.xls" required class="form-control" style="margin-bottom:16px;">
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" onclick="document.getElementById('importModal').style.display='none'" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="exportModal" class="lub-modal">
+    <div class="lub-modal-box" style="max-width:550px;">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">&#128196; Export Report with Advance Filters</h3>
+            <button onclick="document.getElementById('exportModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <div class="form-grid">
+                <div>
+                    <label class="form-label">Export Format</label>
+                    <select id="exportFormat" class="form-control">
+                        <option value="excel">Excel (.xlsx)</option>
+                        <option value="pdf">PDF (Print)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Entry Type</label>
+                    <select id="exportEntryType" class="form-control">
+                        <option value="">All Types (Puncture + Issued)</option>
+                        <option value="PUNCTURE">Puncture Repairs Only</option>
+                        <option value="ISSUE">Issued Tyres Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Vehicle</label>
+                    <select id="exportVehicle" class="form-control">
+                        <option value="">All Vehicles</option>
+                        {% for v in vehicles %}<option value="{{ v.id }}">{{ v.regn }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Location</label>
+                    <select id="exportLocation" class="form-control">
+                        <option value="">All Locations</option>
+                        {% for loc in locations %}{% if loc %}<option value="{{ loc }}">{{ loc }}</option>{% endif %}{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">From Date</label>
+                    <input type="date" id="exportFrom" class="form-control">
+                </div>
+                <div>
+                    <label class="form-label">To Date</label>
+                    <input type="date" id="exportTo" class="form-control">
+                </div>
+                <div>
+                    <label class="form-label">Vendor / Owner</label>
+                    <select id="exportVendor" class="form-control">
+                        <option value="">All Vendors</option>
+                        {% for v in vendors %}{% if v %}<option value="{{ v }}">{{ v }}</option>{% endif %}{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Brand / Company</label>
+                    <select id="exportCompany" class="form-control">
+                        <option value="">All Brands</option>
+                        {% for c in companies %}{% if c %}<option value="{{ c }}">{{ c }}</option>{% endif %}{% endfor %}
+                    </select>
+                </div>
+                <div class="full">
+                    <label class="form-label">Driver Name</label>
+                    <input type="text" id="exportDriver" class="form-control" placeholder="Enter Driver Name" list="driverList">
+                </div>
+                <div class="full">
+                    <label class="form-label">WO No (contains)</label>
+                    <input type="text" id="exportWO" class="form-control" placeholder="Enter WO No">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); flex-wrap:wrap;">
+                <button type="button" onclick="document.getElementById('exportModal').style.display='none'" class="btn btn-outline">Cancel</button>
+                <button type="button" onclick="shareTyreReport()" class="btn" style="background:#25D366; color:white; font-weight:800; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    💬 Share (WhatsApp / Email)
+                </button>
+                <button type="button" onclick="triggerExport()" class="btn btn-primary" style="background:#10b981; border-color:#10b981;">Download Report</button>
+            </div>
+            <button type="button" onclick="triggerFullReport()" style="width:100%; margin-top:14px; background:rgba(99,102,241,0.08); border:2px solid rgba(99,102,241,0.35); color:#6366f1; cursor:pointer; padding:11px; border-radius:10px; font-weight:800; font-size:0.88rem;">
+                &#128667; Complete Vehicle Report &mdash; Lubricants + Tyre (all sections)
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const HIRED = {{ hired_vehicles|safe }};
+
+// Auto-fill Vendor + WO No from the hire master when a Reg No is selected
+function hireFill(prefix) {
+    const sel = document.getElementById(prefix + '_vehicle');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    const regn = (opt && opt.dataset.regn) ? opt.dataset.regn.trim() : '';
+    if (!regn) return;
+    const hv = HIRED.find(x => (x.regn || '').toLowerCase() === regn.toLowerCase());
+    if (!hv) return;
+    const vendorEl = document.getElementById(prefix + '_vendor');
+    const woEl = document.getElementById(prefix + '_wo');
+    if (vendorEl && !vendorEl.value.trim()) vendorEl.value = hv.owner_name || '';
+    if (woEl && !woEl.value.trim()) woEl.value = hv.agreement_ref || '';
+}
+
+function setView(view) {
+    const list = document.getElementById('listView');
+    const card = document.getElementById('cardView');
+    const bl = document.getElementById('btnList');
+    const bc = document.getElementById('btnCard');
+    if (view === 'card') { list.style.display = 'none'; card.style.display = 'block'; bc.classList.add('active'); bl.classList.remove('active'); }
+    else { list.style.display = 'block'; card.style.display = 'none'; bl.classList.add('active'); bc.classList.remove('active'); }
+    localStorage.setItem('tyreView', view);
+}
+setView(localStorage.getItem('tyreView') || 'list');
+
+// Auto-open Add modal and pre-select vehicle when redirected from "Save & Add Another"
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('add_another') === '1') {
+        const vehicleId = params.get('vehicle_id');
+        // Open the modal after a short delay so Select2 is ready
+        setTimeout(function() {
+            if (vehicleId) {
+                $('#add_vehicle').val(vehicleId).trigger('change.select2').trigger('change');
+            }
+            document.getElementById('addModal').style.display = 'flex';
+            // Clean the URL without reloading
+            window.history.replaceState({}, '', '/fleet/tyre/');
+        }, 400);
+    }
+})();
+
+function openAddModal(type) {
+    type = type || 'PUNCTURE';
+    switchAddTab(type);
+    document.getElementById('addModal').style.display = 'flex';
+}
+
+function switchAddTab(type) {
+    document.getElementById('add_entry_type').value = type;
+    const btnPunc = document.getElementById('tab_btn_puncture');
+    const btnIss = document.getElementById('tab_btn_issue');
+    const puncFields = document.querySelectorAll('.add-puncture-field');
+    const issFields = document.querySelectorAll('.add-issue-field');
+    const title = document.getElementById('add_modal_title');
+    const totalInput = document.getElementById('add_tyre_total');
+    const tyreNum = document.getElementById('add_tyre_number');
+
+    if (type === 'ISSUE') {
+        if (btnIss) { btnIss.style.color = '#10b981'; btnIss.style.borderBottomColor = '#10b981'; }
+        if (btnPunc) { btnPunc.style.color = 'var(--sidebar-text)'; btnPunc.style.borderBottomColor = 'transparent'; }
+        puncFields.forEach(el => el.style.display = 'none');
+        issFields.forEach(el => el.style.display = 'block');
+        if (title) title.innerHTML = '🆕 Issue New Tyre (Store)';
+        if (totalInput) totalInput.removeAttribute('readonly');
+    } else {
+        if (btnPunc) { btnPunc.style.color = '#f97316'; btnPunc.style.borderBottomColor = '#f97316'; }
+        if (btnIss) { btnIss.style.color = 'var(--sidebar-text)'; btnIss.style.borderBottomColor = 'transparent'; }
+        issFields.forEach(el => el.style.display = 'none');
+        puncFields.forEach(el => el.style.display = 'block');
+        if (title) title.innerHTML = '🚗 Add Tyre Puncture Entry';
+        if (totalInput) totalInput.setAttribute('readonly', 'readonly');
+        calcTyreAdd();
+    }
+}
+
+function applyFilters() {
+    const q = document.getElementById('globalSearch').value.toLowerCase();
+    const entryType = (document.getElementById('filterEntryType')?.value || '').toLowerCase();
+    const loc = (document.getElementById('filterLocation')?.value || '').toLowerCase();
+    const vendor = (document.getElementById('filterVendor')?.value || '').toLowerCase();
+    const company = (document.getElementById('filterCompany')?.value || '').toLowerCase();
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    let visible = 0;
+
+    document.querySelectorAll('#tyre-tbody tr[data-reg], .tyre-card').forEach(el => {
+        const type = el.dataset.entrytype || '';
+        const reg = el.dataset.reg || '';
+        const location = el.dataset.loc || '';
+        const comp = el.dataset.company || '';
+        const driver = el.dataset.driver || '';
+        const size = el.dataset.size || '';
+        const date = el.dataset.date || '';
+        const text = el.textContent.toLowerCase();
+        let show = true;
+
+        if (q && !(reg.includes(q) || location.includes(q) || comp.includes(q) || driver.includes(q) || size.includes(q) || text.includes(q))) show = false;
+        if (entryType && type !== entryType) show = false;
+        if (loc && location !== loc) show = false;
+        if (vendor && !(el.dataset.vendor || '').includes(vendor)) show = false;
+        if (company && comp !== company) show = false;
+        if (from && date && date < from) show = false;
+        if (to && date && date > to) show = false;
+
+        el.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('filterCount').textContent = visible + ' entries';
+}
+
+function clearFilters() {
+    ['globalSearch', 'filterFrom', 'filterTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['filterEntryType', 'filterLocation', 'filterVendor', 'filterCompany'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    applyFilters();
+}
+
+function openEditModal(id, entryType, date, vehicleId, location, wo, vendor, punctures, big, small, nozzles, valvePin, material, bigCost, smallCost, opening, tyreNum, company, ply, size, driver, totalAmount) {
+    document.getElementById('editForm').action = '/fleet/api/tyre/edit/' + id + '/';
+    document.getElementById('edit_entry_type').value = entryType || 'PUNCTURE';
+    document.getElementById('edit_date').value = date;
+    $('#edit_vehicle').val(vehicleId).trigger('change.select2');
+    document.getElementById('edit_location').value = location || '';
+    document.getElementById('edit_wo').value = wo || '';
+    document.getElementById('edit_vendor').value = vendor || '';
+
+    const puncFields = document.querySelectorAll('.edit-puncture-field');
+    const issFields = document.querySelectorAll('.edit-issue-field');
+
+    if (entryType === 'ISSUE') {
+        puncFields.forEach(el => el.style.display = 'none');
+        issFields.forEach(el => el.style.display = 'block');
+        document.getElementById('edit_tyre_number').value = tyreNum || '';
+        document.getElementById('edit_company').value = company || '';
+        document.getElementById('edit_ply_number').value = ply || '';
+        document.getElementById('edit_size_of_tyre').value = size || '';
+        $('#edit_driver_name').val(driver || '').trigger('change.select2');
+        document.getElementById('edit_tyre_total').value = totalAmount || material || 0;
+        document.getElementById('edit_tyre_total').removeAttribute('readonly');
+    } else {
+        issFields.forEach(el => el.style.display = 'none');
+        puncFields.forEach(el => el.style.display = 'block');
+        document.getElementById('edit_punctures').value = punctures || 0;
+        document.getElementById('edit_big').value = big || 0;
+        document.getElementById('edit_small').value = small || 0;
+        document.getElementById('edit_nozzles').value = nozzles || 0;
+        document.getElementById('edit_valve_pin').value = valvePin || '';
+        document.getElementById('edit_material').value = material || 0;
+        document.getElementById('edit_big_cost').value = bigCost || 0;
+        document.getElementById('edit_small_cost').value = smallCost || 0;
+        document.getElementById('edit_opening').value = opening || 0;
+        document.getElementById('edit_tyre_total').setAttribute('readonly', 'readonly');
+        calcTyreEdit();
+    }
+    hireFill('edit');
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function calcTyreAdd() {
+    if (document.getElementById('add_entry_type').value === 'ISSUE') return;
+    let total = 0;
+    ['material_cost', 'big_patches_cost', 'small_patches_cost', 'opening_fitting_cost'].forEach(f => {
+        total += parseFloat(document.querySelector('#addModal [name="' + f + '"]').value) || 0;
+    });
+    document.getElementById('add_tyre_total').value = total.toFixed(2);
+}
+function calcTyreEdit() {
+    if (document.getElementById('edit_entry_type').value === 'ISSUE') return;
+    let total = 0;
+    ['material_cost', 'big_patches_cost', 'small_patches_cost', 'opening_fitting_cost'].forEach(f => {
+        total += parseFloat(document.querySelector('#editModal [name="' + f + '"]').value) || 0;
+    });
+    document.getElementById('edit_tyre_total').value = total.toFixed(2);
+}
+
+['addModal', 'editModal', 'importModal', 'exportModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+});
+
+function triggerExport() {
+    const format = document.getElementById('exportFormat').value;
+    const entryType = document.getElementById('exportEntryType')?.value || '';
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    const vehicle = document.getElementById('exportVehicle').value;
+    const location = document.getElementById('exportLocation').value;
+    const vendor = document.getElementById('exportVendor').value;
+    const company = document.getElementById('exportCompany')?.value || '';
+    const driver = document.getElementById('exportDriver')?.value || '';
+    const wo = document.getElementById('exportWO').value;
+
+    let url = '/fleet/api/tyre/export/';
+    if (format === 'pdf') url = '/fleet/api/tyre/export-pdf/';
+    const params = [];
+    if (entryType) params.push('entry_type=' + encodeURIComponent(entryType));
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    if (vehicle) params.push('vehicle_id=' + vehicle);
+    if (location) params.push('location=' + encodeURIComponent(location));
+    if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+    if (company) params.push('company=' + encodeURIComponent(company));
+    if (driver) params.push('driver=' + encodeURIComponent(driver));
+    if (wo) params.push('work_order_no=' + encodeURIComponent(wo));
+    if (params.length > 0) url += '?' + params.join('&');
+    window.open(url, '_blank');
+    document.getElementById('exportModal').style.display = 'none';
+}
+
+function shareTyreReport() {
+    const entryType = document.getElementById('exportEntryType').value;
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    const vehicle = document.getElementById('exportVehicle').value;
+    const location = document.getElementById('exportLocation').value;
+    const vendor = document.getElementById('exportVendor').value;
+    const company = document.getElementById('exportCompany')?.value || '';
+    const driver = document.getElementById('exportDriver')?.value || '';
+    const wo = document.getElementById('exportWO').value;
+
+    const params = [];
+    if (entryType) params.push('entry_type=' + encodeURIComponent(entryType));
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    if (vehicle) params.push('vehicle_id=' + vehicle);
+    if (location) params.push('location=' + encodeURIComponent(location));
+    if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+    if (company) params.push('company=' + encodeURIComponent(company));
+    if (driver) params.push('driver=' + encodeURIComponent(driver));
+    if (wo) params.push('work_order_no=' + encodeURIComponent(wo));
+
+    const q = params.length > 0 ? ('?' + params.join('&')) : '';
+    const excelUrl = '/fleet/api/tyre/export/' + q;
+    const pdfUrl = '/fleet/api/tyre/export-pdf/' + q;
+
+    document.getElementById('exportModal').style.display = 'none';
+
+    openReportShareModal({
+        title: "Tyre Management & Fitment Report",
+        date: (from && to && from !== to) ? `${from} to ${to}` : (from || "All Time"),
+        site: "P&M Fleet Hub",
+        extraInfo: (entryType ? `Type: ${entryType} ` : '') + (location ? `| Loc: ${location}` : ''),
+        excelUrl: excelUrl,
+        pdfUrl: pdfUrl
+    });
+}
+
+function triggerFullReport() {
+    const vehicle = document.getElementById('exportVehicle').value;
+    if (!vehicle) { alert('Please select a vehicle first — the complete report shows all sections for one vehicle.'); return; }
+    const format = document.getElementById('exportFormat').value;
+    let url = format === 'pdf' ? '/fleet/api/vehicle-report-pdf/' : '/fleet/api/vehicle-report/';
+    const params = ['vehicle_id=' + vehicle];
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    window.open(url + '?' + params.join('&'), '_blank');
+    document.getElementById('exportModal').style.display = 'none';
+}
+
+// ---- LIVE POLL ----
+(function() {
+    let knownLatestId = parseInt(document.getElementById('tyre-latest-id')?.value || '0');
+    function fetchUpdates() {
+        fetch('/fleet/api/tyre/live/?since_id=' + knownLatestId)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.rows || data.rows.length === 0) return;
+                const newMax = Math.max(...data.rows.map(r => r.id));
+                if (newMax > knownLatestId) knownLatestId = newMax;
+                const tbody = document.getElementById('tyre-tbody');
+                if (tbody) {
+                    data.rows.forEach(log => {
+                        if (document.getElementById('tyre-row-' + log.id)) return;
+                        const tr = document.createElement('tr');
+                        tr.id = 'tyre-row-' + log.id;
+                        tr.style.borderBottom = '1px solid var(--border)';
+                        const isIssue = (log.entry_type || '').toUpperCase() === 'ISSUE';
+                        const typeBadge = isIssue ? '<span style="font-size:0.75rem; font-weight:800; background:rgba(16,185,129,0.12); color:#059669; padding:4px 10px; border-radius:20px; border:1px solid rgba(16,185,129,0.25);">🆕 Issued</span>'
+                                                : '<span style="font-size:0.75rem; font-weight:800; background:rgba(245,158,11,0.12); color:#d97706; padding:4px 10px; border-radius:20px; border:1px solid rgba(245,158,11,0.25);">🚗 Puncture</span>';
+                        const detail1 = isIssue ? '<div style="font-weight:800; color:#059669; font-size:0.88rem;">🏷️ Tyre No: ' + (log.tyre_number || '-') + '</div>'
+                                                : '<div style="font-size:0.84rem; font-weight:600;">⚡ Punctures: <span style="font-weight:800; color:#d97706;">' + (log.punctures || 0) + '</span></div>';
+                        const detail2 = isIssue ? '<div style="font-weight:700; font-size:0.85rem;">🏭 ' + (log.company || '-') + '</div><div style="font-size:0.76rem; color:var(--sidebar-text); margin-top:2px;">📏 Size: ' + (log.size_of_tyre || '-') + ' | Ply: ' + (log.ply_number || '-') + '</div>'
+                                                : '<div style="font-size:0.8rem; color:var(--sidebar-text);">🩹 Big: <strong>' + (log.big_patches || 0) + '</strong> | Small: <strong>' + (log.small_patches || 0) + '</strong> | Nozz: <strong>' + (log.nozzles || 0) + '</strong></div>';
+                        const driverOrPin = isIssue ? (log.driver_name ? '<span style="font-weight:600; font-size:0.8rem; background:var(--bg-subtle); color:var(--text-color); padding:3px 8px; border-radius:6px; border:1px solid var(--border);">👤 ' + log.driver_name + '</span>' : '-')
+                                                    : (log.valve_pin_number ? '<div style="font-family:monospace; font-size:0.8rem; color:var(--sidebar-text);">📌 ' + log.valve_pin_number + '</div>' : '-');
+
+                        tr.innerHTML = '<td style="padding:12px 14px; text-align:center; font-size:0.8rem; color:var(--sidebar-text); font-weight:600;">NEW</td>' +
+                            '<td style="padding:12px 14px;">' + typeBadge + '</td>' +
+                            '<td style="padding:12px 14px; white-space:nowrap;"><div style="font-weight:700; font-size:0.88rem;">📅 ' + log.date + '</div></td>' +
+                            '<td style="padding:12px 14px;"><span style="font-weight:800; font-size:0.88rem; background:rgba(99,102,241,0.08); color:#6366f1; padding:4px 10px; border-radius:8px; border:1px solid rgba(99,102,241,0.2);">🚛 ' + log.vehicle_reg + '</span></td>' +
+                            '<td style="padding:12px 14px;"><div style="font-weight:600; font-size:0.85rem;">📍 ' + (log.location || '-') + '</div>' + (log.work_order_no ? '<div style="font-size:0.76rem; font-family:monospace; color:var(--sidebar-text); margin-top:2px;">WO: ' + log.work_order_no + '</div>' : '') + '</td>' +
+                            '<td style="padding:12px 14px;">' + detail1 + '</td>' +
+                            '<td style="padding:12px 14px;">' + detail2 + '</td>' +
+                            '<td style="padding:12px 14px;">' + driverOrPin + '</td>' +
+                            '<td style="padding:12px 14px; text-align:right; font-weight:800; font-size:0.95rem; color:#10b981; white-space:nowrap;">Nu. ' + log.total_amount + '</td>' +
+                            '<td style="padding:12px 14px; font-size:0.78rem; color:var(--sidebar-text);">👤 ' + log.entered_by + '</td>' +
+                            '<td style="padding:12px 14px; text-align:center;"><span style="font-size:0.75rem; color:var(--sidebar-text);">Just added</span></td>';
+                        tbody.insertBefore(tr, tbody.firstChild);
+                    });
+                }
+                document.getElementById('tyre-total-count').value = data.count;
+            })
+            .catch(() => {});
+    }
+    setInterval(fetchUpdates, 15000);
+})();
+
+function toggleVehicleMode(prefix) {
+    const selectWrap = document.getElementById(prefix + '_veh_select_wrap');
+    const customWrap = document.getElementById(prefix + '_veh_custom_wrap');
+    const toggleBtn = document.getElementById(prefix + '_veh_toggle_btn');
+    const customInput = document.getElementById(prefix + '_vehicle_custom');
+    
+    if (selectWrap.style.display !== 'none') {
+        selectWrap.style.display = 'none';
+        customWrap.style.display = 'block';
+        customInput.required = true;
+        customInput.focus();
+        toggleBtn.innerHTML = '📋 Choose from List';
+        toggleBtn.style.background = 'rgba(16,185,129,0.1)';
+        toggleBtn.style.color = '#10b981';
+        toggleBtn.style.borderColor = 'rgba(16,185,129,0.25)';
+    } else {
+        selectWrap.style.display = 'block';
+        customWrap.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+        toggleBtn.innerHTML = '✨ + New Vehicle';
+        toggleBtn.style.background = 'rgba(99,102,241,0.1)';
+        toggleBtn.style.color = '#6366f1';
+        toggleBtn.style.borderColor = 'rgba(99,102,241,0.25)';
+    }
+}
+
+function onVehicleSelectChange(prefix, el) {
+    if (el.value === '__NEW__') {
+        toggleVehicleMode(prefix);
+    } else {
+        hireFill(prefix);
+    }
+}
+
+function hireFillCustom(prefix, val) {
+    if (!val) return;
+    const cleanWO = (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let v = VEHICLES_LOOKUP.find(x => (x.regn && x.regn.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanWO));
+    const vendorEl = document.getElementById(prefix + '_vendor');
+    const woEl = document.getElementById(prefix + '_wo');
+    const locEl = prefix === 'add' ? document.querySelector('#addModal input[name="location"]') : document.getElementById('edit_location');
+
+    if (v) {
+        if (v.owner_name && vendorEl && !vendorEl.value.trim()) vendorEl.value = v.owner_name;
+        if (v.contract_ref && woEl && !woEl.value.trim()) woEl.value = v.contract_ref;
+        if (v.location && locEl && !locEl.value.trim()) locEl.value = v.location;
+    } else if (val.length >= 4) {
+        fetch('/deployment/vehicle-lookup/?regn=' + encodeURIComponent(val))
+            .then(r => r.json())
+            .then(d => {
+                if (d.found) {
+                    if (d.vendor && vendorEl && !vendorEl.value.trim()) vendorEl.value = d.vendor;
+                    if (d.work_order_no && woEl && !woEl.value.trim()) woEl.value = d.work_order_no;
+                }
+            }).catch(e => {});
+    }
+}
+
+// Vehicle Lookup and Auto-fill Script with Select2
+$(document).ready(function() {
+    // Initialize Select2 search dropdowns with tags: true (allows typing ANY custom vehicle)
+    $('#add_vehicle').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Vehicle Reg No --',
+        dropdownParent: $('#addModal')
+    });
+    $('#edit_vehicle').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Vehicle Reg No --',
+        dropdownParent: $('#editModal')
+    });
+    $('#add_driver_name').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Driver Name --',
+        dropdownParent: $('#addModal')
+    });
+    $('#edit_driver_name').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Driver Name --',
+        dropdownParent: $('#editModal')
+    });
+
+    let VEHICLES_LOOKUP = [];
+    function loadVehiclesLookup() {
+        fetch('/fleet/api/vehicles/lookup/?_=' + new Date().getTime())
+            .then(r => r.json())
+            .then(data => {
+                VEHICLES_LOOKUP = data;
+            });
+    }
+    loadVehiclesLookup();
+
+    function cleanStr(s) {
+        return (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function autofillFromVehicle(val, prefix) {
+        if (!val || val === '__NEW__') return;
+        const targetClean = cleanStr(val);
+        let v = VEHICLES_LOOKUP.find(x => String(x.id) === String(val) || cleanStr(x.regn) === targetClean || cleanStr(x.dno) === targetClean);
+        
+        const vendorEl = document.getElementById(prefix + '_vendor');
+        const woEl = document.getElementById(prefix + '_wo');
+        const locEl = prefix === 'add' ? document.querySelector('#addModal input[name="location"]') : document.getElementById('edit_location');
+
+        if (v) {
+            if (v.owner_name && vendorEl && !vendorEl.value.trim()) vendorEl.value = v.owner_name;
+            if (v.contract_ref && woEl && !woEl.value.trim()) woEl.value = v.contract_ref;
+            if (v.location && locEl && !locEl.value.trim()) locEl.value = v.location;
+        } else {
+            // Fetch dynamically
+            fetch('/deployment/vehicle-lookup/?regn=' + encodeURIComponent(val))
+                .then(r => r.json())
+                .then(d => {
+                    if (d.found) {
+                        if (d.vendor && vendorEl && !vendorEl.value.trim()) vendorEl.value = d.vendor;
+                        if (d.work_order_no && woEl && !woEl.value.trim()) woEl.value = d.work_order_no;
+                    }
+                }).catch(e => {});
+        }
+    }
+
+    // Add Modal Auto-fill
+    $(document).on('change', '#add_vehicle', function() {
+        if ($(this).val() === '__NEW__') {
+            toggleVehicleMode('add');
+            return;
+        }
+        autofillFromVehicle($(this).val(), 'add');
+    });
+
+    $(document).on('change input', '#add_wo', function() {
+        const val = $(this).val().trim();
+        if (!val) return;
+        const cleanWO = cleanStr(val);
+        const v = VEHICLES_LOOKUP.find(x => cleanStr(x.contract_ref) === cleanWO);
+        if (v) {
+            const curVeh = $('#add_vehicle').val();
+            if (!curVeh) {
+                $('#add_vehicle').val(v.id).trigger('change.select2');
+            }
+            if (v.owner_name && !$('#add_vendor').val().trim()) $('#add_vendor').val(v.owner_name);
+            if (v.location && !$('#addModal input[name="location"]').val().trim()) $('#addModal input[name="location"]').val(v.location);
+        }
+    });
+
+    // Edit Modal Auto-fill
+    $(document).on('change', '#edit_vehicle', function() {
+        if ($(this).val() === '__NEW__') {
+            toggleVehicleMode('edit');
+            return;
+        }
+        autofillFromVehicle($(this).val(), 'edit');
+    });
+
+    $(document).on('change input', '#edit_wo', function() {
+        const val = $(this).val().trim();
+        if (!val) return;
+        const cleanWO = cleanStr(val);
+        const v = VEHICLES_LOOKUP.find(x => cleanStr(x.contract_ref) === cleanWO);
+        if (v) {
+            const curVeh = $('#edit_vehicle').val();
+            if (!curVeh) {
+                $('#edit_vehicle').val(v.id).trigger('change.select2');
+            }
+            if (v.owner_name && !$('#edit_vendor').val().trim()) $('#edit_vendor').val(v.owner_name);
+            if (v.location && !$('#edit_location').val().trim()) $('#edit_location').val(v.location);
+        }
+    });
+});
+</script>
+{% endblock %}

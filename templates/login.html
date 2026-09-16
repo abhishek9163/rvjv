@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block auth_content %}
+<div class="auth-wrapper" style="perspective: 1000px;">
+    <div class="auth-card card" id="loginCard" style="border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); padding: 3rem 2rem; border: 1px solid var(--border); background: var(--card-bg);">
+        {% if show_otp %}
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <h1 style="color: var(--primary); font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 0.5rem; text-transform: uppercase;">P&M</h1>
+            <h2 style="font-size: 1.1rem; color: var(--sidebar-text); font-weight: 500;">Verify OTP</h2>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="verify_otp">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; display: block;">Enter OTP from Email</label>
+                <input type="text" name="otp" class="form-control" required placeholder="123456" style="padding: 1rem; font-size: 1.2rem; text-align: center; letter-spacing: 4px; border-radius: 12px; border: 2px solid var(--border);">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; padding: 1rem; border-radius: 12px; font-size: 1.1rem; font-weight: 600; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">Verify & Create Account</button>
+        </form>
+        {% else %}
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: rgba(99, 102, 241, 0.1); color: var(--primary); font-size: 2rem; margin-bottom: 1rem;">
+                🛡️
+            </div>
+            <h1 style="color: var(--text-color); font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.5rem; line-height: 1.2;">P&M</h1>
+            <h2 style="font-size: 1.1rem; color: var(--sidebar-text); font-weight: 500;">Welcome back to the portal</h2>
+        </div>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="authAction" value="login">
+            
+            <div id="signupFields" style="display: none;">
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="font-weight: 600; font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 0.5rem; display: block;">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="John Doe" style="padding: 0.9rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="font-weight: 600; font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 0.5rem; display: block;">Phone Number</label>
+                    <input type="text" name="phone_number" class="form-control" placeholder="+91 9876543210" style="padding: 0.9rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border);">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="font-weight: 600; font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 0.5rem; display: block;">Email Address / Username</label>
+                <input type="text" name="email" id="loginEmailInput" class="form-control" required placeholder="manager@pm.com or admin" 
+                    autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username"
+                    style="padding: 0.9rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border); font-size: 16px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 2rem; position: relative;">
+                <label style="font-weight: 600; font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 0.5rem; display: block;">Password</label>
+                <input type="password" name="password" id="loginPasswordInput" class="form-control" required placeholder="••••••••" 
+                    autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="current-password"
+                    style="padding: 0.9rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border); font-size: 16px;">
+                
+                <div id="forgotPasswordContainer" style="text-align: right; margin-top: 0.5rem;">
+                    <a href="#" style="color: var(--primary); font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">Forgot Password?</a>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <button type="submit" class="btn btn-primary" style="width:100%; padding: 1rem; border-radius: 12px; font-size: 1.05rem; font-weight: 600; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" id="submitBtn">Log In</button>
+                
+                <div style="display: flex; align-items: center; text-align: center; color: var(--border); margin: 0.5rem 0;">
+                    <div style="flex: 1; height: 1px; background: var(--border);"></div>
+                    <span style="padding: 0 1rem; font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600; text-transform: uppercase;">OR</span>
+                    <div style="flex: 1; height: 1px; background: var(--border);"></div>
+                </div>
+                
+                <button type="button" class="btn btn-outline" onclick="toggleAuth()" id="switchBtn" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 1.05rem; font-weight: 600; border: 2px solid var(--border); color: var(--text-color); background: transparent; transition: all 0.2s;">
+                    Create a new account
+                </button>
+
+                <div style="margin-top: 0.5rem; text-align: center;">
+                    <a href="{% url 'mess_login_view' %}" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 0.85rem; border-radius: 12px; background: rgba(147, 51, 234, 0.08); border: 1.5px solid rgba(147, 51, 234, 0.3); color: #7e22ce; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.2s;">
+                        <span>🍱</span>
+                        <span>Mess &amp; Canteen Worker Login →</span>
+                    </a>
+                </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    let isLogin = true;
+    function toggleAuth() {
+        isLogin = !isLogin;
+        
+        // Update Action & Main Button
+        document.getElementById('authAction').value = isLogin ? 'login' : 'signup';
+        document.getElementById('submitBtn').textContent = isLogin ? 'Log In' : 'Sign Up & Create Account';
+        
+        // Update Switch Button
+        document.getElementById('switchBtn').textContent = isLogin ? 'Create a new account' : 'Already have an account? Log In';
+        
+        // Show/Hide Fields & Forgot Password
+        document.getElementById('signupFields').style.display = isLogin ? 'none' : 'block';
+        document.getElementById('forgotPasswordContainer').style.display = isLogin ? 'block' : 'none';
+        
+        // Toggle required state
+        const inputs = document.getElementById('signupFields').querySelectorAll('input');
+        inputs.forEach(input => input.required = !isLogin);
+    }
+
+    // Auto-trim username/email on iOS Safari
+    document.addEventListener('DOMContentLoaded', () => {
+        const emailInp = document.getElementById('loginEmailInput');
+        if (emailInp) {
+            emailInp.form.addEventListener('submit', () => {
+                if (emailInp.value) {
+                    emailInp.value = emailInp.value.trim();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

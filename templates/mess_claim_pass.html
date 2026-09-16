@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Claim Meal Pass - {{ mess_location.name }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Full UI Isolation */
+    .floating-sidebar { display: none !important; }
+    .main-content { padding-left: 0 !important; margin: 0 auto !important; width: 100% !important; }
+
+    .claim-container { max-width: 520px; margin: 20px auto; padding: 12px; }
+    .claim-card {
+        background: white; border-radius: 24px; border: 1px solid #e2e8f0; padding: 22px;
+        box-shadow: 0 10px 35px rgba(0,0,0,0.06); text-align: center; position: relative; overflow: hidden;
+    }
+
+    /* Live Anti-Screenshot Animations */
+    @keyframes pulseGlow {
+        0% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), 0 0 30px rgba(34, 197, 94, 0.2); border-color: #22c55e; }
+        100% { box-shadow: 0 0 35px rgba(34, 197, 94, 0.9), 0 0 65px rgba(34, 197, 94, 0.5); border-color: #16a34a; }
+    }
+
+    @keyframes livePulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .pass-granted-card {
+        background: #f0fdf4; border: 3px solid #22c55e; border-radius: 20px; padding: 20px;
+        animation: pulseGlow 1.5s infinite alternate; margin-top: 16px; position: relative; overflow: hidden;
+        cursor: pointer;
+    }
+
+    #holoCanvasClaim {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        opacity: 0.18; pointer-events: none; z-index: 1;
+    }
+
+    .passcode-shimmer-box {
+        background: linear-gradient(90deg, #f8fafc 0%, #e0e7ff 40%, #dcfce7 60%, #f8fafc 100%);
+        border: 2px dashed #16a34a; border-radius: 16px; padding: 16px; margin: 16px 0;
+    }
+
+    .duplicate-alert-banner {
+        background: #fffbeb; border: 2px solid #f59e0b; border-radius: 16px; padding: 14px 16px;
+        margin-top: 16px; margin-bottom: 16px; text-align: left; display: flex; align-items: flex-start; gap: 12px;
+    }
+</style>
+
+<div class="claim-container">
+    <div class="claim-card">
+        <div style="font-size: 2.2rem; margin-bottom: 4px;">🍽️</div>
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">
+            {{ mess_location.name }}
+        </h2>
+        <p style="color: #64748b; font-size: 0.85rem; margin: 0 0 16px 0; font-weight: 600;">
+            Active Meal Window: <b style="color: #2563eb;">{{ active_meal }}</b> ({{ meal_timing }})
+        </p>
+
+        {% if result %}
+            {% if result.status == 'SUCCESS' %}
+                <div class="pass-granted-card" onclick="triggerClaimTap()">
+                    <!-- Live Canvas Holographic Moving Waves -->
+                    <canvas id="holoCanvasClaim"></canvas>
+
+                    <div style="position: relative; z-index: 5;">
+                        <!-- Live Microsecond Clock Anti-Screenshot Banner -->
+                        <div style="background: #0f172a; color: #38bdf8; border-radius: 12px; padding: 10px 14px; font-weight: 900; font-family: monospace; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border: 1px solid #334155;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e; display: inline-block; animation: livePulse 1.4s infinite;"></span>
+                                <span style="font-size: 0.8rem; color: #4ade80;">LIVE VERIFIED PASS</span>
+                            </div>
+                            <div>
+                                ⏱️ <span id="microClockClaim">--:--:--.--</span>
+                            </div>
+                        </div>
+
+                        <div style="display: inline-block; background: #16a34a; color: white; padding: 5px 18px; border-radius: 50px; font-weight: 900; font-size: 0.82rem; margin-bottom: 8px; letter-spacing: 0.5px;">
+                            ✓ DIGITALLY VERIFIED FOOD PASS
+                        </div>
+
+                        <h3 style="color: #0f172a; font-size: 1.4rem; font-weight: 900; margin: 6px 0 2px 0;">
+                            {{ result.emp_name }}
+                        </h3>
+                        <p style="color: #475569; font-size: 0.85rem; margin: 0 0 12px 0; font-weight: 700;">
+                            Emp ID: <span style="color: #2563eb;">{{ result.emp_id }}</span>
+                        </p>
+
+                        <!-- PROMINENT AUTHORIZED MESS LOCATION CARD -->
+                        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border: 2.5px solid #38bdf8; border-radius: 14px; padding: 12px 14px; margin: 10px 0 14px 0; text-align: center; box-shadow: 0 4px 14px rgba(15,23,42,0.18);">
+                            <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #38bdf8;">
+                                📍 AUTHORIZED FOOD COUNTER
+                            </div>
+                            <div style="font-size: 1.55rem; font-weight: 900; color: #f8fafc; margin: 4px 0 2px 0; letter-spacing: 0.5px;">
+                                🏢 {{ mess_location.name|upper }}
+                            </div>
+                            <div style="font-size: 0.75rem; font-weight: 800; color: #fef08a; background: rgba(234, 179, 8, 0.2); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 6px; padding: 3px 8px; display: inline-block; margin-top: 4px;">
+                                ⛔ VALID ONLY AT THIS MESS • STRICTLY INVALID AT OTHER MESSES
+                            </div>
+                        </div>
+
+                        <!-- Passcode with Continuous Shimmer Effect -->
+                        <div class="passcode-shimmer-box">
+                            <div style="font-size: 0.72rem; text-transform: uppercase; color: #15803d; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">OFFICIAL MEAL VERIFICATION CODE</div>
+                            <div style="font-family: monospace; font-size: 1.6rem; font-weight: 900; color: #0f172a; letter-spacing: 2px;">
+                                {{ result.token }}
+                            </div>
+                            <p style="font-size: 0.78rem; color: #15803d; margin: 6px 0 0 0; font-weight: 800;">
+                                ✓ Show this animated live screen to {{ mess_location.name }} Counter Staff
+                            </p>
+                        </div>
+
+                        <!-- Comprehensive Verification Details -->
+                        <div style="background: white; border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px; text-align: left; font-size: 0.85rem; color: #1e293b;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div><b>📅 Date:</b> {{ today_date|date:"D, d M Y" }}</div>
+                                <div><b>⏱️ Shift:</b> <span style="color: #6366f1; font-weight: 800;">{{ result.shift }}</span></div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div><b>🍽️ Meal:</b> <span style="color: #16a34a; font-weight: 800;">{{ result.meal_display|default:active_meal }}</span></div>
+                                <div><b>🏢 Department:</b> {{ result.department }}</div>
+                            </div>
+                            <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 4px; display: flex; justify-content: space-between;">
+                                <span><b>Authorized Mess:</b> <b style="color: #2563eb;">{{ mess_location.name }}</b></span>
+                                <span><b>Claimed:</b> <b style="color: #059669;">{{ result.time }}</b></span>
+                            </div>
+                        </div>
+
+                        <div id="tapToastClaim" style="display: none; margin-top: 10px; background: #0f172a; color: #4ade80; border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 0.78rem;">
+                            🛡️ AUTHENTIC LIVE DIGITAL PASS &bull; VERIFIED AT {{ mess_location.name|upper }}
+                        </div>
+                    </div>
+                </div>
+
+            {% elif result.status == 'DUPLICATE' %}
+
+                <!-- TOP DUPLICATE WARNING ALERT -->
+                <div class="duplicate-alert-banner" style="{% if result.is_diff_mess %}border-color: #dc2626; background: #fef2f2;{% endif %}">
+                    <div style="font-size: 2rem; line-height: 1;">{% if result.is_diff_mess %}🚫{% else %}⚠️{% endif %}</div>
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; color: {% if result.is_diff_mess %}#dc2626{% else %}#b45309{% endif %}; font-weight: 900; font-size: 1.05rem;">
+                            {% if result.is_diff_mess %}MULTI-MESS FRAUD BLOCKED — ALREADY EATEN ELSEWHERE!{% else %}ALREADY CLAIMED / DUPLICATE SCAN{% endif %}
+                        </h4>
+                        <p style="margin: 0; color: {% if result.is_diff_mess %}#991b1b{% else %}#92400e{% endif %}; font-size: 0.88rem; font-weight: 700; line-height: 1.4;">
+                            {{ result.msg }}
+                        </p>
+                        <div style="margin-top: 6px; font-size: 0.8rem; color: {% if result.is_diff_mess %}#7f1d1d{% else %}#b45309{% endif %}; font-weight: 800;">
+                            🕒 Current attempt at <b>{{ result.current_mess_name|default:mess_location.name }}</b>: <b>{{ result.current_attempt_time }}</b> (Blocked)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ORIGINAL VERIFIED PASS RECORD (PRESERVED) -->
+                <div class="pass-granted-card" style="border-color: #f59e0b; background: #fffdf7; animation: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="background: #f59e0b; color: white; padding: 4px 14px; border-radius: 50px; font-weight: 800; font-size: 0.78rem;">
+                            ✓ ORIGINAL RECORD FOUND
+                        </span>
+                        <span style="font-size: 0.8rem; color: #b45309; font-weight: 700;">
+                            First Claimed: {{ result.time }}
+                        </span>
+                    </div>
+
+                    <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 900; margin: 6px 0 2px 0;">
+                        {{ result.emp_name }}
+                    </h3>
+                    <p style="color: #475569; font-size: 0.85rem; margin: 0 0 12px 0; font-weight: 700;">
+                        Emp ID: {{ result.emp_id }}
+                    </p>
+
+                    <div class="passcode-shimmer-box" style="border-color: #f59e0b;">
+                        <div style="font-size: 0.72rem; text-transform: uppercase; color: #b45309; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">OFFICIAL RECORD PASSCODE</div>
+                        <div style="font-family: monospace; font-size: 1.5rem; font-weight: 900; color: #0f172a; letter-spacing: 2px;">
+                            {{ result.token }}
+                        </div>
+                        <p style="font-size: 0.78rem; color: #92400e; margin: 6px 0 0 0; font-weight: 700;">
+                            Your legitimate claim record is saved in system
+                        </p>
+                    </div>
+
+                    <div style="background: white; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px; text-align: left; font-size: 0.85rem; color: #1e293b;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <div><b>📅 Date:</b> {{ today_date|date:"D, d M Y" }}</div>
+                            <div><b>⏱️ Shift:</b> <span style="color: #6366f1; font-weight: 800;">{{ result.shift }}</span></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <div><b>🍽️ Meal:</b> <span style="color: #b45309; font-weight: 800;">{{ result.meal_display|default:active_meal }}</span></div>
+                            <div><b>🏢 Department:</b> {{ result.department }}</div>
+                        </div>
+                        <div style="border-top: 1px solid #f1f5f9; padding-top: 8px; margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span><b>Mess:</b> {{ mess_location.name }}</span>
+                            <span><b>Original Time:</b> <b style="color: #b45309;">{{ result.time }}</b></span>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+
+                <div class="duplicate-alert-banner" style="background: #fef2f2; border-color: #ef4444; text-align: left;">
+                    <div style="font-size: 2.2rem; line-height: 1;">🚫</div>
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; color: #b91c1c; font-size: 1.15rem; font-weight: 900;">
+                            WORKER NOT REGISTERED / INVALID ID
+                        </h4>
+                        <p style="margin: 0 0 10px 0; color: #991b1b; font-size: 0.88rem; font-weight: 600; line-height: 1.4;">{{ result.msg }}</p>
+                        <a href="{% url 'mess_claim_pass_view' mess_id=mess_location.id %}" style="display: inline-block; background: #dc2626; color: white; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; text-decoration: none;">
+                            🔄 Re-enter ID / Try Again
+                        </a>
+                    </div>
+                </div>
+
+            {% endif %}
+
+        {% else %}
+
+            <!-- FORM TO CLAIM PASS (Only for unauthenticated fallbacks) -->
+            <form method="POST" action="{% url 'mess_claim_pass_view' mess_id=mess_location.id %}">
+                {% csrf_token %}
+                <div style="text-align: left; margin-bottom: 16px;">
+                    <label style="font-weight: 700; font-size: 0.88rem; color: #334155; display: block; margin-bottom: 6px;">
+                        Employee Registration ID or Mobile Number *
+                    </label>
+                    <input type="text" name="emp_identifier" required value="{{ default_emp_id }}" placeholder="e.g. HR-EMP-26062698" class="form-control" style="width: 100%; border-radius: 10px; padding: 12px; border: 1px solid #cbd5e1; font-size: 0.95rem; font-weight: 700;">
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%; background: #16a34a; color: white; font-weight: 900; font-size: 1rem; border-radius: 12px; padding: 14px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(22,163,74,0.35);">
+                    ✅ Claim {{ active_meal }} Pass
+                </button>
+            </form>
+
+        {% endif %}
+
+        <div style="margin-top: 20px; font-size: 0.78rem; color: #94a3b8;">
+            Secured Mess Management System • Universal Anti-Passback Enabled
+        </div>
+    </div>
+</div>
+
+<script>
+function runMicroClockClaim() {
+    const el = document.getElementById('microClockClaim');
+    if (el) {
+        const now = new Date();
+        let h = now.getHours();
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        let m = String(now.getMinutes()).padStart(2, '0');
+        let s = String(now.getSeconds()).padStart(2, '0');
+        let ms = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+        el.innerText = `${String(h).padStart(2, '0')}:${m}:${s}.${ms} ${ampm}`;
+    }
+}
+setInterval(runMicroClockClaim, 50);
+
+function initHoloCanvasClaim() {
+    const canvas = document.getElementById('holoCanvasClaim');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = canvas.offsetWidth;
+    let height = canvas.height = canvas.offsetHeight;
+    let step = 0;
+
+    function renderWave() {
+        step += 0.04;
+        ctx.clearRect(0, 0, width, height);
+
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = i % 2 === 0 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.35)';
+            
+            for (let x = 0; x < width; x += 10) {
+                let y = Math.sin(x * 0.015 + step + i * 1.5) * 18 + (height / 2) + (i * 10 - 15);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+        requestAnimationFrame(renderWave);
+    }
+    renderWave();
+}
+window.addEventListener('DOMContentLoaded', initHoloCanvasClaim);
+
+function triggerClaimTap() {
+    const toast = document.getElementById('tapToastClaim');
+    if (toast) {
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+}
+</script>
+{% endblock %}

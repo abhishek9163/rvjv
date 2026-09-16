@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Attendance Register - {{ selected_date|date:"d M Y" }} | RIGSAR-VAJRA JV</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 10mm 12mm 10mm;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px 20px;
+            color: #000000;
+            background: #ffffff;
+            font-size: 10pt;
+        }
+
+        /* Top Edit / Control Toolbar */
+        .no-print-toolbar {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .toolbar-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .toolbar-field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+            margin-bottom: 3px;
+        }
+        .toolbar-field input, .toolbar-field select {
+            width: 100%;
+            padding: 6px 9px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+        .btn-print {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-print:hover { background: #1d4ed8; }
+        .btn-back {
+            background: #64748b;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Document Container */
+        .report-page-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Letterhead Header */
+        .letterhead-title {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .letterhead-title h1 {
+            font-size: 18pt;
+            font-weight: 900;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .letterhead-title h2 {
+            font-size: 11pt;
+            font-weight: 700;
+            margin: 4px 0 0;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+        .letterhead-title p {
+            font-size: 9pt;
+            margin: 2px 0 0;
+            color: #475569;
+        }
+
+        /* Metadata Banner */
+        .meta-table {
+            width: 100%;
+            margin-bottom: 12px;
+            font-size: 9.5pt;
+            border-collapse: collapse;
+        }
+        .meta-table td {
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+
+        /* Summary Stats Cards */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .stat-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 4px;
+            background: #f8fafc;
+        }
+        .stat-num {
+            font-size: 12pt;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .stat-lbl {
+            font-size: 7.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+            margin-top: 2px;
+        }
+
+        /* Main Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+            margin-bottom: 20px;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            color: #000;
+            font-weight: 800;
+            text-align: center;
+            padding: 6px 4px;
+            border: 1px solid #000000;
+            text-transform: uppercase;
+            font-size: 8pt;
+        }
+        .data-table td {
+            padding: 5px 4px;
+            border: 1px solid #334155;
+            vertical-align: middle;
+        }
+        .status-badge {
+            font-weight: 800;
+            font-size: 8pt;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            text-align: center;
+        }
+        .status-Present { background: #dcfce7; color: #15803d; }
+        .status-Absent { background: #fee2e2; color: #b91c1c; }
+        .status-Leave { background: #fef9c3; color: #a16207; }
+        .status-HalfDay { background: #e0e7ff; color: #4338ca; }
+        .status-NotMarked { color: #94a3b8; }
+
+        /* Signatures Section */
+        .signatures-container {
+            margin-top: 35px;
+            page-break-inside: avoid;
+            width: 100%;
+        }
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            text-align: center;
+        }
+        .signature-box {
+            padding-top: 40px;
+            border-top: 1.5px solid #000;
+        }
+        .sig-name {
+            font-weight: 800;
+            font-size: 10pt;
+            margin-bottom: 2px;
+        }
+        .sig-title {
+            font-size: 8.5pt;
+            color: #334155;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* Print Media Styles */
+        @media print {
+            .no-print-toolbar { display: none !important; }
+            body { padding: 0 !important; background: #fff !important; }
+            .report-page-container { max-width: 100% !important; }
+            .data-table th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .status-Present, .status-Absent, .status-Leave, .status-HalfDay { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Control Toolbar (Not Printed) -->
+    <div class="no-print-toolbar">
+        <div class="toolbar-top">
+            <div style="font-weight: 800; font-size: 15px; color: #1e293b;">
+                <i class="fas fa-file-pdf text-primary"></i> Daily Attendance Register PDF
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'attendance_hub' %}?date={{ selected_date_str }}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Register
+                </a>
+                <a href="{% url 'export_attendance_pdf' %}?mode=muster&month={{ selected_date.month }}&year={{ selected_date.year }}" class="btn-back" style="background: #4f46e5;">
+                    <i class="fas fa-calendar-alt"></i> Muster Roll PDF
+                </a>
+                <button onclick="window.print()" class="btn-print">
+                    <i class="fas fa-print"></i> Print / Save as PDF
+                </button>
+            </div>
+        </div>
+        <div class="toolbar-grid">
+            <div class="toolbar-field">
+                <label>Prepared By (Signatory 1)</label>
+                <input type="text" value="Time Keeper / Shift Sup." oninput="document.getElementById('sig1_title').innerText = this.value">
+            </div>
+            <div class="toolbar-field">
+                <label>Verified By (Signatory 2)</label>
+                <input type="text" value="Site Engineer (P&M)" oninput="document.getElementById('sig2_title').innerText = this.value">
+            </div>
+            <div class="toolbar-field">
+                <label>Approved By (Signatory 3)</label>
+                <input type="text" value="Plant & Machinery Manager" oninput="document.getElementById('sig3_title').innerText = this.value">
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Page -->
+    <div class="report-page-container">
+        
+        <!-- Letterhead Header -->
+        <div class="letterhead-title">
+            <h1>RIGSAR - VAJRA JV</h1>
+            <h2>{% if custom_title %}{{ custom_title|upper }}{% else %}DAILY ATTENDANCE REGISTER - PLANT &amp; MACHINERY DEPARTMENT{% endif %}</h2>
+            <p>Date: <strong>{{ selected_date|date:"l, d F Y" }}</strong> &bull; Department: <strong>{{ dept_filter|upper }}</strong>{% if desig_filter and desig_filter != 'all' %} &bull; Designation: <strong>{{ desig_filter|upper }}</strong>{% endif %}</p>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="stats-summary">
+            <div class="stat-box">
+                <div class="stat-num" style="color: #2563eb;">{{ stats.total_employees }}</div>
+                <div class="stat-lbl">Total Staff</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color: #16a34a;">{{ stats.present_count }}</div>
+                <div class="stat-lbl">Present</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color: #dc2626;">{{ stats.absent_count }}</div>
+                <div class="stat-lbl">Absent</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color: #ca8a04;">{{ stats.leave_count }}</div>
+                <div class="stat-lbl">On Leave</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color: #4f46e5;">{{ stats.half_day_count }}</div>
+                <div class="stat-lbl">Half Day</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color: #0d9488;">{{ stats.attendance_pct }}%</div>
+                <div class="stat-lbl">Attendance Rate</div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table class="data-table">
+            <thead>
+                <tr>
+                    {% if not selected_cols or 'SL.NO' in selected_cols %}<th style="width: 25px;">SL</th>{% endif %}
+                    {% if not selected_cols or 'EMPLOYEE ID' in selected_cols %}<th style="width: 80px;">EMP ID</th>{% endif %}
+                    {% if not selected_cols or 'NAME' in selected_cols %}<th>EMPLOYEE NAME</th>{% endif %}
+                    {% if not selected_cols or 'DESIGNATION' in selected_cols %}<th>DESIGNATION</th>{% endif %}
+                    {% if not selected_cols or 'DEPARTMENT' in selected_cols %}<th>DEPARTMENT</th>{% endif %}
+                    {% if not selected_cols or 'SHIFT' in selected_cols %}<th style="width: 70px;">SHIFT</th>{% endif %}
+                    {% if not selected_cols or 'STATUS' in selected_cols %}<th style="width: 75px;">STATUS</th>{% endif %}
+                    {% if not selected_cols or 'IN TIME' in selected_cols %}<th style="width: 65px;">IN TIME</th>{% endif %}
+                    {% if not selected_cols or 'OUT TIME' in selected_cols %}<th style="width: 65px;">OUT TIME</th>{% endif %}
+                    {% if not selected_cols or 'REMARKS' in selected_cols %}<th style="width: 80px;">REMARKS</th>{% endif %}
+                    {% if not selected_cols or 'SIGNATURE' in selected_cols %}<th style="width: 70px;">SIGNATURE</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in emp_attendance_list %}
+                <tr>
+                    {% if not selected_cols or 'SL.NO' in selected_cols %}
+                    <td style="text-align: center; font-weight: 700;">{{ forloop.counter }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'EMPLOYEE ID' in selected_cols %}
+                    <td style="text-align: center; font-weight: 700;">{{ item.employee.emp_id|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'NAME' in selected_cols %}
+                    <td style="font-weight: 700;">{{ item.employee.name }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'DESIGNATION' in selected_cols %}
+                    <td style="font-size: 8pt; color: #334155;">{{ item.employee.designation|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'DEPARTMENT' in selected_cols %}
+                    <td style="font-size: 8pt; color: #334155;">{{ item.employee.department|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'SHIFT' in selected_cols %}
+                    <td style="text-align: center; font-size: 8pt;">{{ item.shift }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'STATUS' in selected_cols %}
+                    <td style="text-align: center;">
+                        {% if item.status == 'Present' %}
+                            <span class="status-badge status-Present">PRESENT</span>
+                        {% elif item.status == 'Absent' %}
+                            <span class="status-badge status-Absent">ABSENT</span>
+                        {% elif item.status == 'On Leave' %}
+                            <span class="status-badge status-Leave">LEAVE</span>
+                        {% elif item.status == 'Half Day' %}
+                            <span class="status-badge status-HalfDay">HALF DAY</span>
+                        {% else %}
+                            <span class="status-badge status-NotMarked">-</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                    {% if not selected_cols or 'IN TIME' in selected_cols %}
+                    <td style="text-align: center; font-size: 8pt;">{{ item.in_time|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'OUT TIME' in selected_cols %}
+                    <td style="text-align: center; font-size: 8pt;">{{ item.out_time|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'REMARKS' in selected_cols %}
+                    <td style="font-size: 8pt;">{{ item.remarks|default:"-" }}</td>
+                    {% endif %}
+                    {% if not selected_cols or 'SIGNATURE' in selected_cols %}
+                    <td style="text-align: center; font-size: 7.5pt; color: #cbd5e1;">&nbsp;</td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" style="text-align: center; padding: 20px; color: #64748b;">No employees recorded for this filter criteria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Signatures -->
+        <div class="signatures-container">
+            <div class="signatures-grid">
+                <div class="signature-box">
+                    <div class="sig-name">{{ request.user.full_name|default:request.user.username }}</div>
+                    <div class="sig-title" id="sig1_title">Time Keeper / Shift Supervisor</div>
+                </div>
+                <div class="signature-box">
+                    <div class="sig-name">&nbsp;</div>
+                    <div class="sig-title" id="sig2_title">Site Engineer (P&M)</div>
+                </div>
+                <div class="signature-box">
+                    <div class="sig-name">&nbsp;</div>
+                    <div class="sig-title" id="sig3_title">Plant & Machinery Manager</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

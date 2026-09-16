@@ -1,0 +1,1897 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .page-title-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+    }
+    .page-title {
+        margin: 0;
+        color: var(--text-color);
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+    .page-subtitle {
+        margin: 0;
+        color: var(--sidebar-text);
+        font-size: 0.95rem;
+        margin-top: 0.5rem;
+    }
+    .tabs-wrapper {
+        display: flex;
+        gap: 1rem;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 2rem;
+    }
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--sidebar-text);
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: -2px;
+    }
+    .tab-btn:hover {
+        color: var(--primary);
+    }
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+    .tab-pane {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+    .tab-pane.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Document Cards */
+    .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 1.5rem;
+    }
+    .doc-card {
+        background: linear-gradient(145deg, var(--card-bg) 0%, var(--bg-subtle) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .doc-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    }
+    
+    .doc-card.status-Valid { border-top: 5px solid #10b981; }
+    .doc-card.status-Warning { border-top: 5px solid #f59e0b; }
+    .doc-card.status-Critical { border-top: 5px solid #ef4444; }
+    .doc-card.status-Expired { border-top: 5px solid #ef4444; background: linear-gradient(145deg, var(--card-bg) 0%, #fee2e2 100%); }
+    
+    .doc-header {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        background: var(--card-bg);
+    }
+    [data-theme="dark"] .doc-header { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+    .doc-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0 0 0.3rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .doc-subtitle {
+        font-size: 0.85rem;
+        color: var(--sidebar-text);
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .doc-body {
+        padding: 1.25rem 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+    .info-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        background: var(--card-bg);
+        padding: 0.75rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+    }
+    .info-label {
+        font-size: 0.7rem;
+        color: var(--sidebar-text);
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .info-value {
+        font-size: 0.95rem;
+        color: var(--text-color);
+        font-weight: 700;
+    }
+    
+    .add-btn {
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        color: white;
+        border: none;
+        padding: 0.7rem 1.4rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+    }
+
+    /* List View Styles */
+    .view-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .view-list .doc-card {
+        flex-direction: row;
+        align-items: stretch;
+        border-left-width: 5px;
+        border-top: 1px solid var(--border);
+    }
+    .view-list .doc-card.status-Valid { border-left-color: #10b981; }
+    .view-list .doc-card.status-Warning { border-left-color: #f59e0b; }
+    .view-list .doc-card.status-Critical { border-left-color: #ef4444; }
+    .view-list .doc-card.status-Expired { border-left-color: #ef4444; }
+
+    .view-list .doc-header {
+        flex: 0 0 280px;
+        border-bottom: none;
+        border-right: 1px solid var(--border);
+        padding: 1.25rem 1.5rem;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .doc-actions {
+        padding: 0.75rem 1.5rem;
+        background: var(--bg-subtle);
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+    }
+    .view-list .doc-actions {
+        border-top: none;
+        border-left: 1px solid var(--border);
+        flex-direction: column;
+        justify-content: center;
+        background: transparent;
+    }
+    .view-list .doc-actions form {
+        display: block;
+        width: 100%;
+    }
+    .view-list .doc-actions button {
+        width: 100%;
+    }
+
+    .view-list .status-badge {
+        margin-top: 0.5rem;
+        align-self: flex-start;
+    }
+    .view-list .doc-body {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        padding: 1.25rem 1.5rem;
+        gap: 1rem;
+    }
+    .view-list .info-group {
+        background: transparent;
+        border: none;
+        padding: 0;
+        flex: 1;
+    }
+
+    /* Filters */
+    .filter-bar {
+        background: var(--card-bg);
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .filter-controls {
+        display: flex;
+        gap: 1rem;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        min-width: 150px;
+    }
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        text-transform: uppercase;
+    }
+    .filter-input {
+        padding: 0.6rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+    
+    .view-toggle {
+        display: flex;
+        background: var(--bg-color);
+        border-radius: 8px;
+        padding: 4px;
+        border: 1px solid var(--border);
+    }
+    .view-btn {
+        padding: 0.5rem 0.8rem;
+        border: none;
+        background: transparent;
+        color: var(--sidebar-text);
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .view-btn.active {
+        background: var(--card-bg);
+        color: var(--primary);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    /* Autocomplete Styles */
+    .autocomplete-suggestions {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-top: 4px;
+    }
+    .autocomplete-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item small { color: var(--sidebar-text); display: block; font-size: 0.75rem; }
+
+    @media (max-width: 768px) {
+        .page-title-section {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            text-align: center;
+            gap: 15px;
+        }
+        .page-title-section > div {
+            text-align: center;
+        }
+        .tabs-wrapper {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            justify-content: flex-start !important;
+            gap: 0.5rem !important;
+            padding-bottom: 6px !important;
+            scrollbar-width: none;
+        }
+        .tabs-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-btn {
+            flex: 0 0 auto !important;
+            white-space: nowrap !important;
+            padding: 0.6rem 1rem !important;
+            font-size: 0.85rem !important;
+        }
+        .doc-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+        .doc-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+        }
+    }
+    
+    .ins-cat-pill:hover {
+        border-color: var(--primary) !important;
+        color: var(--primary) !important;
+    }
+    .ins-cat-pill.active-pill {
+        background: var(--primary) !important;
+        color: white !important;
+        border-color: var(--primary) !important;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+</style>
+
+<div class="container" style="max-width: 96%; margin: 2rem auto;">
+    <div class="page-title-section">
+        <div>
+            <h2 class="page-title">Document Expiration Alerts</h2>
+            <p class="page-subtitle">Track and manage expiring documents for Vehicles and Employees.</p>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setViewMode('grid')" id="btn-grid" title="Card View">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+                <button class="view-btn" onclick="setViewMode('list')" id="btn-list" title="List View">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                </button>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+        </div>
+    </div>
+    
+        <div class="tabs-wrapper">
+        <button class="tab-btn active" onclick="switchDocTab('vehicles')" style="display: flex; align-items: center; gap: 8px;">
+        RC Documents
+        {% if vehicle_rc_alerts_count > 0 %}
+            <span style="background: #ef4444; color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 20px;">
+                {{ vehicle_rc_alerts_count }}
+            </span>
+        {% endif %}
+        </button>
+        <button class="tab-btn" onclick="switchDocTab('insurance')" style="display: flex; align-items: center; gap: 8px;">
+        Insurance Documents
+        {% if insurance_alerts_count > 0 %}
+            <span style="background: #ef4444; color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 20px;">
+                {{ insurance_alerts_count }}
+            </span>
+        {% endif %}
+        </button>
+        <button class="tab-btn" onclick="switchDocTab('employees')" style="display: flex; align-items: center; gap: 8px;">
+        Asset Permits
+        {% if employee_alerts_count > 0 %}
+            <span style="background: #ef4444; color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 20px;">
+                {{ employee_alerts_count }}
+            </span>
+        {% endif %}
+        </button>
+    </div>
+
+    <!-- VEHICLES TAB -->
+    <div id="tab-vehicles" class="tab-pane active">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="margin:0; color:var(--text-color); font-size: 1.4rem; font-weight: 800;">Vehicle Registration Certificates (RC)</h3>
+                <p style="margin: 4px 0 0 0; color: var(--sidebar-text); font-size: 0.88rem;">P&M Fleet • Vehicles, Heavy Machinery, Excavators, Compactor &amp; Tanker RC Expiry Register</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap: wrap;">
+                <button class="add-btn" style="background:var(--success);" onclick="openImportModal('rc')">&#128190; Import Excel</button>
+                <button class="add-btn" onclick="document.getElementById('addVehicleRCModal').style.display='flex'">+ Add RC Record</button>
+            </div>
+        </div>
+
+        <!-- RC KPI Stats Banner -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 1.5rem;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); cursor: pointer;" onclick="document.getElementById('veh-status').value='ALL'; filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">{% if rc_stats.total %}{{ rc_stats.total }}{% else %}{{ vehicle_docs|length }}{% endif %}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-top: 3px;">Total RC Records</div>
+            </div>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('veh-status').value='Good'; filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a;">{{ rc_stats.valid|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #15803d; text-transform: uppercase; margin-top: 3px;">Valid (>90d)</div>
+            </div>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('veh-status').value='Warning'; filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #d97706;">{{ rc_stats.warning|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #b45309; text-transform: uppercase; margin-top: 3px;">Warning (30-90d)</div>
+            </div>
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('veh-status').value='Critical'; filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">{{ rc_stats.critical|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #b91c1c; text-transform: uppercase; margin-top: 3px;">Critical (<30d)</div>
+            </div>
+            <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('veh-status').value='Expired'; filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #991b1b;">{{ rc_stats.expired|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #881337; text-transform: uppercase; margin-top: 3px;">Expired</div>
+            </div>
+        </div>
+        
+        <div class="filter-bar">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label>Search Details</label>
+                    <input type="text" id="veh-search" class="filter-input" placeholder="Reg No, Chassis, Engine, Type..." oninput="filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results')">
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="veh-status" class="filter-input" onchange="filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results')">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Good">🟢 Valid (>90 Days)</option>
+                        <option value="Warning">🟡 Warning (30-90 Days)</option>
+                        <option value="Critical">🔴 Critical (<30 Days)</option>
+                        <option value="Expired">⚫ Expired</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Expiry From</label>
+                    <input type="date" id="veh-date-from" class="filter-input" onchange="filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results')">
+                </div>
+                <div class="filter-group">
+                    <label>Expiry To</label>
+                    <input type="date" id="veh-date-to" class="filter-input" onchange="filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results')">
+                </div>
+            </div>
+            <button class="btn btn-outline" style="height: 42px;" onclick="resetFilters('veh')">Clear</button>
+        </div>
+        
+        <div class="doc-grid" id="veh-grid">
+            {% for item in vehicle_docs %}
+            <div class="doc-card status-{{ item.status }}" 
+                 data-search="{{ item.doc.registration_no|lower }} {{ item.doc.vehicle_type|lower }} {{ item.doc.chassis_no|default:''|lower }} {{ item.doc.engine_no|default:''|lower }} {{ item.doc.company|default:''|lower }} {{ item.doc.driver_operator|default:''|lower }}"
+                 data-status="{{ item.status }}" data-expiry="{{ item.doc.rc_expiry_date|date:'Y-m-d'|default:'' }}">
+                <div class="doc-header">
+                    <div>
+                        <h4 class="doc-title" style="letter-spacing: 0.5px;">{{ item.doc.registration_no|default:"Unknown Reg" }}</h4>
+                        <p class="doc-subtitle" style="font-weight: 700; color: var(--primary);">{{ item.doc.vehicle_type|default:"Unknown Vehicle" }}</p>
+                    </div>
+                    <div class="status-badge" style="background: {{ item.status_bg }}; color: {{ item.status_color }};">{{ item.status|upper }}</div>
+                </div>
+                <div class="doc-body">
+                    <div class="info-group">
+                        <span class="info-label">Company</span>
+                        <span class="info-value" style="font-weight: 700; color: #2563eb;">{{ item.doc.company|default:"RVJV" }}</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label" style="color: {{ item.status_color }}; font-weight: 700;">RC Expiry</span>
+                        <span class="info-value" style="color: {{ item.status_color }}; font-weight: 800;">
+                            {{ item.doc.rc_expiry_date|date:"d M Y"|default:"N/A" }}
+                            {% if item.days_left < 0 %}
+                                <small style="display:block; font-size: 0.72rem; color: #ef4444;">Expired</small>
+                            {% elif item.days_left <= 90 %}
+                                <small style="display:block; font-size: 0.72rem; color: {{ item.status_color }};">{{ item.days_left }}d left</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Chassis No.</span>
+                        <span class="info-value" style="font-family: monospace; font-size: 0.82rem;">{{ item.doc.chassis_no|default:"N/A" }}</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Engine No.</span>
+                        <span class="info-value" style="font-family: monospace; font-size: 0.82rem;">{{ item.doc.engine_no|default:"N/A" }}</span>
+                    </div>
+                    {% if item.doc.rc_issued_on %}
+                    <div class="info-group">
+                        <span class="info-label">RC Issued</span>
+                        <span class="info-value">{{ item.doc.rc_issued_on|date:"d M Y" }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="info-group" style="grid-column: 1/-1;">
+                        <span class="info-label">Driver / Fleet Incharge</span>
+                        <span class="info-value">{{ item.doc.driver_operator|default:"P&M Fleet / RVJV" }}{% if item.doc.contact_no %} • {{ item.doc.contact_no }}{% endif %}</span>
+                    </div>
+                </div>
+                <div class="doc-actions">
+                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem;" onclick="document.getElementById('editVehicleRCModal_{{ item.doc.id }}').style.display='flex'">Edit</button>
+                    <form action="{% url 'delete_rc_action' item.doc.id %}" method="POST" onsubmit="return confirm('Delete this RC record?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 4px 10px; font-size: 0.75rem; background: #fee2e2;">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; display: none;" id="veh-no-results">
+                <h3>No Matches Found</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSURANCE TAB -->
+    <div id="tab-insurance" class="tab-pane">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="margin:0; color:var(--text-color); font-size: 1.4rem; font-weight: 800;">Vehicle &amp; Equipment Insurance Register</h3>
+                <p style="margin: 4px 0 0 0; color: var(--sidebar-text); font-size: 0.88rem;">P&M Department • Pool Vehicles, Heavy Machinery &amp; Tankers Insurance Policies</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap: wrap;">
+                <button type="button" class="add-btn" style="background:#10b981; display:inline-flex; align-items:center; gap:6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);" onclick="openInsuranceExportModal()">
+                    <i class="fas fa-file-export"></i> Export
+                </button>
+                <button type="button" class="add-btn" style="background:#0284c7;" onclick="openImportModal('insurance')">
+                    &#128190; Import Excel
+                </button>
+                <button type="button" class="add-btn" onclick="document.getElementById('addInsuranceModal').style.display='flex'">
+                    + Add Insurance Record
+                </button>
+            </div>
+        </div>
+
+        <!-- Insurance KPI Stats Banner -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 1.5rem;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">{% if ins_stats.total %}{{ ins_stats.total }}{% else %}{{ insurance_docs|length }}{% endif %}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-top: 3px;">Total Policies</div>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); cursor: pointer;" onclick="selectInsCategory('Pool Vehicle')">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #3b82f6;">{{ ins_stats.pool_count|default:18 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-top: 3px;">Pool Vehicles</div>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); cursor: pointer;" onclick="selectInsCategory('Equipment')">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #8b5cf6;">{{ ins_stats.equipment_count|default:36 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-top: 3px;">Equipments</div>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); cursor: pointer;" onclick="selectInsCategory('Tanker')">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #06b6d4;">{{ ins_stats.tanker_count|default:6 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-top: 3px;">Tankers</div>
+            </div>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('ins-status').value='Good'; filterInsurance();">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a;">{{ ins_stats.valid|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #15803d; text-transform: uppercase; margin-top: 3px;">Valid (>90d)</div>
+            </div>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('ins-status').value='Warning'; filterInsurance();">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #d97706;">{{ ins_stats.warning|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #b45309; text-transform: uppercase; margin-top: 3px;">Warning (30-90d)</div>
+            </div>
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 12px 14px; text-align: center; cursor: pointer;" onclick="document.getElementById('ins-status').value='Critical'; filterInsurance();">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">{{ ins_stats.critical|add:ins_stats.expired|default:0 }}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #b91c1c; text-transform: uppercase; margin-top: 3px;">Critical / Expired</div>
+            </div>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div style="display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--sidebar-text); text-transform: uppercase; margin-right: 4px;">Category:</span>
+            <button type="button" class="ins-cat-pill active-pill" data-cat="ALL" onclick="selectInsCategory('ALL')" style="padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-color); cursor: pointer; transition: all 0.2s;">All ({{ insurance_docs|length }})</button>
+            <button type="button" class="ins-cat-pill" data-cat="Pool Vehicle" onclick="selectInsCategory('Pool Vehicle')" style="padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-color); cursor: pointer; transition: all 0.2s;">🚗 Pool Vehicles ({{ ins_stats.pool_count|default:18 }})</button>
+            <button type="button" class="ins-cat-pill" data-cat="Equipment" onclick="selectInsCategory('Equipment')" style="padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-color); cursor: pointer; transition: all 0.2s;">🚜 Equipments &amp; Machinery ({{ ins_stats.equipment_count|default:36 }})</button>
+            <button type="button" class="ins-cat-pill" data-cat="Tanker" onclick="selectInsCategory('Tanker')" style="padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-color); cursor: pointer; transition: all 0.2s;">🚚 Tankers ({{ ins_stats.tanker_count|default:6 }})</button>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="filter-bar">
+            <div class="filter-controls">
+                <div class="filter-group" style="flex: 1.5; min-width: 200px;">
+                    <label>Live Search</label>
+                    <input type="text" id="ins-search" class="filter-input" placeholder="Search Reg No, Driver, Vehicle Type, Site, Supplier..." oninput="filterInsurance()">
+                </div>
+                <div class="filter-group" style="display:none;">
+                    <label>Category</label>
+                    <select id="ins-category" class="filter-input" onchange="filterInsurance()">
+                        <option value="ALL">All Categories</option>
+                        <option value="Pool Vehicle">Pool Vehicle</option>
+                        <option value="Equipment">Equipment / Machinery</option>
+                        <option value="Tanker">Tanker</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="ins-status" class="filter-input" onchange="filterInsurance()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Good">Valid (>90 Days)</option>
+                        <option value="Warning">Warning (30-90 Days)</option>
+                        <option value="Critical">Critical (&lt;30 Days)</option>
+                        <option value="Expired">Expired</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Work Site / Location</label>
+                    <select id="ins-site" class="filter-input" onchange="filterInsurance()">
+                        <option value="ALL">All Work Sites</option>
+                        {% for site in ins_sites %}
+                        <option value="{{ site }}">{{ site }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Expiry From</label>
+                    <input type="date" id="ins-date-from" class="filter-input" onchange="filterInsurance()">
+                </div>
+                <div class="filter-group">
+                    <label>Expiry To</label>
+                    <input type="date" id="ins-date-to" class="filter-input" onchange="filterInsurance()">
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline" style="height: 42px; margin-top: auto;" onclick="resetInsFilters()">Clear</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.9rem; color: var(--sidebar-text); font-weight: 600;">
+            <div>Showing <span id="ins-grid-count" style="color:var(--text-color); font-weight: 800;">{{ insurance_docs|length }}</span> of {{ insurance_docs|length }} insurance policies</div>
+        </div>
+
+        <div class="doc-grid" id="ins-grid">
+            {% for item in insurance_docs %}
+            <div class="doc-card status-{{ item.status }}" 
+                 data-search="{{ item.doc.driver_operator|default:''|lower }} {{ item.doc.night_driver|default:''|lower }} {{ item.doc.registration_no|default:''|lower }} {{ item.doc.vehicle_type|default:''|lower }} {{ item.doc.company_supplier|default:''|lower }} {{ item.doc.work_site|default:''|lower }} {{ item.doc.insurance_provider|default:''|lower }} {{ item.doc.policy_no|default:''|lower }} {{ item.doc.category|default:''|lower }}"
+                 data-category="{{ item.doc.category|default:'Pool Vehicle' }}"
+                 data-status="{{ item.status }}"
+                 data-site="{{ item.doc.work_site|default:'' }}"
+                 data-expiry="{{ item.doc.expiry_date|date:'Y-m-d'|default:'' }}">
+                
+                <div class="doc-header">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); text-transform: uppercase;">
+                                {{ item.doc.category|default:"Pool Vehicle" }}
+                            </span>
+                            <span style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); background: var(--bg-subtle); padding: 2px 6px; border-radius: 6px;">
+                                {{ item.doc.company_supplier|default:"RVJV" }}
+                            </span>
+                        </div>
+                        <h4 class="doc-title" style="letter-spacing: -0.3px; margin: 0 0 2px 0;">
+                            {{ item.doc.registration_no|default:"No Reg" }}
+                        </h4>
+                        <p class="doc-subtitle">{{ item.doc.vehicle_type|default:"Heavy Vehicle / Machinery" }}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="status-badge" style="background: {{ item.status_bg }}; color: {{ item.status_color }};">{{ item.status|upper }}</div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: {{ item.status_color }}; margin-top: 4px;">
+                            {% if item.days_left < 0 %}
+                                Expired {{ item.days_left|stringformat:"d"|slice:"1:" }}d ago
+                            {% elif item.days_left == 9999 %}
+                                No Expiry Date
+                            {% else %}
+                                {{ item.days_left }} days left
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="doc-body" style="grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem 1.25rem;">
+                    <div class="info-group">
+                        <span class="info-label">☀️ Day Driver</span>
+                        <span class="info-value" style="font-size: 0.88rem;">{{ item.doc.driver_operator|default:"Not Assigned" }}</span>
+                        {% if item.doc.contact_no %}
+                        <small style="color: var(--sidebar-text); font-size: 0.75rem;"><a href="tel:{{ item.doc.contact_no }}" style="color: var(--primary); text-decoration: none;">📞 {{ item.doc.contact_no }}</a></small>
+                        {% endif %}
+                    </div>
+
+                    <div class="info-group">
+                        <span class="info-label">🌙 Night Driver</span>
+                        <span class="info-value" style="font-size: 0.88rem;">{{ item.doc.night_driver|default:"None" }}</span>
+                        {% if item.doc.night_contact %}
+                        <small style="color: var(--sidebar-text); font-size: 0.75rem;"><a href="tel:{{ item.doc.night_contact }}" style="color: var(--primary); text-decoration: none;">📞 {{ item.doc.night_contact }}</a></small>
+                        {% endif %}
+                    </div>
+
+                    <div class="info-group">
+                        <span class="info-label">📍 Work Site / Location</span>
+                        <span class="info-value" style="font-size: 0.85rem;">{{ item.doc.work_site|default:"Head Office / General" }}</span>
+                    </div>
+
+                    <div class="info-group">
+                        <span class="info-label">🛡️ Insurance Expiry</span>
+                        <span class="info-value" style="font-size: 0.88rem; color: {{ item.status_color }}; font-weight: 800;">
+                            {{ item.doc.expiry_date|date:"d M Y"|default:"N/A" }}
+                        </span>
+                    </div>
+
+                    <div class="info-group" style="grid-column: 1 / -1; background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06);">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--sidebar-text);">
+                            <span><strong>Provider:</strong> {{ item.doc.insurance_provider|default:"RICBL / Royal Insurance" }}</span>
+                            {% if item.doc.reports_to %}<span><strong>Reports:</strong> {{ item.doc.reports_to }}</span>{% endif %}
+                        </div>
+                        {% if item.doc.remarks %}
+                        <div style="font-size: 0.75rem; color: var(--sidebar-text); margin-top: 4px; font-style: italic;">
+                            Note: {{ item.doc.remarks }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="doc-actions">
+                    <button type="button" class="btn btn-outline" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 600;" onclick="document.getElementById('editInsuranceModal_{{ item.doc.id }}').style.display='flex'">
+                        ✏️ Edit Details
+                    </button>
+                    <form action="{% url 'delete_insurance_action' item.doc.id %}" method="POST" onsubmit="return confirm('Are you sure you want to delete insurance record for {{ item.doc.registration_no }}?');" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 5px 12px; font-size: 0.8rem; background: #fee2e2; font-weight: 600;">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; display: none;" id="ins-no-results">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+                <h3 style="margin: 0; color: var(--text-color);">No Insurance Policies Found</h3>
+                <p style="color: var(--sidebar-text); margin-top: 0.5rem;">Try adjusting your search terms or filter criteria.</p>
+                <button type="button" class="btn btn-outline" style="margin-top: 1rem;" onclick="resetInsFilters()">Reset All Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EMPLOYEES TAB -->
+    <div id="tab-employees" class="tab-pane">
+        <h3 style="margin:0 0 1.5rem 0; color:var(--text-color);">Asset Permits & Documents</h3>
+        
+        <div class="filter-bar">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label>Search Asset / Permit</label>
+                    <input type="text" id="emp-doc-search" class="filter-input" placeholder="Name, ID, Permit No..." oninput="filterGrid('emp-doc-search', 'emp-doc-status', '', '', 'emp-grid', '')">
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="emp-doc-status" class="filter-input" onchange="filterGrid('emp-doc-search', 'emp-doc-status', '', '', 'emp-grid', '')">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Good">Valid / Good</option>
+                        <option value="Warning">Warning (30-90 Days)</option>
+                        <option value="Critical">Critical (&lt; 30 Days)</option>
+                        <option value="Expired">Expired</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-outline" style="height: 42px;" onclick="resetFilters('emp-doc')">Clear</button>
+        </div>
+        
+        <div style="font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 1rem; font-weight: 500;">Showing <span id="emp-grid-count">{{ documents|length }}</span> entries</div>
+        <div class="doc-grid" id="emp-grid">
+            {% for item in documents %}
+            <div class="doc-card status-{{ item.status }}" data-status="{{ item.status }}" data-search="{{ item.employee_name|lower }} {{ item.employee_id|lower }} {{ item.doc_number|lower }}" data-expiry="{{ item.expiry_date|date:'Y-m-d' }}">
+                <div class="doc-header">
+                    <div>
+                        <h4 class="doc-title">{{ item.employee_name }}</h4>
+                        <p class="doc-subtitle">ID: {{ item.employee_id }}</p>
+                    </div>
+                    <div class="status-badge" style="background: {{ item.status_bg }}; color: {{ item.status_color }};">{{ item.status|upper }}</div>
+                </div>
+                <div class="doc-body">
+                    <div class="info-group"><span class="info-label">Type</span><span class="info-value">{{ item.doc_type }}</span></div>
+                    <div class="info-group"><span class="info-label">Number</span><span class="info-value">{{ item.doc_number }}</span></div>
+                    <div class="info-group" style="grid-column: 1 / -1;"><span class="info-label">Expiry Date</span><span class="info-value" style="color: {{ item.status_color }};">{{ item.expiry_date|date:"d M Y" }}</span></div>
+                </div>
+                <div class="doc-actions">
+                    <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openEditAssetPermitModal('{{ item.source_type }}', '{{ item.id }}', '{{ item.employee_name|escapejs }}', '{{ item.doc_number|escapejs }}', '{{ item.expiry_date|date:'Y-m-d'|default:'' }}')">✏️ Edit</button>
+                    <form action="{% url 'delete_asset_permit_action' item.source_type item.id %}" method="POST" onsubmit="return confirm('Are you sure you want to delete / remove this permit record for {{ item.employee_name|escapejs }}?');" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 4px 10px; font-size: 0.75rem; background: #fee2e2; font-weight: 600;">🗑️ Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding RC -->
+<div id="addVehicleRCModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 550px; border-radius: 20px; overflow: hidden; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--text-color);">Add RC Record</h3>
+                <button type="button" class="add-btn" style="background:var(--primary); padding: 5px 10px; font-size: 0.85rem;" onclick="document.getElementById('rc_ocr_input').click()">&#128247; Scan RC</button>
+                <input type="file" id="rc_ocr_input" accept="image/*" capture="environment" style="display:none;" onchange="handleOCR(this, 'rc', 'addVehicleRCModal')">
+            </div>
+        </div>
+        <form action="{% url 'document_alerts' %}" method="POST" style="padding: 2rem;">
+            {% csrf_token %}
+            <input type="hidden" name="add_vehicle_rc" value="1">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div style="grid-column: 1/-1;">
+                    <label>Driver / Operator</label>
+                    <div style="position: relative;">
+                        <input type="text" id="rc_driver_search" name="driver_operator" class="form-control" placeholder="Type to search employee..." autocomplete="off">
+                        <div id="rc_driver_suggestions" class="autocomplete-suggestions"></div>
+                    </div>
+                </div>
+                <div><label>Vehicle Type</label><input type="text" name="vehicle_type" class="form-control" placeholder="e.g. Bolero Camper, Scorpio"></div>
+                <div><label>Registration No.</label><input type="text" name="registration_no" class="form-control" placeholder="e.g. BP-3-A6662" required></div>
+                <div><label>Company</label><input type="text" name="company" class="form-control" value="RVJV"></div>
+                <div><label>Contact No.</label><input type="text" id="rc_contact_no" name="contact_no" class="form-control"></div>
+                <div><label>Chassis No.</label><input type="text" name="chassis_no" class="form-control" placeholder="Chassis No."></div>
+                <div><label>Engine No.</label><input type="text" name="engine_no" class="form-control" placeholder="Engine No."></div>
+                <div><label>Reports To</label><input type="text" name="reports_to" class="form-control" placeholder="e.g. P&M Incharge"></div>
+                <div><label>RC Issued On</label><input type="date" name="rc_issued_on" class="form-control"></div>
+                <div style="grid-column: 1/-1;"><label>RC Expiry Date *</label><input type="date" name="rc_expiry_date" class="form-control" required></div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Save</button>
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'addVehicleRCModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for adding Insurance -->
+<div id="addInsuranceModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; overflow-y: auto; padding: 20px 0;">
+    <div class="card" style="width: 90%; max-width: 680px; border-radius: 20px; overflow: hidden; background: var(--card-bg); margin: auto;">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; color: var(--text-color);">Add Insurance Record</h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--sidebar-text);">Register vehicle, equipment or tanker insurance</p>
+                </div>
+                <div style="display:flex; gap: 8px;">
+                    <button type="button" class="add-btn" style="background:var(--primary); padding: 5px 12px; font-size: 0.85rem;" onclick="document.getElementById('ins_ocr_input').click()">&#128247; Scan</button>
+                    <input type="file" id="ins_ocr_input" accept="image/*" capture="environment" style="display:none;" onchange="handleOCR(this, 'insurance', 'addInsuranceModal')">
+                </div>
+            </div>
+        </div>
+        <form action="{% url 'document_alerts' %}" method="POST" style="padding: 1.75rem;">
+            {% csrf_token %}
+            <input type="hidden" name="add_insurance" value="1">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div>
+                    <label>Category *</label>
+                    <select name="category" class="form-control" required>
+                        <option value="Pool Vehicle">Pool Vehicle</option>
+                        <option value="Equipment / Machinery">Equipment / Machinery</option>
+                        <option value="Tanker">Tanker</option>
+                        <option value="Light Vehicle">Light Vehicle</option>
+                        <option value="Heavy Vehicle">Heavy Vehicle</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Registration No. *</label>
+                    <input type="text" name="registration_no" class="form-control" placeholder="e.g. BP-2-A8981" required>
+                </div>
+
+                <div>
+                    <label>Vehicle / Equipment Type</label>
+                    <input type="text" name="vehicle_type" class="form-control" placeholder="e.g. Bolero Camper, Excavator">
+                </div>
+                <div>
+                    <label>Company / Supplier</label>
+                    <input type="text" name="company_supplier" class="form-control" value="RVJV" placeholder="e.g. RVJV, Subcontractor">
+                </div>
+
+                <div>
+                    <label>Work Site / Location</label>
+                    <input type="text" name="work_site" class="form-control" placeholder="e.g. Zone 3, 108 Project, Workshop">
+                </div>
+                <div>
+                    <label>Reports To / Incharge</label>
+                    <input type="text" name="reports_to" class="form-control" placeholder="e.g. Manager Sir, Kaka">
+                </div>
+
+                <div>
+                    <label>Day Driver / Operator</label>
+                    <div style="position: relative;">
+                        <input type="text" id="ins_driver_search" name="driver_operator" class="form-control" placeholder="Search driver..." autocomplete="off">
+                        <div id="ins_driver_suggestions" class="autocomplete-suggestions"></div>
+                    </div>
+                </div>
+                <div>
+                    <label>Day Contact No.</label>
+                    <input type="text" id="ins_contact_no" name="contact_no" class="form-control" placeholder="Phone number">
+                </div>
+
+                <div>
+                    <label>Night Driver / Operator</label>
+                    <input type="text" name="night_driver" class="form-control" placeholder="Night driver (if any)">
+                </div>
+                <div>
+                    <label>Night Contact No.</label>
+                    <input type="text" name="night_contact" class="form-control" placeholder="Night contact">
+                </div>
+
+                <div>
+                    <label>Insurance Provider</label>
+                    <input type="text" name="insurance_provider" class="form-control" value="RICBL / Royal Insurance">
+                </div>
+                <div>
+                    <label>Policy No.</label>
+                    <input type="text" name="policy_no" class="form-control" placeholder="Policy number">
+                </div>
+
+                <div>
+                    <label>Issued On</label>
+                    <input type="date" name="issued_on" class="form-control">
+                </div>
+                <div>
+                    <label>Insurance Expiry Date *</label>
+                    <input type="date" name="expiry_date" class="form-control" required>
+                </div>
+
+                <div style="grid-column: 1 / -1;">
+                    <label>Remarks / Notes</label>
+                    <input type="text" name="remarks" class="form-control" placeholder="Optional notes...">
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Save Insurance Record</button>
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'addInsuranceModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for item in vehicle_docs %}
+<div id="editVehicleRCModal_{{ item.doc.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 550px; border-radius: 20px; overflow: hidden; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; color: var(--text-color);">Edit RC Record</h3>
+        </div>
+        <form action="{% url 'edit_rc_action' item.doc.id %}" method="POST" style="padding: 2rem;">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div style="grid-column: 1/-1;">
+                    <label>Driver / Operator</label>
+                    <input type="text" name="driver_operator" class="form-control" value="{{ item.doc.driver_operator|default:'' }}">
+                </div>
+                <div><label>Vehicle Type</label><input type="text" name="vehicle_type" class="form-control" value="{{ item.doc.vehicle_type|default:'' }}"></div>
+                <div><label>Registration No.</label><input type="text" name="registration_no" class="form-control" value="{{ item.doc.registration_no|default:'' }}" required></div>
+                <div><label>Company</label><input type="text" name="company" class="form-control" value="{{ item.doc.company|default:'RVJV' }}"></div>
+                <div><label>Contact No.</label><input type="text" name="contact_no" class="form-control" value="{{ item.doc.contact_no|default:'' }}"></div>
+                <div><label>Chassis No.</label><input type="text" name="chassis_no" class="form-control" value="{{ item.doc.chassis_no|default:'' }}"></div>
+                <div><label>Engine No.</label><input type="text" name="engine_no" class="form-control" value="{{ item.doc.engine_no|default:'' }}"></div>
+                <div><label>Reports To</label><input type="text" name="reports_to" class="form-control" value="{{ item.doc.reports_to|default:'' }}"></div>
+                <div><label>RC Issued On</label><input type="date" name="rc_issued_on" class="form-control" value="{{ item.doc.rc_issued_on|date:'Y-m-d'|default:'' }}"></div>
+                <div style="grid-column: 1/-1;"><label>RC Expiry Date *</label><input type="date" name="rc_expiry_date" class="form-control" value="{{ item.doc.rc_expiry_date|date:'Y-m-d'|default:'' }}" required></div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Update</button>
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'editVehicleRCModal_{{ item.doc.id }}')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% for item in insurance_docs %}
+<div id="editInsuranceModal_{{ item.doc.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; overflow-y: auto; padding: 20px 0;">
+    <div class="card" style="width: 90%; max-width: 680px; border-radius: 20px; overflow: hidden; background: var(--card-bg); margin: auto;">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; color: var(--text-color);">Edit Insurance Record - {{ item.doc.registration_no }}</h3>
+        </div>
+        <form action="{% url 'edit_insurance_action' item.doc.id %}" method="POST" style="padding: 1.75rem;">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div>
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                        <option value="Pool Vehicle" {% if item.doc.category == 'Pool Vehicle' %}selected{% endif %}>Pool Vehicle</option>
+                        <option value="Equipment / Machinery" {% if item.doc.category == 'Equipment / Machinery' %}selected{% endif %}>Equipment / Machinery</option>
+                        <option value="Tanker" {% if item.doc.category == 'Tanker' %}selected{% endif %}>Tanker</option>
+                        <option value="Light Vehicle" {% if item.doc.category == 'Light Vehicle' %}selected{% endif %}>Light Vehicle</option>
+                        <option value="Heavy Vehicle" {% if item.doc.category == 'Heavy Vehicle' %}selected{% endif %}>Heavy Vehicle</option>
+                        <option value="Other" {% if item.doc.category == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Registration No. *</label>
+                    <input type="text" name="registration_no" class="form-control" value="{{ item.doc.registration_no|default:'' }}" required>
+                </div>
+
+                <div>
+                    <label>Vehicle / Equipment Type</label>
+                    <input type="text" name="vehicle_type" class="form-control" value="{{ item.doc.vehicle_type|default:'' }}">
+                </div>
+                <div>
+                    <label>Company / Supplier</label>
+                    <input type="text" name="company_supplier" class="form-control" value="{{ item.doc.company_supplier|default:'RVJV' }}">
+                </div>
+
+                <div>
+                    <label>Work Site / Location</label>
+                    <input type="text" name="work_site" class="form-control" value="{{ item.doc.work_site|default:'' }}">
+                </div>
+                <div>
+                    <label>Reports To</label>
+                    <input type="text" name="reports_to" class="form-control" value="{{ item.doc.reports_to|default:'' }}">
+                </div>
+
+                <div>
+                    <label>Day Driver / Operator</label>
+                    <input type="text" name="driver_operator" class="form-control" value="{{ item.doc.driver_operator|default:'' }}">
+                </div>
+                <div>
+                    <label>Day Contact No.</label>
+                    <input type="text" name="contact_no" class="form-control" value="{{ item.doc.contact_no|default:'' }}">
+                </div>
+
+                <div>
+                    <label>Night Driver / Operator</label>
+                    <input type="text" name="night_driver" class="form-control" value="{{ item.doc.night_driver|default:'' }}">
+                </div>
+                <div>
+                    <label>Night Contact No.</label>
+                    <input type="text" name="night_contact" class="form-control" value="{{ item.doc.night_contact|default:'' }}">
+                </div>
+
+                <div>
+                    <label>Insurance Provider</label>
+                    <input type="text" name="insurance_provider" class="form-control" value="{{ item.doc.insurance_provider|default:'' }}">
+                </div>
+                <div>
+                    <label>Policy No.</label>
+                    <input type="text" name="policy_no" class="form-control" value="{{ item.doc.policy_no|default:'' }}">
+                </div>
+
+                <div>
+                    <label>Issued On</label>
+                    <input type="date" name="issued_on" class="form-control" value="{{ item.doc.issued_on|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div>
+                    <label>Expiry Date *</label>
+                    <input type="date" name="expiry_date" class="form-control" value="{{ item.doc.expiry_date|date:'Y-m-d'|default:'' }}" required>
+                </div>
+
+                <div style="grid-column: 1 / -1;">
+                    <label>Remarks / Notes</label>
+                    <input type="text" name="remarks" class="form-control" value="{{ item.doc.remarks|default:'' }}">
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Update Record</button>
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'editInsuranceModal_{{ item.doc.id }}')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function switchDocTab(tabId) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId)?.classList.add('active');
+    
+    // Find the button manually if triggered via JS or click to ensure 100% accuracy
+    const btns = document.querySelectorAll('.tab-btn');
+    if(tabId === 'vehicles' && btns.length > 0) btns[0].classList.add('active');
+    else if(tabId === 'insurance' && btns.length > 1) btns[1].classList.add('active');
+    else if(tabId === 'employees' && btns.length > 2) btns[2].classList.add('active');
+    
+    sessionStorage.setItem('activeDocTab', tabId);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTab = sessionStorage.getItem('activeDocTab');
+    if (savedTab) {
+        switchDocTab(savedTab);
+    }
+});
+
+function setViewMode(mode) {
+    const grids = document.querySelectorAll('.doc-grid');
+    const btnGrid = document.getElementById('btn-grid');
+    const btnList = document.getElementById('btn-list');
+    
+    if (mode === 'list') {
+        grids.forEach(g => g.classList.add('view-list'));
+        btnList.classList.add('active');
+        btnGrid.classList.remove('active');
+    } else {
+        grids.forEach(g => g.classList.remove('view-list'));
+        btnGrid.classList.add('active');
+        btnList.classList.remove('active');
+    }
+}
+
+function filterGrid(searchId, statusId, fromId, toId, gridId, noResultsId) {
+    const searchStr = document.getElementById(searchId).value.toLowerCase();
+    const statusVal = document.getElementById(statusId).value;
+    const dateFromElem = fromId ? document.getElementById(fromId) : null;
+    const dateToElem = toId ? document.getElementById(toId) : null;
+    const dateFrom = dateFromElem ? dateFromElem.value : "";
+    const dateTo = dateToElem ? dateToElem.value : "";
+    
+    const cards = document.querySelectorAll('#' + gridId + ' .doc-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        let show = true;
+        const textData = card.getAttribute('data-search') || '';
+        if (searchStr && !textData.includes(searchStr)) show = false;
+        const cardStatus = card.getAttribute('data-status');
+        if (statusVal !== 'ALL' && cardStatus !== statusVal) show = false;
+        
+        const expiryDateStr = card.getAttribute('data-expiry');
+        if (expiryDateStr) {
+            const expiryDate = new Date(expiryDateStr);
+            if (dateFrom && new Date(dateFrom) > expiryDate) show = false;
+            if (dateTo && new Date(dateTo) < expiryDate) show = false;
+        }
+        
+        if (show) {
+            card.style.display = document.getElementById(gridId).classList.contains('view-list') ? 'flex' : 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById(noResultsId).style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+}
+
+function resetFilters(prefix) {
+    const s = document.getElementById(prefix + '-search'); if(s) s.value = '';
+    const st = document.getElementById(prefix + '-status'); if(st) st.value = 'ALL';
+    const df = document.getElementById(prefix + '-date-from'); if(df) df.value = '';
+    const dt = document.getElementById(prefix + '-date-to'); if(dt) dt.value = '';
+    
+    if (prefix === 'veh') filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');
+    else if (prefix === 'ins') resetInsFilters();
+    else if (prefix === 'emp-doc') filterGrid('emp-doc-search', 'emp-doc-status', '', '', 'emp-grid', '');
+}
+
+function filterInsurance() {
+    const searchStr = (document.getElementById('ins-search')?.value || '').toLowerCase();
+    const categoryVal = document.getElementById('ins-category')?.value || 'ALL';
+    const statusVal = document.getElementById('ins-status')?.value || 'ALL';
+    const siteVal = document.getElementById('ins-site')?.value || 'ALL';
+    const dateFrom = document.getElementById('ins-date-from')?.value || '';
+    const dateTo = document.getElementById('ins-date-to')?.value || '';
+    
+    const cards = document.querySelectorAll('#ins-grid .doc-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        let show = true;
+        const textData = (card.getAttribute('data-search') || '').toLowerCase();
+        const cardCat = card.getAttribute('data-category') || '';
+        const cardStatus = card.getAttribute('data-status') || '';
+        const cardSite = card.getAttribute('data-site') || '';
+        const expiryDateStr = card.getAttribute('data-expiry') || '';
+        
+        if (searchStr && !textData.includes(searchStr)) show = false;
+        if (categoryVal !== 'ALL' && !cardCat.toLowerCase().includes(categoryVal.toLowerCase())) show = false;
+        if (statusVal !== 'ALL' && cardStatus !== statusVal) show = false;
+        if (siteVal !== 'ALL' && !cardSite.toLowerCase().includes(siteVal.toLowerCase())) show = false;
+        
+        if (expiryDateStr) {
+            const expiryDate = new Date(expiryDateStr);
+            if (dateFrom && new Date(dateFrom) > expiryDate) show = false;
+            if (dateTo && new Date(dateTo) < expiryDate) show = false;
+        }
+        
+        if (show) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    const countEl = document.getElementById('ins-grid-count');
+    if (countEl) countEl.innerText = visibleCount;
+    
+    const noResults = document.getElementById('ins-no-results');
+    if (noResults) noResults.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+    
+    // Update Export links with current filters
+    const excelBtn = document.getElementById('ins-export-excel-btn');
+    const pdfBtn = document.getElementById('ins-export-pdf-btn');
+    const params = new URLSearchParams();
+    if (categoryVal !== 'ALL') params.set('category', categoryVal);
+    if (statusVal !== 'ALL') params.set('status', statusVal);
+    if (siteVal !== 'ALL') params.set('site', siteVal);
+    if (searchStr) params.set('search', searchStr);
+    if (dateFrom) params.set('from_date', dateFrom);
+    if (dateTo) params.set('to_date', dateTo);
+    
+    const paramStr = params.toString() ? '?' + params.toString() : '';
+    if (excelBtn) excelBtn.href = "{% url 'export_insurance_excel' %}" + paramStr;
+    if (pdfBtn) pdfBtn.href = "{% url 'export_insurance_pdf' %}" + paramStr;
+}
+
+function selectInsCategory(cat) {
+    const sel = document.getElementById('ins-category');
+    if (sel) sel.value = cat;
+    document.querySelectorAll('.ins-cat-pill').forEach(pill => {
+        if (pill.getAttribute('data-cat') === cat) {
+            pill.classList.add('active-pill');
+        } else {
+            pill.classList.remove('active-pill');
+        }
+    });
+    filterInsurance();
+}
+
+function resetInsFilters() {
+    const s = document.getElementById('ins-search'); if(s) s.value = '';
+    const st = document.getElementById('ins-status'); if(st) st.value = 'ALL';
+    const site = document.getElementById('ins-site'); if(site) site.value = 'ALL';
+    const df = document.getElementById('ins-date-from'); if(df) df.value = '';
+    const dt = document.getElementById('ins-date-to'); if(dt) dt.value = '';
+    selectInsCategory('ALL');
+}
+
+function closeModalAndPrevent(e, modalId) {
+    if(e) e.preventDefault();
+    document.getElementById(modalId).style.display = 'none';
+}
+
+const employeeData = {{ employees_json|default:"[]"|safe }};
+
+function setupAutocomplete(inputId, suggestionsId, contactId) {
+    const input = document.getElementById(inputId);
+    const suggestionsBox = document.getElementById(suggestionsId);
+    if(!input || !suggestionsBox) return;
+
+    input.addEventListener('input', function() {
+        const val = this.value.toLowerCase();
+        suggestionsBox.innerHTML = '';
+        
+        if (!val) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        const matches = employeeData.filter(emp => emp.name.toLowerCase().includes(val) || (emp.phone && emp.phone.includes(val)));
+        
+        if (matches.length > 0) {
+            matches.forEach(emp => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerHTML = `<strong>${emp.name}</strong><br><small>Ph: ${emp.phone || 'N/A'}</small>`;
+                div.addEventListener('click', function() {
+                    input.value = emp.name;
+                    if(contactId && document.getElementById(contactId)) {
+                        document.getElementById(contactId).value = emp.phone;
+                    }
+                    suggestionsBox.style.display = 'none';
+                });
+                suggestionsBox.appendChild(div);
+            });
+            suggestionsBox.style.display = 'block';
+        } else {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target !== input && e.target !== suggestionsBox) {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+}
+
+
+
+function openEditAssetPermitModal(sourceType, docId, name, number, expiry) {
+    const form = document.getElementById('editAssetPermitForm');
+    form.action = `/asset-permit/${sourceType}/${docId}/edit/`;
+    document.getElementById('edit-permit-name').value = name || '';
+    document.getElementById('edit-permit-number').value = number === 'N/A' ? '' : (number || '');
+    document.getElementById('edit-permit-expiry').value = expiry || '';
+    document.getElementById('editAssetPermitModal').style.display = 'flex';
+}
+
+function openInsuranceExportModal() {
+    const pageSearch = document.getElementById('ins-search') ? document.getElementById('ins-search').value : '';
+    const pageStatus = document.getElementById('ins-status') ? document.getElementById('ins-status').value : 'ALL';
+    const pageSite = document.getElementById('ins-site') ? document.getElementById('ins-site').value : 'ALL';
+    const pageFrom = document.getElementById('ins-date-from') ? document.getElementById('ins-date-from').value : '';
+    const pageTo = document.getElementById('ins-date-to') ? document.getElementById('ins-date-to').value : '';
+    
+    let activeCat = 'ALL';
+    const activePill = document.querySelector('.ins-cat-pill.active-pill');
+    if (activePill) {
+        activeCat = activePill.getAttribute('data-cat') || 'ALL';
+    } else if (document.getElementById('ins-category')) {
+        activeCat = document.getElementById('ins-category').value;
+    }
+
+    if (document.getElementById('modal-ins-search')) document.getElementById('modal-ins-search').value = pageSearch;
+    if (document.getElementById('modal-ins-category')) document.getElementById('modal-ins-category').value = activeCat;
+    if (document.getElementById('modal-ins-status')) document.getElementById('modal-ins-status').value = pageStatus;
+    if (document.getElementById('modal-ins-site')) document.getElementById('modal-ins-site').value = pageSite;
+    if (document.getElementById('modal-ins-date-from')) document.getElementById('modal-ins-date-from').value = pageFrom;
+    if (document.getElementById('modal-ins-date-to')) document.getElementById('modal-ins-date-to').value = pageTo;
+
+    updateModalFiltersAndStats();
+    
+    const modal = document.getElementById('insuranceExportModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeInsuranceExportModal() {
+    const modal = document.getElementById('insuranceExportModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function setModalPreset(preset) {
+    const today = new Date();
+    const dFrom = document.getElementById('modal-ins-date-from');
+    const dTo = document.getElementById('modal-ins-date-to');
+    const st = document.getElementById('modal-ins-status');
+
+    function formatDate(d) {
+        return d.toISOString().split('T')[0];
+    }
+
+    if (preset === 'all') {
+        if (st) st.value = 'ALL';
+        if (dFrom) dFrom.value = '';
+        if (dTo) dTo.value = '';
+    } else if (preset === 'critical') {
+        if (st) st.value = 'Critical';
+        if (dFrom) dFrom.value = '';
+        if (dTo) dTo.value = '';
+    } else if (preset === 'warning') {
+        if (st) st.value = 'Warning';
+        if (dFrom) dFrom.value = '';
+        if (dTo) dTo.value = '';
+    } else if (preset === 'valid') {
+        if (st) st.value = 'Good';
+        if (dFrom) dFrom.value = '';
+        if (dTo) dTo.value = '';
+    } else if (preset === 'expired') {
+        if (st) st.value = 'Expired';
+        if (dFrom) dFrom.value = '';
+        if (dTo) dTo.value = '';
+    } else if (preset === 'this_month') {
+        if (st) st.value = 'ALL';
+        const first = new Date(today.getFullYear(), today.getMonth(), 1);
+        const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        if (dFrom) dFrom.value = formatDate(first);
+        if (dTo) dTo.value = formatDate(last);
+    } else if (preset === 'next_month') {
+        if (st) st.value = 'ALL';
+        const first = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        const last = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        if (dFrom) dFrom.value = formatDate(first);
+        if (dTo) dTo.value = formatDate(last);
+    } else if (preset === 'year_2026') {
+        if (st) st.value = 'ALL';
+        if (dFrom) dFrom.value = '2026-01-01';
+        if (dTo) dTo.value = '2026-12-31';
+    } else if (preset === 'year_2027') {
+        if (st) st.value = 'ALL';
+        if (dFrom) dFrom.value = '2027-01-01';
+        if (dTo) dTo.value = '2027-12-31';
+    }
+
+    updateModalFiltersAndStats();
+}
+
+function updateModalFiltersAndStats() {
+    const q = document.getElementById('modal-ins-search') ? document.getElementById('modal-ins-search').value.toLowerCase().trim() : '';
+    const cat = document.getElementById('modal-ins-category') ? document.getElementById('modal-ins-category').value : 'ALL';
+    const status = document.getElementById('modal-ins-status') ? document.getElementById('modal-ins-status').value : 'ALL';
+    const site = document.getElementById('modal-ins-site') ? document.getElementById('modal-ins-site').value : 'ALL';
+    const from_d = document.getElementById('modal-ins-date-from') ? document.getElementById('modal-ins-date-from').value : '';
+    const to_d = document.getElementById('modal-ins-date-to') ? document.getElementById('modal-ins-date-to').value : '';
+
+    // Calculate real-time counts from page cards
+    const cards = document.querySelectorAll('#ins-grid .doc-card');
+    let total = 0, valid = 0, warning = 0, critical = 0, expired = 0;
+
+    cards.forEach(card => {
+        const cardSearch = card.getAttribute('data-search') || '';
+        const cardCat = card.getAttribute('data-category') || '';
+        const cardStatus = card.getAttribute('data-status') || '';
+        const cardSite = card.getAttribute('data-site') || '';
+        const cardExp = card.getAttribute('data-expiry') || '';
+
+        let match = true;
+        if (q && !cardSearch.includes(q)) match = false;
+        if (cat !== 'ALL' && !cardCat.toLowerCase().includes(cat.toLowerCase())) match = false;
+        if (site !== 'ALL' && cardSite !== site) match = false;
+        if (from_d && cardExp && cardExp < from_d) match = false;
+        if (to_d && cardExp && cardExp > to_d) match = false;
+
+        if (match) {
+            // Count stats for matched items
+            if (cardStatus === 'Good') valid++;
+            else if (cardStatus === 'Warning') warning++;
+            else if (cardStatus === 'Critical') critical++;
+            else if (cardStatus === 'Expired') expired++;
+
+            if (status === 'ALL' || cardStatus === status) {
+                total++;
+            }
+        }
+    });
+
+    // Update modal counters
+    if (document.getElementById('modal-stat-total')) document.getElementById('modal-stat-total').innerText = total;
+    if (document.getElementById('modal-stat-valid')) document.getElementById('modal-stat-valid').innerText = valid;
+    if (document.getElementById('modal-stat-warning')) document.getElementById('modal-stat-warning').innerText = warning;
+    if (document.getElementById('modal-stat-critical')) document.getElementById('modal-stat-critical').innerText = critical;
+    if (document.getElementById('modal-stat-expired')) document.getElementById('modal-stat-expired').innerText = expired;
+
+    updateModalExportLinks();
+}
+
+function updateModalExportLinks() {
+    const q = document.getElementById('modal-ins-search') ? document.getElementById('modal-ins-search').value : '';
+    const cat = document.getElementById('modal-ins-category') ? document.getElementById('modal-ins-category').value : 'ALL';
+    const status = document.getElementById('modal-ins-status') ? document.getElementById('modal-ins-status').value : 'ALL';
+    const site = document.getElementById('modal-ins-site') ? document.getElementById('modal-ins-site').value : 'ALL';
+    const from_d = document.getElementById('modal-ins-date-from') ? document.getElementById('modal-ins-date-from').value : '';
+    const to_d = document.getElementById('modal-ins-date-to') ? document.getElementById('modal-ins-date-to').value : '';
+
+    const title = document.getElementById('modal-report-title') ? document.getElementById('modal-report-title').value : '';
+    const prepName = document.getElementById('modal-prep-name') ? document.getElementById('modal-prep-name').value : '';
+    const prepDesig = document.getElementById('modal-prep-desig') ? document.getElementById('modal-prep-desig').value : '';
+    const verName = document.getElementById('modal-ver-name') ? document.getElementById('modal-ver-name').value : '';
+    const verDesig = document.getElementById('modal-ver-desig') ? document.getElementById('modal-ver-desig').value : '';
+    const apprName = document.getElementById('modal-appr-name') ? document.getElementById('modal-appr-name').value : '';
+    const apprDesig = document.getElementById('modal-appr-desig') ? document.getElementById('modal-appr-desig').value : '';
+
+    const params = new URLSearchParams();
+    if (cat && cat !== 'ALL') params.set('category', cat);
+    if (status && status !== 'ALL') params.set('status', status);
+    if (site && site !== 'ALL') params.set('site', site);
+    if (from_d) params.set('date_from', from_d);
+    if (to_d) params.set('date_to', to_d);
+    if (q) params.set('q', q);
+
+    if (title) params.set('report_title', title);
+    if (prepName) params.set('prepared_by_name', prepName);
+    if (prepDesig) params.set('prepared_by_desig', prepDesig);
+    if (verName) params.set('verified_by_name', verName);
+    if (verDesig) params.set('verified_by_desig', verDesig);
+    if (apprName) params.set('approved_by_name', apprName);
+    if (apprDesig) params.set('approved_by_desig', apprDesig);
+
+    const qs = params.toString();
+    const excelUrl = "{% url 'export_insurance_excel' %}" + (qs ? '?' + qs : '');
+    const pdfUrl = "{% url 'export_insurance_pdf' %}" + (qs ? '?' + qs : '');
+
+    const btnExcel = document.getElementById('modal-btn-excel');
+    const btnPdf = document.getElementById('modal-btn-pdf');
+
+    if (btnExcel) btnExcel.href = excelUrl;
+    if (btnPdf) btnPdf.href = pdfUrl;
+}
+
+window.addEventListener('click', function(e) {
+    const insModal = document.getElementById('insuranceExportModal');
+    if (e.target === insModal) {
+        closeInsuranceExportModal();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupAutocomplete('rc_driver_search', 'rc_driver_suggestions', 'rc_contact_no');
+    setupAutocomplete('ins_driver_search', 'ins_driver_suggestions', 'ins_contact_no');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const q = urlParams.get('q');
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam) {
+        switchDocTab(tabParam);
+    } else {
+        const savedTab = sessionStorage.getItem('activeDocTab');
+        if (savedTab) {
+            switchDocTab(savedTab);
+        }
+    }
+    
+    if (q) {
+        if(document.getElementById('veh-search')) {
+            document.getElementById('veh-search').value = q;
+            filterGrid('veh-search', 'veh-status', 'veh-date-from', 'veh-date-to', 'veh-grid', 'veh-no-results');
+        }
+        if(document.getElementById('ins-search')) {
+            document.getElementById('ins-search').value = q;
+            filterInsurance();
+        }
+        if(document.getElementById('emp-doc-search')) {
+            document.getElementById('emp-doc-search').value = q;
+            filterGrid('emp-doc-search', 'emp-doc-status', '', '', 'emp-grid', '');
+        }
+    }
+
+    if (urlParams.get('open_export') === '1' || urlParams.get('export') === '1') {
+        setTimeout(openInsuranceExportModal, 300);
+    }
+});
+
+</script>
+
+
+
+<!-- Full-Featured Advance Insurance Export Modal -->
+<div id="insuranceExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); z-index: 10000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 900px; max-height: 90vh; border-radius: 20px; overflow: hidden; background: var(--card-bg); box-shadow: 0 25px 60px rgba(0,0,0,0.4); border: 1px solid var(--border); display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div style="padding: 1.25rem 1.75rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div>
+                <h3 style="margin: 0; color: var(--text-color); font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-file-export" style="color: var(--primary);"></i> Advance Insurance Export &amp; Reporting
+                </h3>
+                <p style="margin: 3px 0 0 0; color: var(--sidebar-text); font-size: 0.82rem;">Configure filters, customize signatories, and export official Excel or PDF documents</p>
+            </div>
+            <button type="button" onclick="closeInsuranceExportModal()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--sidebar-text); line-height: 1; padding: 4px 8px;">&times;</button>
+        </div>
+        
+        <!-- Scrollable Modal Body -->
+        <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1;">
+            <!-- Filter Controls Grid -->
+            <div style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--sidebar-text); margin-bottom: 10px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-filter" style="color: var(--primary);"></i> Multi-Tier Filter Controls
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                    <div style="grid-column: span 1.5;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Live Search</label>
+                        <input type="text" id="modal-ins-search" class="filter-input" placeholder="Reg No, Driver, Vehicle Type, Site, Supplier, Policy..." style="width: 100%; padding: 7px 10px; font-size: 0.84rem;" oninput="updateModalFiltersAndStats()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Category</label>
+                        <select id="modal-ins-category" class="filter-input" style="width: 100%; padding: 7px 10px; font-size: 0.84rem;" onchange="updateModalFiltersAndStats()">
+                            <option value="ALL">All Categories</option>
+                            <option value="Pool Vehicle">🚗 Pool Vehicle</option>
+                            <option value="Equipment">🚜 Equipment / Machinery</option>
+                            <option value="Tanker">🚚 Tanker</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Expiry Status</label>
+                        <select id="modal-ins-status" class="filter-input" style="width: 100%; padding: 7px 10px; font-size: 0.84rem;" onchange="updateModalFiltersAndStats()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Good">🟢 Valid (>90 Days)</option>
+                            <option value="Warning">🟡 Warning (30-90 Days)</option>
+                            <option value="Critical">🔴 Critical (<30 Days)</option>
+                            <option value="Expired">⚫ Expired</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Work Site / Location</label>
+                        <select id="modal-ins-site" class="filter-input" style="width: 100%; padding: 7px 10px; font-size: 0.84rem;" onchange="updateModalFiltersAndStats()">
+                            <option value="ALL">All Work Sites</option>
+                            {% for s in ins_sites %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Expiry Date From</label>
+                        <input type="date" id="modal-ins-date-from" class="filter-input" style="width: 100%; padding: 6px 10px; font-size: 0.82rem;" onchange="updateModalFiltersAndStats()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 3px;">Expiry Date To</label>
+                        <input type="date" id="modal-ins-date-to" class="filter-input" style="width: 100%; padding: 6px 10px; font-size: 0.82rem;" onchange="updateModalFiltersAndStats()">
+                    </div>
+                </div>
+
+                <!-- Quick Presets -->
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border);">
+                    <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--sidebar-text); margin-right: 2px;">Quick Presets:</span>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px;" onclick="setModalPreset('all')">All</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px; color: #dc2626; border-color: #fecaca;" onclick="setModalPreset('critical')">⚠️ Critical (&lt;30d)</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px; color: #d97706; border-color: #fde68a;" onclick="setModalPreset('warning')">🟡 Warning (30-90d)</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px; color: #16a34a; border-color: #bbf7d0;" onclick="setModalPreset('valid')">🟢 Valid (&gt;90d)</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px; color: #991b1b; border-color: #fda4af;" onclick="setModalPreset('expired')">🔴 Expired</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px;" onclick="setModalPreset('this_month')">This Month</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px;" onclick="setModalPreset('next_month')">Next Month</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px;" onclick="setModalPreset('year_2026')">Year 2026</button>
+                    <button type="button" class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; border-radius: 15px;" onclick="setModalPreset('year_2027')">Year 2027</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Live Stats Summary Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; text-align: center;">
+                    <div id="modal-stat-total" style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">{{ insurance_docs|length }}</div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--sidebar-text); margin-top: 2px;">Filtered Records</div>
+                </div>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 8px 12px; text-align: center;">
+                    <div id="modal-stat-valid" style="font-size: 1.2rem; font-weight: 800; color: #16a34a;">{{ ins_stats.valid|default:0 }}</div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #15803d; margin-top: 2px;">Valid (>90d)</div>
+                </div>
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 8px 12px; text-align: center;">
+                    <div id="modal-stat-warning" style="font-size: 1.2rem; font-weight: 800; color: #d97706;">{{ ins_stats.warning|default:0 }}</div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #b45309; margin-top: 2px;">Warning (30-90d)</div>
+                </div>
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 8px 12px; text-align: center;">
+                    <div id="modal-stat-critical" style="font-size: 1.2rem; font-weight: 800; color: #dc2626;">{{ ins_stats.critical|default:0 }}</div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #b91c1c; margin-top: 2px;">Critical (<30d)</div>
+                </div>
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 8px 12px; text-align: center;">
+                    <div id="modal-stat-expired" style="font-size: 1.2rem; font-weight: 800; color: #991b1b;">{{ ins_stats.expired|default:0 }}</div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #881337; margin-top: 2px;">Expired</div>
+                </div>
+            </div>
+
+            <!-- Signatory Authorities & Report Customization (Collapsible) -->
+            <details style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px;">
+                <summary style="font-size: 0.78rem; font-weight: 800; color: var(--text-color); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-file-signature" style="color: var(--primary);"></i> Report Title &amp; Signatory Authorities (For Official PDF &amp; Print)
+                </summary>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                    <div style="grid-column: span 1.5;">
+                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 2px;">Report Header Title</label>
+                        <input type="text" id="modal-report-title" value="Vehicle &amp; Equipment Insurance Register" class="filter-input" style="width: 100%; padding: 6px 10px; font-size: 0.82rem;" oninput="updateModalExportLinks()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 2px;">Prepared By (Fleet Supervisor)</label>
+                        <input type="text" id="modal-prep-name" value="Sonam Penjor" placeholder="Name" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.8rem; margin-bottom: 3px;" oninput="updateModalExportLinks()">
+                        <input type="text" id="modal-prep-desig" value="Fleet Supervisor" placeholder="Designation" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.78rem;" oninput="updateModalExportLinks()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 2px;">Verified By (Mechanical)</label>
+                        <input type="text" id="modal-ver-name" value="Kinley Wangdi" placeholder="Name" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.8rem; margin-bottom: 3px;" oninput="updateModalExportLinks()">
+                        <input type="text" id="modal-ver-desig" value="Mechanical Engineer" placeholder="Designation" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.78rem;" oninput="updateModalExportLinks()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 2px;">Approved By (Management)</label>
+                        <input type="text" id="modal-appr-name" value="Karma Tshering" placeholder="Name" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.8rem; margin-bottom: 3px;" oninput="updateModalExportLinks()">
+                        <input type="text" id="modal-appr-desig" value="Project Manager" placeholder="Designation" class="filter-input" style="width: 100%; padding: 5px 8px; font-size: 0.78rem;" oninput="updateModalExportLinks()">
+                    </div>
+                </div>
+            </details>
+
+            <!-- Big Action Export Format Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <!-- Excel Format -->
+                <a id="modal-btn-excel" href="{% url 'export_insurance_excel' %}" class="export-opt-card" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 2px solid #10b981; background: rgba(16, 185, 129, 0.06); text-decoration: none; color: var(--text-color); transition: all 0.2s;" onmouseover="this.style.background='rgba(16, 185, 129, 0.15)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(16, 185, 129, 0.06)'; this.style.transform='none';">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1rem; font-weight: 800; color: #047857; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Export Excel (.xlsx)</span>
+                            <span style="font-size: 0.7rem; background: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-weight: 700;">DOWNLOAD</span>
+                        </div>
+                        <div style="font-size: 0.76rem; color: var(--sidebar-text); margin-top: 3px;">
+                            Official workbook with JV letterhead, metadata &amp; active filters
+                        </div>
+                    </div>
+                </a>
+
+                <!-- PDF Format -->
+                <a id="modal-btn-pdf" href="{% url 'export_insurance_pdf' %}" target="_blank" class="export-opt-card" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 2px solid #6366f1; background: rgba(99, 102, 241, 0.06); text-decoration: none; color: var(--text-color); transition: all 0.2s;" onmouseover="this.style.background='rgba(99, 102, 241, 0.15)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(99, 102, 241, 0.06)'; this.style.transform='none';">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 1rem; font-weight: 800; color: #4338ca; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Official PDF Report</span>
+                            <span style="font-size: 0.7rem; background: #6366f1; color: white; padding: 2px 8px; border-radius: 10px; font-weight: 700;">PRINT / PDF</span>
+                        </div>
+                        <div style="font-size: 0.76rem; color: var(--sidebar-text); margin-top: 3px;">
+                            Printable report with summary stat cards &amp; signatory blocks
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 1rem 1.75rem; background: var(--bg-subtle); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-shrink: 0;">
+            <button type="button" class="btn btn-outline" style="padding: 8px 18px; font-size: 0.85rem; font-weight: 700;" onclick="closeInsuranceExportModal()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for Editing Asset Permit -->
+<div id="editAssetPermitModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 480px; border-radius: 20px; overflow: hidden; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: var(--text-color);">Edit Asset Permit</h3>
+            <button type="button" onclick="document.getElementById('editAssetPermitModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--sidebar-text);">&times;</button>
+        </div>
+        <form id="editAssetPermitForm" method="POST" style="padding: 1.5rem;">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 4px;">Employee / Asset Name</label>
+                <input type="text" id="edit-permit-name" class="form-control" readonly style="background: var(--bg-subtle);">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 4px;">Permit / Document Number</label>
+                <input type="text" id="edit-permit-number" name="work_permit_no" class="form-control" placeholder="Permit / Document No">
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--sidebar-text); display: block; margin-bottom: 4px;">Permit Expiry Date</label>
+                <input type="date" id="edit-permit-expiry" name="work_permit_expiry" class="form-control" required>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline" onclick="document.getElementById('editAssetPermitModal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Import Excel Modal -->
+<div id="importExcelModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 450px; border-radius: 20px; overflow: hidden; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: var(--text-color);">Bulk Import Excel</h3>
+            <button type="button" onclick="document.getElementById('importExcelModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+        </div>
+        <form id="importExcelForm" style="padding: 2rem;">
+            <input type="hidden" id="import_doc_type" name="doc_type">
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-color); font-weight: 500;">Select Excel File</label>
+                <input type="file" id="excel_file" name="excel_file" accept=".xlsx, .xls" required class="form-control" style="width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-color);">
+            </div>
+
+            <div style="background: var(--bg-subtle); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--sidebar-text);">
+                <strong>Required Columns:</strong><br>
+                <span id="importColumnsList">Registration No, Driver/Operator, Vehicle Type, Contact No, Reports To, Issued On, Expiry Date</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" style="background: var(--bg-subtle); color: var(--text-color);" onclick="document.getElementById('importExcelModal').style.display='none'">Cancel</button>
+                <button type="submit" class="add-btn" id="importSubmitBtn">Import Data</button>
+            </div>
+            <p id="importStatusMsg" style="margin-top:10px; font-weight:bold; display:none;"></p>
+        </form>
+    </div>
+</div>
+
+<script>
+function openImportModal(docType) {
+    document.getElementById('import_doc_type').value = docType;
+    if(docType === 'rc') {
+        document.getElementById('importColumnsList').innerText = 'Registration No, Driver/Operator, Vehicle Type, Contact No, Reports To, Issued On, Expiry Date';
+    } else if(docType === 'insurance') {
+        document.getElementById('importColumnsList').innerText = 'Registration No, Driver/Operator, Vehicle Type, Contact No, Reports To, Insurance Provider, Policy No, Issued On, Expiry Date';
+    }
+    document.getElementById('importExcelModal').style.display = 'flex';
+    document.getElementById('importStatusMsg').style.display = 'none';
+}
+
+document.getElementById('importExcelForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const btn = document.getElementById('importSubmitBtn');
+    const msg = document.getElementById('importStatusMsg');
+    
+    btn.innerText = 'Importing...';
+    btn.disabled = true;
+    msg.style.display = 'block';
+    msg.style.color = 'var(--text-color)';
+    msg.innerText = 'Uploading and processing file...';
+    
+    fetch('/api/import-documents/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            msg.style.color = 'var(--success)';
+            msg.innerText = data.message;
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            msg.style.color = 'var(--error)';
+            msg.innerText = 'Error: ' + data.message;
+            btn.innerText = 'Import Data';
+            btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        msg.style.color = 'var(--error)';
+        msg.innerText = 'Connection error.';
+        btn.innerText = 'Import Data';
+        btn.disabled = false;
+    });
+});
+
+function handleOCR(inputElem, docType, modalId) {
+    if(!inputElem.files || inputElem.files.length === 0) return;
+    
+    let file = inputElem.files[0];
+    let formData = new FormData();
+    formData.append('document_image', file);
+    formData.append('doc_type', docType);
+    
+    let overlay = document.createElement('div');
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(255,255,255,0.8)';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '10';
+    overlay.innerHTML = '<h3 style="color:var(--primary);">&#128269; Scanning Document...</h3><p style="color:var(--text-secondary);">Extracting text, please wait.</p>';
+    
+    let form = document.querySelector('#' + modalId + ' form');
+    form.style.position = 'relative';
+    form.appendChild(overlay);
+    
+    fetch('/api/ocr-extract/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(res => {
+        form.removeChild(overlay);
+        if(res.status === 'success') {
+            alert('Scan successful! Please review the auto-filled data in the form.');
+            let data = res.data;
+            if(docType === 'rc') {
+                if(data.registration_no) { let el = form.querySelector('input[name="registration_no"]'); if(el) el.value = data.registration_no; }
+                if(data.issued_on) { let el = form.querySelector('input[name="rc_issued_on"]'); if(el) el.value = data.issued_on; }
+                if(data.expiry_date) { let el = form.querySelector('input[name="rc_expiry_date"]'); if(el) el.value = data.expiry_date; }
+            } else if (docType === 'insurance') {
+                if(data.registration_no) { let el = form.querySelector('input[name="registration_no"]'); if(el) el.value = data.registration_no; }
+                if(data.policy_no) { let el = form.querySelector('input[name="policy_no"]'); if(el) el.value = data.policy_no; }
+                if(data.insurance_provider) { let el = form.querySelector('input[name="insurance_provider"]'); if(el) el.value = data.insurance_provider; }
+                if(data.issued_on) { let el = form.querySelector('input[name="issued_on"]'); if(el) el.value = data.issued_on; }
+                if(data.expiry_date) { let el = form.querySelector('input[name="expiry_date"]'); if(el) el.value = data.expiry_date; }
+            }
+        } else {
+            alert('Error during OCR: ' + res.message);
+        }
+    })
+    .catch(err => {
+        form.removeChild(overlay);
+        alert('Failed to connect to OCR service.');
+    });
+    
+    inputElem.value = '';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Create New Dynamic Module</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back</a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Module Name (e.g., Daily Production Log)</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label>Module Type</label>
+            <select name="module_type" id="moduleTypeSelect" class="form-control" onchange="toggleModuleType()">
+                <option value="STANDARD">Standard Form (Build custom fields below)</option>
+                <option value="FLEET">Fleet / Machinery (Pre-built Rigsar Vajra features)</option>
+            </select>
+            <small style="color:var(--sidebar-text);">Select 'Fleet' to automatically get Vehicle Master, Breakdown Logs, and Kundali.</small>
+        </div>
+        
+
+        <div class="grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+            <div class="form-group">
+                <label>Data View Style</label>
+                <select name="layout_style" class="form-control">
+                    <option value="TABLE">Standard Table (Rows & Columns)</option>
+                    <option value="GRID">Grid Cards (Modern blocks)</option>
+                    <option value="LIST">List View (Stacked borders)</option>
+                    <option value="MASONRY">Masonry (Pinterest-style)</option>
+                    <option value="MINIMAL">Minimalist (Clean text-only)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>On Submit Workflow</label>
+                <select name="on_submit_action" class="form-control">
+                    <option value="NONE">Do Nothing (Just Save)</option>
+                    <option value="EMAIL_MANAGER">Email Manager with Notification</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap: 1.5rem; margin-top: 1.5rem; padding: 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="show_in_sidebar" id="showInSidebar" value="true" checked>
+                <label for="showInSidebar" style="margin:0;">Show in Left Sidebar</label>
+            </div>
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="is_inventory" id="isInventory" value="true">
+                <label for="isInventory" style="margin:0;">Enable Inventory Stock System</label>
+            </div>
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="enable_date_filter" id="enableDateFilter" value="true" checked>
+                <label for="enableDateFilter" style="margin:0;">Enable Exact Date Filter</label>
+            </div>
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="enable_date_range_filter" id="enableDateRangeFilter" value="true">
+                <label for="enableDateRangeFilter" style="margin:0;">Enable Date Range Filter (Start to End)</label>
+            </div>
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="enable_search_filter" id="enableSearchFilter" value="true" checked>
+                <label for="enableSearchFilter" style="margin:0;">Enable Text Search Filter</label>
+            </div>
+            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                <input type="checkbox" name="enable_dropdown_filter" id="enableDropdownFilter" value="true" checked>
+                <label for="enableDropdownFilter" style="margin:0;">Enable Dropdown Value Filter</label>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap: 0.5rem; margin-top: 1rem;">
+                <input type="checkbox" name="require_approval" id="requireApproval" value="true" checked>
+                <label for="requireApproval" style="margin:0; font-weight:600; color:var(--primary);">Require Manager Approval for New Entries</label>
+            </div>
+        </div>
+
+        <style>
+            .custom-select { position: relative; width: 100%; margin-bottom: 1rem; }
+            .custom-select-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: left; }
+            .custom-select-panel { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; margin-top: 0.25rem; padding: 1rem; }
+            .custom-select.active .custom-select-panel { display: block; }
+            .access-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+            .access-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        </style>
+
+        <h3 style="margin-top:2rem; margin-bottom:1rem; color:var(--primary);">Access Controls</h3>
+
+        <!-- View Access -->
+        <div class="custom-select" id="viewSelect">
+            <button type="button" class="custom-select-btn" onclick="toggleSelect('viewSelect')">
+                <span style="font-weight:600; color:var(--text-color);">👁️ View Access (Who can view data)</span>
+                <span>▼</span>
+            </button>
+            <div class="custom-select-panel">
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                    <input type="text" class="form-control access-search" placeholder="🔍 Search employee by name, email, phone..." style="flex:2;" onkeyup="filterAccess('viewSelect')">
+                    <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('viewSelect')">
+                        <option value="ALL">All Posts</option>
+                        {% for post in all_posts %}
+                        <option value="{{ post.name }}">{{ post.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="access-list">
+                    {% for u in all_users %}
+                    <label class="access-label access-item" data-post="{{ u.post.name|default:'Not Assigned' }}">
+                        <input type="checkbox" name="view_users" value="{{ u.id }}"> 
+                        <span class="access-name">{{ u.full_name|default:u.username }} {% if u.post %}({{ u.post.name }}){% endif %} - <small>{{ u.email|default:'' }} {{ u.phone_number|default:'' }}</small></span>
+                    </label>
+                    {% empty %}
+                    <span style="color:var(--sidebar-text);">No employees found.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Access -->
+        <div class="custom-select" id="editSelect">
+            <button type="button" class="custom-select-btn" onclick="toggleSelect('editSelect')">
+                <span style="font-weight:600; color:var(--text-color);">✍️ Edit Access (Data Entry Operators)</span>
+                <span>▼</span>
+            </button>
+            <div class="custom-select-panel">
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                    <input type="text" class="form-control access-search" placeholder="🔍 Search DEOs by name, email, phone..." style="flex:2;" onkeyup="filterAccess('editSelect')">
+                    <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('editSelect')">
+                        <option value="ALL">All Posts</option>
+                        {% for post in all_posts %}
+                        <option value="{{ post.name }}">{{ post.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="access-list">
+                    {% for u in all_users %}
+                    <label class="access-label access-item" data-post="{{ u.post.name|default:'Not Assigned' }}">
+                        <input type="checkbox" name="edit_users" value="{{ u.id }}"> 
+                        <span class="access-name">{{ u.full_name|default:u.username }} {% if u.post %}({{ u.post.name }}){% endif %} - <small>{{ u.email|default:'' }} {{ u.phone_number|default:'' }}</small></span>
+                    </label>
+                    {% empty %}
+                    <span style="color:var(--sidebar-text);">No employees found.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Verify Access -->
+        <div class="custom-select" id="verifySelect">
+            <button type="button" class="custom-select-btn" onclick="toggleSelect('verifySelect')">
+                <span style="font-weight:600; color:var(--primary);">✅ Verify Access (Designated Officers/Managers)</span>
+                <span>▼</span>
+            </button>
+            <div class="custom-select-panel">
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                    <input type="text" class="form-control access-search" placeholder="🔍 Search officers by name, email, phone..." style="flex:2;" onkeyup="filterAccess('verifySelect')">
+                    <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('verifySelect')">
+                        <option value="ALL">All Posts</option>
+                        {% for post in all_posts %}
+                        <option value="{{ post.name }}">{{ post.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="access-list">
+                    {% for officer in all_officers %}
+                    <label class="access-label access-item" data-post="{{ officer.post.name|default:'Not Assigned' }}">
+                        <input type="checkbox" name="verify_users" value="{{ officer.id }}"> 
+                        <span class="access-name">{{ officer.full_name|default:officer.username }} {% if officer.post %}({{ officer.post.name }}){% endif %} - <small>{{ officer.email|default:'' }} {{ officer.phone_number|default:'' }}</small></span>
+                    </label>
+                    {% empty %}
+                    <span style="color:var(--sidebar-text);">No active officers found.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 2rem 0;">
+        
+        <div id="customFieldsBuilder">
+            <h3 style="margin-bottom: 0.5rem;">Define Fields</h3>
+            <p style="color: var(--sidebar-text); margin-bottom: 1.5rem;">Add the fields you want employees to fill in this module.</p>
+        
+        <div id="fieldsContainer">
+            <div class="field-row" style="display: flex; flex-direction:column; gap: 0.5rem; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color);">
+                <button type="button" class="btn" onclick="this.parentElement.remove()" style="position:absolute; top: -10px; right: -10px; padding: 0.5rem; background: var(--error); color: white; border: none; border-radius: 50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">X</button>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="text" name="field_name[]" class="form-control" placeholder="Label / Element Text" style="flex:2;" required>
+                    <select name="field_type[]" class="form-control" style="flex:1;" onchange="checkDynamicFieldType(this)">
+                        <optgroup label="Layout Components">
+                            <option value="HEADING">Heading / Title block</option>
+                            <option value="DESCRIPTION">Description / Text block</option>
+                        </optgroup>
+                        <optgroup label="Input Fields">
+                            <option value="TEXT" selected>Short Text</option>
+                            <option value="TEXTAREA">Long Text Area</option>
+                            <option value="NUMBER">Number</option>
+                            <option value="DATE">Date Picker</option>
+                            <option value="TIME">Time (Hour & Minute)</option>
+                            <option value="FILE">File / Image Upload</option>
+                        </optgroup>
+                        <optgroup label="Choices (Requires Options)">
+                            <option value="DROPDOWN">Dropdown List</option>
+                            <option value="RADIO">Radio Buttons</option>
+                            <option value="CHECKBOX">Checkboxes (Multiple)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="options-group" style="display:none; margin-top: 0.5rem;">
+                    <input type="text" name="field_options[]" class="form-control" placeholder="Options (Comma Separated e.g. Red, Blue, Green)">
+                </div>
+                <div style="display:flex; align-items:center; flex-wrap:wrap; gap: 1.5rem; margin-top: 0.5rem;">
+                    <div style="display:flex; align-items:center; gap: 0.5rem;">
+                        <input type="hidden" name="is_required_hidden[]" value="false">
+                        <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                        <label style="margin:0;">Required?</label>
+                    </div>
+                    <div style="display:flex; align-items:center; gap: 0.5rem;">
+                        <input type="hidden" name="is_filterable_hidden[]" value="false">
+                        <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                        <label style="margin:0;">Use for Filtering?</label>
+                    </div>
+                    <div style="display:flex; align-items:center; gap: 0.5rem;">
+                        <input type="hidden" name="show_dashboard_hidden[]" value="false">
+                        <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                        <label style="margin:0;">Dashboard ON?</label>
+                    </div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <button type="button" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.85rem;" onclick="this.nextElementSibling.style.display='flex'; this.style.display='none';">⚙️ Add Condition (Advanced)</button>
+                    <div class="condition-group" style="display:none; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.02); padding: 0.5rem; border-radius: 4px; border: 1px dashed var(--border);">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Show only if</span>
+                        <input type="text" name="depends_on_name[]" class="form-control" placeholder="Parent Field Name" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">equals</span>
+                        <input type="text" name="depends_on_value[]" class="form-control" placeholder="Value (e.g. Other)" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                        <button type="button" class="btn" style="padding: 0.2rem 0.5rem; color: var(--error);" onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline-block'; this.previousElementSibling.value=''; this.previousElementSibling.previousElementSibling.previousElementSibling.value='';">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div> <!-- End customFieldsBuilder -->
+        
+        <button type="button" id="addAnotherFieldBtn" class="btn btn-outline" onclick="addField()" style="margin-bottom: 2rem; width:100%;">+ Add Another Field</button>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Create Module</button>
+    </form>
+</div>
+
+<script>
+    function toggleModuleType() {
+        const type = document.getElementById('moduleTypeSelect').value;
+        const builder = document.getElementById('customFieldsBuilder');
+        const addBtn = document.getElementById('addAnotherFieldBtn');
+        if (type === 'FLEET') {
+            builder.style.display = 'none';
+            addBtn.style.display = 'none';
+            // Disable required attribute on first field so form can submit without custom fields
+            const firstField = builder.querySelector('input[name="field_name[]"]');
+            if (firstField) firstField.required = false;
+        } else {
+            builder.style.display = 'block';
+            addBtn.style.display = 'block';
+            const firstField = builder.querySelector('input[name="field_name[]"]');
+            if (firstField) firstField.required = true;
+        }
+    }
+    
+    // Call once on load just in case
+    document.addEventListener('DOMContentLoaded', toggleModuleType);
+
+    function checkDynamicFieldType(selectElem) {
+        const val = selectElem.value;
+        const optionsGroup = selectElem.closest('.field-row').querySelector('.options-group');
+        const optionsInput = optionsGroup.querySelector('input');
+        
+        if(val === 'DROPDOWN' || val === 'RADIO' || val === 'CHECKBOX') {
+            optionsGroup.style.display = 'block';
+            optionsInput.required = true;
+        } else {
+            optionsGroup.style.display = 'none';
+            optionsInput.required = false;
+            optionsInput.value = '';
+        }
+    }
+
+    function addField() {
+        const container = document.getElementById('fieldsContainer');
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.style.cssText = 'display: flex; flex-direction:column; gap: 0.5rem; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); position:relative;';
+        row.innerHTML = `
+            <button type="button" class="btn" onclick="this.parentElement.remove()" style="position:absolute; top: -10px; right: -10px; padding: 0.5rem; background: var(--error); color: white; border: none; border-radius: 50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">X</button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" name="field_name[]" class="form-control" placeholder="Label / Element Text" style="flex:2;" required>
+                <select name="field_type[]" class="form-control" style="flex:1;" onchange="checkDynamicFieldType(this)">
+                    <optgroup label="Layout Components">
+                        <option value="HEADING">Heading / Title block</option>
+                        <option value="DESCRIPTION">Description / Text block</option>
+                    </optgroup>
+                    <optgroup label="Input Fields">
+                        <option value="TEXT" selected>Short Text</option>
+                        <option value="TEXTAREA">Long Text Area</option>
+                        <option value="NUMBER">Number</option>
+                        <option value="DATE">Date Picker</option>
+                            <option value="TIME">Time (Hour & Minute)</option>
+                        <option value="FILE">File / Image Upload</option>
+                    </optgroup>
+                    <optgroup label="Choices (Requires Options)">
+                        <option value="DROPDOWN">Dropdown List</option>
+                        <option value="RADIO">Radio Buttons</option>
+                        <option value="CHECKBOX">Checkboxes (Multiple)</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="options-group" style="display:none; margin-top: 0.5rem;">
+                <input type="text" name="field_options[]" class="form-control" placeholder="Options (Comma Separated e.g. Red, Blue, Green)">
+            </div>
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap: 1.5rem; margin-top: 0.5rem;">
+                <div style="display:flex; align-items:center; gap: 0.5rem;">
+                    <input type="hidden" name="is_required_hidden[]" value="false">
+                    <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                    <label style="margin:0;">Required?</label>
+                </div>
+                <div style="display:flex; align-items:center; gap: 0.5rem;">
+                    <input type="hidden" name="is_filterable_hidden[]" value="false">
+                    <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                    <label style="margin:0;">Use for Filtering?</label>
+                </div>
+                <div style="display:flex; align-items:center; gap: 0.5rem;">
+                    <input type="hidden" name="show_dashboard_hidden[]" value="false">
+                    <input type="checkbox" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+                    <label style="margin:0;">Dashboard ON?</label>
+                </div>
+            </div>
+            <div style="margin-top: 0.75rem;">
+                <button type="button" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.85rem;" onclick="this.nextElementSibling.style.display='flex'; this.style.display='none';">⚙️ Add Condition (Advanced)</button>
+                <div class="condition-group" style="display:none; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.02); padding: 0.5rem; border-radius: 4px; border: 1px dashed var(--border);">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Show only if</span>
+                    <input type="text" name="depends_on_name[]" class="form-control" placeholder="Parent Field Name" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">equals</span>
+                    <input type="text" name="depends_on_value[]" class="form-control" placeholder="Value (e.g. Other)" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                    <button type="button" class="btn" style="padding: 0.2rem 0.5rem; color: var(--error);" onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline-block'; this.previousElementSibling.value=''; this.previousElementSibling.previousElementSibling.previousElementSibling.value='';">Remove</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+function toggleSelect(id) {
+    let el = document.getElementById(id);
+    if(el.classList.contains('active')) {
+        el.classList.remove('active');
+    } else {
+        document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('active'));
+        el.classList.add('active');
+    }
+}
+document.addEventListener('click', function(e) {
+    if(!e.target.closest('.custom-select')) {
+        document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('active'));
+    }
+});
+function filterAccess(parentId) {
+    let parent = document.getElementById(parentId);
+    let search = parent.querySelector('.access-search').value.toLowerCase();
+    let postFilter = parent.querySelector('.access-post-filter').value;
+    let items = parent.querySelectorAll('.access-item');
+    items.forEach(item => {
+        let name = item.querySelector('.access-name').innerText.toLowerCase();
+        let post = item.getAttribute('data-post');
+        let matchesSearch = name.includes(search);
+        let matchesPost = (postFilter === 'ALL') || (post === postFilter);
+        item.style.display = (matchesSearch && matchesPost) ? 'flex' : 'none';
+    });
+}
+
+</script>
+{% endblock %}

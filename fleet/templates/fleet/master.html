@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+    <h2>🚜 {{ section.name }} - Fleet Master</h2>
+    <div style="display:flex; gap: 1rem;">
+        <a href="{% url 'fleet:dashboard' section.id %}" class="btn btn-outline">Back to Dashboard</a>
+        <a href="{% url 'fleet:log_repair' section.id %}" class="btn btn-primary">Log Repair</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add New Vehicle</h3>
+    <form method="POST" action="{% url 'fleet:master' section.id %}">
+        {% csrf_token %}
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top:1rem;">
+            <div>
+                <label>Door No (D.No)</label>
+                <input type="text" name="dno" class="form-control" required>
+            </div>
+            <div>
+                <label>Registration No</label>
+                <input type="text" name="regn" class="form-control">
+            </div>
+            <div>
+                <label>Model</label>
+                <input type="text" name="model_name" class="form-control">
+            </div>
+            <div>
+                <label>Department (Optional)</label>
+                <select name="department" class="form-control">
+                    <option value="">-- None --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Add Vehicle</button>
+    </form>
+</div>
+
+<div class="card" style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+        <thead>
+            <tr style="background: var(--bg-color); border-bottom: 2px solid var(--border);">
+                <th style="padding: 1rem; text-align: left;">D.No</th>
+                <th style="padding: 1rem; text-align: left;">Regn No</th>
+                <th style="padding: 1rem; text-align: left;">Model</th>
+                <th style="padding: 1rem; text-align: left;">Department</th>
+                <th style="padding: 1rem; text-align: left;">Latest HMR</th>
+                <th style="padding: 1rem; text-align: left;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vehicles %}
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem; font-weight:600;"><a href="{% url 'fleet:kundali' v.id %}">{{ v.dno }}</a></td>
+                <td style="padding: 1rem;">{{ v.regn }}</td>
+                <td style="padding: 1rem;">{{ v.model_name }}</td>
+                <td style="padding: 1rem;">{{ v.department.name|default:'-' }}</td>
+                <td style="padding: 1rem;">{{ v.latest_hmr }}</td>
+                <td style="padding: 1rem;">
+                    <a href="{% url 'fleet:kundali' v.id %}" class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.8rem;">View Kundali</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="padding: 2rem; text-align:center; color:var(--sidebar-text);">No vehicles found in the Fleet Master.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

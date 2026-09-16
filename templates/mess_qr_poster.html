@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mess QR Code Poster - {{ mess_location.name }}{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        header, navbar, sidebar, footer, .no-print { display: none !important; }
+        body { background: white !important; padding: 0 !important; }
+        .poster-card { box-shadow: none !important; border: 3px solid #000 !important; }
+    }
+    .poster-container { max-width: 650px; margin: 30px auto; padding: 0 15px; }
+    .poster-card {
+        background: white; border-radius: 20px; border: 2px solid #e2e8f0; padding: 40px 30px;
+        text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    }
+</style>
+
+<div class="poster-container">
+    <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="{% url 'mess_monitor_view' %}" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; text-decoration: none; padding: 8px 16px; border-radius: 8px;">
+            ← Back to Dashboard
+        </a>
+        <button onclick="window.print()" class="btn" style="background: #2563eb; color: white; font-weight: 800; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+            🖨️ Print QR Poster
+        </button>
+    </div>
+
+    <div class="poster-card">
+        <div style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #2563eb; margin-bottom: 8px;">
+            🏢 CANTEEN / MESS ENTRANCE PASSPORT
+        </div>
+        <h1 style="font-size: 2.2rem; font-weight: 900; color: #0f172a; margin: 0 0 6px 0;">
+            {{ mess_location.name }}
+        </h1>
+        <p style="color: #64748b; font-size: 1rem; margin: 0 0 24px 0; font-weight: 600;">
+            Code: <span style="color: #0f172a;">{{ mess_location.code }}</span> | Capacity: {{ mess_location.capacity }} Workers
+        </p>
+
+        <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 24px; display: inline-block; margin-bottom: 24px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data={{ claim_url|urlencode }}" alt="Mess QR Code" style="width: 260px; height: 260px; display: block; margin: 0 auto;">
+        </div>
+
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; text-align: left; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 1.05rem; font-weight: 800;">
+                📱 SCAN TO CLAIM YOUR MEAL PASS
+            </h4>
+            <ol style="margin: 0; padding-left: 20px; color: #1e3a8a; font-size: 0.92rem; line-height: 1.6;">
+                <li>Scan this QR code using your Smartphone Camera or Portal Browser.</li>
+                <li>Verify your Employee Details for the active Meal Window (Breakfast/Lunch/Dinner).</li>
+                <li>Get your <b>Green Digital Meal Pass</b> on screen and show it to the Mess Counter staff.</li>
+            </ol>
+        </div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">
+            🔒 Anti-Passback Secured System • 1 Meal per Employee per Meal Window
+        </div>
+    </div>
+</div>
+{% endblock %}

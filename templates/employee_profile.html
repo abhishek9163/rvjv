@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+
+    <!-- ===== PREMIUM PROFILE CARD ===== -->
+    <div style="border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); border: 1px solid var(--border); margin-bottom: 2.5rem; background: var(--card-bg);">
+        
+        <!-- Cover Banner -->
+        <div style="height: 140px; background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 50%, #06b6d4 100%); position: relative; overflow: hidden;">
+            <div style="position: absolute; inset: 0; background: url('data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><circle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;40&quot; fill=&quot;rgba(255,255,255,0.05)&quot;/><circle cx=&quot;80&quot; cy=&quot;80&quot; r=&quot;60&quot; fill=&quot;rgba(255,255,255,0.03)&quot;/></svg>');"></div>
+            <!-- Top Right Buttons -->
+            <div style="position: absolute; top: 1.25rem; right: 1.25rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                {% if user.system_role == 'MANAGER' or user.is_superuser %}
+                <a href="{% url 'edit_employee_role' target_user.id %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: white; font-size: 0.85rem; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    ✏️ Edit Role
+                </a>
+                <a href="{% url 'teams' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); color: white; font-size: 0.85rem; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.2); transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                    ← Directory
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); color: white; font-size: 0.85rem; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);">
+                    ← Dashboard
+                </a>
+                {% endif %}
+                <a href="{% url 'logout' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; background: rgba(239,68,68,0.85); backdrop-filter: blur(10px); color: white; font-size: 0.85rem; font-weight: 700; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); transition: all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='rgba(239,68,68,0.85)'">
+                    <i class="fas fa-right-from-bracket"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Profile Info Section -->
+        <div style="padding: 0 2rem 2rem; position: relative;">
+            
+            <!-- Avatar (overlapping the banner) -->
+            <div style="position: relative; margin-top: -55px; margin-bottom: 1.25rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="width: 110px; height: 110px; border-radius: 50%; overflow: hidden; border: 4px solid var(--card-bg); box-shadow: 0 8px 25px rgba(0,0,0,0.2); flex-shrink: 0; background: var(--primary);">
+                    {% if target_user.profile_picture %}
+                    <img src="{{ target_user.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size: 2.8rem; color: white; font-weight: 800; background: linear-gradient(135deg, var(--primary), #8b5cf6);">
+                        {{ target_user.full_name|default:target_user.username|make_list|first|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Status Badge (top-right of info) -->
+                <div style="padding-bottom: 0.25rem;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.3px;
+                        {% if target_user.system_role == 'PENDING' %}
+                            background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2);
+                        {% elif target_user.system_role == 'MANAGER' %}
+                            background: rgba(99,102,241,0.1); color: var(--primary); border: 1px solid rgba(99,102,241,0.2);
+                        {% else %}
+                            background: rgba(34,197,94,0.1); color: #16a34a; border: 1px solid rgba(34,197,94,0.2);
+                        {% endif %}
+                    ">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block;"></span>
+                        {{ target_user.get_system_role_display }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Name & Post -->
+            <div style="margin-bottom: 1.5rem;">
+                <h1 style="margin: 0 0 0.3rem; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-color);">
+                    {{ target_user.full_name|default:target_user.username }}
+                </h1>
+                <p style="margin: 0; font-size: 1rem; color: var(--sidebar-text); font-weight: 500;">
+                    🏷️ {{ target_user.post.name|default:"No Post Assigned" }}
+                </p>
+            </div>
+
+            <!-- Info Chips Row -->
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                {% if target_user.email %}
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; color: var(--text-color);">
+                    <span style="font-size: 1rem;">📧</span>
+                    <span>{{ target_user.email }}</span>
+                </div>
+                {% endif %}
+                {% if target_user.phone_number %}
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; color: var(--text-color);">
+                    <span style="font-size: 1rem;">📞</span>
+                    <span>{{ target_user.phone_number }}</span>
+                </div>
+                {% endif %}
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; color: var(--text-color);">
+                    <span style="font-size: 1rem;">📅</span>
+                    <span>Joined {{ target_user.date_joined|date:"M d, Y" }}</span>
+                </div>
+                {% if target_user.username %}
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; color: var(--text-color);">
+                    <span style="font-size: 1rem;">👤</span>
+                    <span>@{{ target_user.username }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RELATED DATA SECTION ===== -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--text-color);">📋 Related Module Data</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--sidebar-text);">All entries linked to this employee across modules</p>
+        </div>
+        <!-- Filter Bar -->
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <input type="text" id="globalSearch" class="form-control" placeholder="🔍 Search data..." style="padding: 0.6rem 1rem; border-radius: 10px; min-width: 200px; font-size: 0.9rem;" onkeyup="filterProfileData()">
+            <input type="date" id="dateFilter" class="form-control" style="padding: 0.6rem 1rem; border-radius: 10px; font-size: 0.9rem;" onchange="filterProfileData()">
+            <button class="btn btn-outline" onclick="document.getElementById('globalSearch').value=''; document.getElementById('dateFilter').value=''; filterProfileData();" style="padding: 0.6rem 1rem; border-radius: 10px; font-size: 0.9rem;">✕ Clear</button>
+        </div>
+    </div>
+
+    {% if grouped_data %}
+        {% for section, entries in grouped_data.items %}
+        <div class="card module-block" style="margin-bottom: 1.5rem; padding: 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow);">
+            <!-- Module Header -->
+            <div style="padding: 1rem 1.5rem; background: var(--bg-color); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">📋</div>
+                    <div>
+                        <div style="font-size: 1rem; font-weight: 700; color: var(--text-color);">{{ section.name }}</div>
+                        <div style="font-size: 0.78rem; color: var(--sidebar-text);">{{ entries|length }} entr{{ entries|length|pluralize:"y,ies" }}</div>
+                    </div>
+                </div>
+                <span style="font-size: 0.78rem; font-weight: 600; padding: 0.3rem 0.75rem; border-radius: 20px; background: rgba(99,102,241,0.1); color: var(--primary);">{{ section.layout_style }}</span>
+            </div>
+
+            <div style="padding: 1.25rem 1.5rem;">
+            {% if section.layout_style == 'TABLE' or section.layout_style == 'REPORT' %}
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                        <thead>
+                            <tr style="background: var(--bg-color); border-bottom: 2px solid var(--border);">
+                                <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--sidebar-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Date</th>
+                                {% for field in section.fields.all %}
+                                    {% if field.field_type != 'HEADING' and field.field_type != 'DESCRIPTION' %}
+                                    <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--sidebar-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{{ field.name }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                            <tr class="filterable-item" data-date="{{ entry.created_at|date:'Y-m-d' }}" style="border-bottom: 1px solid var(--border); transition: background 0.15s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 0.9rem 1rem; font-size: 0.88rem; color: var(--sidebar-text); white-space: nowrap;">{{ entry.created_at|date:"M d, Y" }}</td>
+                                {% for field in section.fields.all %}
+                                    {% if field.field_type != 'HEADING' and field.field_type != 'DESCRIPTION' %}
+                                    <td style="padding: 0.9rem 1rem; font-size: 0.9rem; color: var(--text-color);">
+                                        {% for key, value in entry.data.items %}
+                                            {% if key == field.name %}
+                                                {% if field.field_type == 'FILE' %}
+                                                    <a href="{{ value }}" target="_blank" style="color: var(--primary); font-weight: 500;">📎 View</a>
+                                                {% else %}
+                                                    {{ value|default:"—" }}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            {% else %}
+                <!-- GRID / LIST Fallback -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem;">
+                    {% for entry in entries %}
+                    <div class="filterable-item" data-date="{{ entry.created_at|date:'Y-m-d' }}" style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; transition: box-shadow 0.2s, transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <div style="font-size: 0.78rem; color: var(--sidebar-text); font-weight: 600; margin-bottom: 0.75rem; padding-bottom: 0.6rem; border-bottom: 1px dashed var(--border);">
+                            📅 {{ entry.created_at|date:"M d, Y" }}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                        {% for key, value in entry.data.items %}
+                            {% if key != 'current_stock' and key != 'stock_history' %}
+                            <div style="display: flex; flex-direction: column; gap: 0.1rem;">
+                                <span style="font-size: 0.72rem; color: var(--sidebar-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">{{ key }}</span>
+                                {% if 'http' in value|stringformat:"s" or '/media/' in value|stringformat:"s" %}
+                                    <a href="{{ value }}" target="_blank" style="color: var(--primary); font-size: 0.88rem; font-weight: 500;">📎 View File</a>
+                                {% else %}
+                                    <span style="font-size: 0.92rem; color: var(--text-color); font-weight: 500;">{{ value|default:"—" }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 4rem 2rem; background: var(--card-bg); border: 1px dashed var(--border); border-radius: 16px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+            <h4 style="color: var(--text-color); margin: 0 0 0.5rem; font-size: 1.15rem;">No Data Found</h4>
+            <p style="color: var(--sidebar-text); font-size: 0.9rem; margin: 0;">No module entries are linked to this employee yet.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+function filterProfileData() {
+    let searchText = document.getElementById('globalSearch').value.toLowerCase();
+    let dateVal = document.getElementById('dateFilter').value;
+    
+    let blocks = document.querySelectorAll('.module-block');
+    
+    blocks.forEach(block => {
+        let items = block.querySelectorAll('.filterable-item');
+        let blockHasVisible = false;
+        
+        items.forEach(item => {
+            let text = item.innerText.toLowerCase();
+            let itemDate = item.getAttribute('data-date');
+            
+            let matchesSearch = text.includes(searchText);
+            let matchesDate = (dateVal === '') || (itemDate === dateVal);
+            
+            if (matchesSearch && matchesDate) {
+                item.style.display = '';
+                blockHasVisible = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        block.style.display = blockHasVisible ? '' : 'none';
+    });
+}
+</script>
+
+{% endblock %}

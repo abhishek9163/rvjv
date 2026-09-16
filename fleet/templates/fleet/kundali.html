@@ -1,0 +1,1165 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .kundali-wrapper {
+        max-width: 900px;
+        margin: 2rem auto;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .k-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .k-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e3a8a; /* Deep blue */
+        margin: 0;
+    }
+    
+    .k-close {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #4b5563;
+        text-decoration: none;
+    }
+    
+    .k-filter-box {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #111827;
+        font-weight: 500;
+    }
+    
+    .filter-input {
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-reset {
+        background: white;
+        border: 1px solid #d1d5db;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+    }
+    
+    .k-identity {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .k-vehicle-name {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #2563eb;
+        margin: 0 0 5px 0;
+    }
+    
+    .k-subtitle {
+        font-size: 0.85rem;
+        color: #4b5563;
+        margin: 0 0 1rem 0;
+    }
+    
+    .k-driver-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border: 1px solid #fcd34d;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+    
+    .k-stats-row {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .k-stat-box {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        min-width: 100px;
+    }
+    
+    .k-stat-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e40af;
+        margin-bottom: 4px;
+    }
+    .k-stat-val.green { color: #16a34a; }
+    .k-stat-val.orange { color: #d97706; }
+    .k-stat-val.red { color: #dc2626; }
+    
+    .k-stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #4b5563;
+    }
+    
+    .k-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .k-problem-area {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .k-problem-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    .k-freq-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .k-meter-area {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .k-timeline {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+    
+    .k-log-entry {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1.5rem 0;
+    }
+    .k-log-entry:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .k-log-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    
+    .k-log-status {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+    .k-log-status.in-shop {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+    .k-log-status.completed {
+        color: #166534;
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+    }
+    
+    .k-log-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #4b5563;
+        margin-bottom: 1rem;
+    }
+    
+    .k-log-label {
+        color: #9ca3af;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+    }
+    
+    .k-log-val {
+        font-weight: 600;
+        color: #111827;
+    }
+</style>
+
+<div class="kundali-wrapper">
+    <div class="k-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <a href="{% url 'fleet:vehicle_profiles' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; font-weight: 700; padding: 5px 12px; font-size: 0.85rem; text-decoration: none;">
+                &larr; All Profiles
+            </a>
+            <h1 class="k-title">Vehicle {{ vehicle.dno }} {% if vehicle.regn %}({{ vehicle.regn }}){% endif %} — 360° Profile &amp; History</h1>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin: 0; white-space: nowrap;">Switch Vehicle:</label>
+            <select class="form-select form-select-sm" style="font-weight: 600; border-radius: 8px; max-width: 200px; font-size: 0.82rem;" onchange="if(this.value) window.location.href='/fleet/kundali/'+this.value+'/'">
+                {% for v in all_vehicles %}
+                <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
+                    {{ v.dno|default:v.regn }} {% if v.regn and v.dno != v.regn %}({{ v.regn }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <a href="{% url 'fleet:vehicle_profiles' %}" class="k-close" title="Back to Vehicle Profiles">×</a>
+        </div>
+    </div>
+    
+    <div class="k-filter-box" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px 16px;">
+        <form method="GET" action="" id="formKundaliDateFilter">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; font-weight: 700; color: #1e293b;">
+                    <i class="fa fa-calendar-alt" style="color: #2563eb;"></i> 
+                    <span>Date Range History Filter:</span>
+                    <input type="date" name="date_from" id="kDateFrom" value="{{ date_from }}" class="form-control form-control-sm" style="width: auto; font-weight: 600; border-radius: 8px; font-size: 0.82rem;">
+                    <span>to</span>
+                    <input type="date" name="date_to" id="kDateTo" value="{{ date_to }}" class="form-control form-control-sm" style="width: auto; font-weight: 600; border-radius: 8px; font-size: 0.82rem;">
+                    
+                    <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 8px; font-weight: 700; padding: 4px 12px; font-size: 0.82rem;">
+                        <i class="fa fa-filter"></i> Apply Filter
+                    </button>
+
+                    {% if date_from or date_to %}
+                    <a href="{% url 'fleet:kundali' vehicle.id %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 700; padding: 4px 10px; font-size: 0.82rem; text-decoration: none;">
+                        <i class="fa fa-undo"></i> Reset / All Time
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 6px;">
+                    <a href="{% url 'fleet:export_vehicles_pdf' %}?report_type=lifecycle&search={{ vehicle.dno|urlencode }}&date_from={{ date_from }}&date_to={{ date_to }}" target="_blank" class="btn btn-sm btn-danger" style="border-radius: 8px; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                        <i class="fa fa-file-pdf"></i> Export PDF Report
+                    </a>
+                    <a href="{% url 'fleet:export_vehicles_excel' %}?report_type=lifecycle&search={{ vehicle.dno|urlencode }}&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-sm btn-success" style="border-radius: 8px; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                        <i class="fa fa-file-excel"></i> Export Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Preset Badges -->
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: #64748b;">Presets:</span>
+                <button type="button" onclick="applyKundaliPreset('today')" class="btn-date-preset">Today</button>
+                <button type="button" onclick="applyKundaliPreset('last7')" class="btn-date-preset">Last 7 Days</button>
+                <button type="button" onclick="applyKundaliPreset('thisMonth')" class="btn-date-preset">This Month</button>
+                <button type="button" onclick="applyKundaliPreset('last30')" class="btn-date-preset">Last 30 Days</button>
+                <button type="button" onclick="applyKundaliPreset('all')" class="btn-date-preset">All Time</button>
+            </div>
+        </form>
+
+        <div style="font-size: 0.8rem; font-weight: 700; color: #2563eb; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span>📋 Timeline Records Loaded: <strong>{{ timeline|length }}</strong> entries across all modules</span>
+            {% if date_from or date_to %}
+            <span style="color: #dc2626; font-size: 0.78rem;">Filtering Active: {{ date_from|default:"Start" }} to {{ date_to|default:"Today" }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+    function applyKundaliPreset(preset) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        const fromInput = document.getElementById('kDateFrom');
+        const toInput = document.getElementById('kDateTo');
+
+        if (preset === 'all') {
+            fromInput.value = '';
+            toInput.value = '';
+        } else if (preset === 'today') {
+            fromInput.value = todayStr;
+            toInput.value = todayStr;
+        } else if (preset === 'last7') {
+            const past7 = new Date();
+            past7.setDate(today.getDate() - 7);
+            fromInput.value = past7.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        } else if (preset === 'thisMonth') {
+            fromInput.value = `${yyyy}-${mm}-01`;
+            toInput.value = todayStr;
+        } else if (preset === 'last30') {
+            const past30 = new Date();
+            past30.setDate(today.getDate() - 30);
+            fromInput.value = past30.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        }
+        document.getElementById('formKundaliDateFilter').submit();
+    }
+    </script>
+    
+    <div class="k-identity">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+            <div>
+                <h2 class="k-vehicle-name" style="margin-bottom: 4px;">{{ vehicle.dno }} {% if vehicle.regn %}({{ vehicle.regn }}){% endif %}</h2>
+                <p class="k-subtitle" style="margin-bottom: 8px;">
+                    Model: <strong>{{ vehicle.model_name|default:"Equipment" }}</strong> | 
+                    Department: <strong>{{ vehicle.department.name|default:"General Fleet" }}</strong>
+                </p>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                {% if is_hired %}
+                <span style="background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
+                    🤝 HIRED VEHICLE
+                </span>
+                {% else %}
+                <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
+                    🏢 IN-HOUSE FLEET
+                </span>
+                {% endif %}
+
+                {% if active_breakdowns > 0 %}
+                <span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
+                    ⚠️ ACTIVE BREAKDOWN (IN WORKSHOP)
+                </span>
+                {% else %}
+                <span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
+                    🟢 RUNNING / ON DUTY
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.25rem; font-size: 0.85rem; color: #475569;">
+            <div class="k-driver-badge" style="margin-bottom: 0;">
+                <i class="fa fa-user"></i> Driver: {{ vehicle.driver.name|default:"Not Assigned" }}
+            </div>
+            {% if vehicle.extra_data.owner_name %}
+            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 20px; font-weight: 600;">
+                <i class="fa fa-building"></i> Vendor/Owner: {{ vehicle.extra_data.owner_name }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="k-stats-row">
+            <div class="k-stat-box">
+                <div class="k-stat-val">{{ logs|length }}</div>
+                <div class="k-stat-label">Total Jobs</div>
+            </div>
+            <div class="k-stat-box">
+                <div class="k-stat-val green">{{ completed_repairs }}</div>
+                <div class="k-stat-label">Completed</div>
+            </div>
+            <div class="k-stat-box">
+                <div class="k-stat-val orange">{{ active_breakdowns }}</div>
+                <div class="k-stat-label">In Workshop</div>
+            </div>
+            <div class="k-stat-box">
+                <div class="k-stat-val red">{{ total_shop_days }}d</div>
+                <div class="k-stat-label">Total Shop Days</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="k-problem-area">
+        <h3 class="k-section-title" style="color: #d97706;"><i class="fa fa-exclamation-triangle"></i> Problem Area Analysis (What breaks most in {{ vehicle.dno }}):</h3>
+        <div class="k-problem-grid">
+            <div>
+                <div style="font-size: 0.75rem; color: #4b5563; font-weight: 700; margin-bottom: 10px;">SYSTEM BREAKDOWN FREQUENCY</div>
+                
+                {% for issue, count, perc in breakdown_freq %}
+                <div class="k-freq-row">
+                    <span style="color: #111827;">{{ issue }} ({{ count }} times)</span>
+                    <span style="color: #d97706;">{{ perc }}% of all issues</span>
+                </div>
+                {% empty %}
+                <div style="font-size: 0.85rem; color: #6b7280;">No data to analyze.</div>
+                {% endfor %}
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: #4b5563; font-weight: 700; margin-bottom: 10px;">MOST REPLACED PARTS</div>
+                {% if most_replaced_part %}
+                <span style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">{{ most_replaced_part }}</span>
+                {% else %}
+                <span style="font-size: 0.85rem; color: #6b7280;">No parts replaced.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="k-meter-area">
+        <h3 class="k-section-title" style="color: #2563eb;"><i class="fa fa-tachometer-alt"></i> Meter Reading Analysis — {{ vehicle.dno }}</h3>
+        <div class="k-problem-grid">
+            <div>
+                <div style="font-size: 0.75rem; color: #4b5563; font-weight: 700; margin-bottom: 5px;">KMR ANALYSIS (Kilometer)</div>
+                <div style="font-size: 0.85rem; color: #111827;">Single reading: <span style="color: #2563eb; font-weight: 600; text-decoration: underline;">{{ vehicle.extra_data.latest_kmr|default:"-" }} km</span></div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: #4b5563; font-weight: 700; margin-bottom: 5px;">HMR ANALYSIS (Hour Meter)</div>
+                <div style="font-size: 0.85rem; color: #111827;">Single reading: <span style="color: #2563eb; font-weight: 600; text-decoration: underline;">{{ vehicle.latest_hmr|default:"-" }} hrs</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs Navigation -->
+    <div class="k-tabs" style="display: flex; gap: 8px; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap;">
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-timeline')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--primary); color: white; transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-history"></i> Activity Timeline ({{ timeline|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-repairs')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-wrench"></i> Repairs &amp; Maintenance ({{ logs|length|add:services|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-lubricants')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-oil-can"></i> Lubricants ({{ lubricants|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-spares')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-cog"></i> Spare Parts ({{ spares|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-tyres')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-circle-notch"></i> Tyre Logs ({{ tyres|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-allocations')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-calendar-check"></i> Shift Allocations ({{ allocations|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-movements')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-route"></i> Movements &amp; Deployments ({{ movements|length|add:deployments|length }})</button>
+        <button class="k-tab-btn" onclick="switchKundaliTab('tab-documents')" style="padding: 10px 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--bg-color); color: var(--text-color); transition: all 0.2s; font-size: 0.85rem;"><i class="fa fa-id-card"></i> RC &amp; Insurance ({{ vdocs|length|add:ins_docs|length }})</button>
+    </div>
+
+    <!-- Tab 1: Activity Timeline -->
+    <div id="tab-timeline" class="k-tab-content">
+        <div class="k-timeline">
+            <h3 class="k-section-title"><i class="fa fa-history"></i> Unified Vehicle Activity Log (Chronological):</h3>
+            {% for event in timeline %}
+            <div class="k-log-entry" style="border-left: 4px solid {{ event.color }}; padding: 12px 15px; margin-bottom: 15px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <div style="font-size: 0.8rem; color: var(--sidebar-text); font-weight: 700; text-transform: uppercase; display:flex; align-items:center; gap:6px;">
+                        <i class="fa {{ event.icon }}" style="color: {{ event.color }};"></i> {{ event.type }}
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">
+                        {{ event.date|date:"d-m-Y" }}
+                    </div>
+                </div>
+                <div style="font-size: 1rem; font-weight: 700; color: var(--text-color); margin-bottom: 6px;">
+                    {{ event.title }}
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-color); margin-bottom: 8px; line-height: 1.4;">
+                    {{ event.desc }}
+                </div>
+                <div style="font-size: 0.78rem; color: var(--sidebar-text); border-top: 1px dashed var(--border); padding-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <span><strong>Location:</strong> {{ event.location|default:"-" }}</span>
+                    <span>{{ event.extra }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No historical records available for this vehicle.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 2: Repairs & Breakdowns -->
+    <div id="tab-repairs" class="k-tab-content" style="display:none;">
+        <div class="k-timeline">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 8px;">
+                <h3 class="k-section-title" style="color: #ef4444; margin: 0;"><i class="fa fa-wrench"></i> Repair & Breakdown Logs:</h3>
+                <button type="button" onclick="openAddBreakdownModal('{{ vehicle.id }}')" class="btn btn-sm btn-danger" style="border-radius: 8px; font-weight: 700; padding: 6px 14px; box-shadow: 0 4px 10px rgba(239,68,68,0.2);">
+                    <i class="fa fa-plus-circle"></i> + Log Breakdown for {{ vehicle.dno }}
+                </button>
+            </div>
+            {% for log in logs %}
+            <div class="k-log-entry" style="border-left: 4px solid {% if not log.out_date %}#dc2626{% else %}#16a34a{% endif %}; padding: 12px 15px; margin-bottom: 15px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <span style="font-weight:700; color:{% if not log.out_date %}#dc2626{% else %}#16a34a{% endif %};">
+                        {% if not log.out_date %}⚠️ ACTIVE BREAKDOWN (IN SHOP){% else %}✅ REPAIRED &amp; RELEASED{% endif %}
+                    </span>
+                    <span style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">{{ log.in_date|date:"d-m-Y" }}</span>
+                </div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-color); margin-bottom: 6px;">
+                    {{ log.complaint|default:"Unknown Complaint" }}
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div><strong>In Time:</strong> {{ log.in_time|default:"-" }}</div>
+                    <div><strong>Out Date/Time:</strong> {% if log.out_date %}{{ log.out_date|date:"d-m-Y" }} {{ log.out_time|default:"" }}{% else %}<span style="color:#ef4444; font-weight:700;">Ongoing (In Shop)</span>{% endif %}</div>
+                    <div><strong>Mechanic:</strong> {{ log.mechanic|default:"-" }}</div>
+                    <div><strong>Parts Replaced:</strong> {{ log.parts_used|default:"None" }} (Qty: {{ log.qty|default:"-" }})</div>
+                    <div><strong>Breakdown KMR:</strong> {{ log.kmr_at_breakdown|default:"-" }} km</div>
+                    <div><strong>Breakdown HMR:</strong> {{ log.hmr_at_breakdown|default:"-" }} hrs</div>
+                </div>
+                {% if not log.out_date %}
+                <div style="margin-top: 8px; margin-bottom: 6px;">
+                    <button type="button" onclick="openResolveModal('{{ log.id }}', '{{ vehicle.dno|default:vehicle.regn|escapejs }}', '{{ log.complaint|escapejs }}', '{{ log.mechanic|escapejs }}')" 
+                            class="btn btn-sm btn-success" style="font-weight: 700; border-radius: 6px; font-size: 0.82rem; padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa fa-check-circle"></i> Mark Repaired &amp; Release Vehicle
+                    </button>
+                </div>
+                {% endif %}
+                {% if log.remarks %}
+                <div style="font-size: 0.82rem; color: var(--sidebar-text); font-style: italic;">
+                    <strong>Remarks:</strong> {{ log.remarks }}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No repair logs found.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 3: Lubricants -->
+    <div id="tab-lubricants" class="k-tab-content" style="display:none;">
+        <div class="k-timeline">
+            <h3 class="k-section-title" style="color: #8b5cf6;"><i class="fa fa-oil-can"></i> Lubricants Consumed:</h3>
+            {% for lub in lubricants %}
+            <div class="k-log-entry" style="border-left: 4px solid #8b5cf6; padding: 12px 15px; margin-bottom: 15px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <span style="font-weight:700; color:#8b5cf6;"><i class="fa fa-oil-can"></i> {{ lub.oil_type }}</span>
+                    <span style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">{{ lub.date|date:"d-m-Y" }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div><strong>Quantity:</strong> {{ lub.qty }} {{ lub.unit }}</div>
+                    <div><strong>Rate:</strong> Nu. {{ lub.rate }}</div>
+                    <div><strong>Material Cost:</strong> Nu. {{ lub.amount }}</div>
+                    <div><strong>Manpower Cost:</strong> Nu. {{ lub.manpower_cost }}</div>
+                    <div style="grid-column: span 2; font-size: 0.95rem; font-weight: 700; color: #8b5cf6;">Total Cost: Nu. {{ lub.total_amount }}</div>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--sidebar-text); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <span><strong>Location:</strong> {{ lub.location|default:"Gelephu" }}</span>
+                    <span><strong>Vendor:</strong> {{ lub.vendor|default:"-" }}</span>
+                    <span><strong>WO No:</strong> {{ lub.work_order_no|default:"-" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No lubricants history found.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 4: Spare Parts -->
+    <div id="tab-spares" class="k-tab-content" style="display:none;">
+        <div class="k-timeline">
+            <h3 class="k-section-title" style="color: #3b82f6;"><i class="fa fa-cog"></i> Spare Parts Replaced:</h3>
+            {% for sp in spares %}
+            <div class="k-log-entry" style="border-left: 4px solid #3b82f6; padding: 12px 15px; margin-bottom: 15px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <span style="font-weight:700; color:#3b82f6;">
+                        <i class="fa fa-cog"></i> {{ sp.part.part_name }} 
+                        ({% if sp.transaction_type == 'IN' %}Stock IN{% else %}Stock OUT{% endif %})
+                    </span>
+                    <span style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">{{ sp.date|date:"d-m-Y" }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div><strong>Part SKU / No:</strong> {{ sp.part.part_number }}</div>
+                    <div><strong>Quantity:</strong> {{ sp.quantity }}</div>
+                    <div><strong>Rate:</strong> Nu. {{ sp.rate }}</div>
+                    <div><strong>Total Value:</strong> Nu. {{ sp.total_amount }}</div>
+                    <div><strong>Manpower Cost:</strong> Nu. {{ sp.manpower_cost|default:"0.0" }}</div>
+                    <div><strong>Mechanic:</strong> {{ sp.mechanic|default:"-" }}</div>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--sidebar-text); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <span><strong>Location / WO:</strong> {{ sp.location|default:"Gelephu" }} / {{ sp.wo_no|default:"-" }}</span>
+                    <span><strong>Supplier:</strong> {{ sp.supplier|default:"-" }}</span>
+                    <span><strong>Approval:</strong> 
+                        {% if sp.is_approved %}
+                        <span style="color:#10b981; font-weight:700;">✓ Approved (by {{ sp.approved_by.full_name|default:sp.approved_by.username }})</span>
+                        {% else %}
+                        <span style="color:#f59e0b; font-weight:700;">⏳ Pending Approval</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No spare parts transactions logged.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 5: Tyre Logs -->
+    <div id="tab-tyres" class="k-tab-content" style="display:none;">
+        <div class="k-timeline">
+            <h3 class="k-section-title" style="color: #f59e0b;"><i class="fa fa-circle-notch"></i> Tyre Maintenance Logs:</h3>
+            {% for ty in tyres %}
+            <div class="k-log-entry" style="border-left: 4px solid #f59e0b; padding: 12px 15px; margin-bottom: 15px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <span style="font-weight:700; color:#f59e0b;"><i class="fa fa-circle-notch"></i> Tyre Service (Punctures: {{ ty.punctures }})</span>
+                    <span style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">{{ ty.date|date:"d-m-Y" }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div><strong>Punctures:</strong> {{ ty.punctures }}</div>
+                    <div><strong>Big / Small Patches:</strong> {{ ty.big_patches }} / {{ ty.small_patches }}</div>
+                    <div><strong>Nozzles Fitted:</strong> {{ ty.nozzles }}</div>
+                    <div><strong>Opening & Fitting Cost:</strong> Nu. {{ ty.opening_fitting_cost }}</div>
+                    <div><strong>Big / Small Patches Cost:</strong> Nu. {{ ty.big_patches_cost }} / Nu. {{ ty.small_patches_cost }}</div>
+                    <div><strong>Material Cost:</strong> Nu. {{ ty.material_cost }}</div>
+                    <div style="grid-column: span 2; font-size: 0.95rem; font-weight: 700; color: #f59e0b;">Total Tyre Cost: Nu. {{ ty.total_amount }}</div>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--sidebar-text); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <span><strong>Location:</strong> {{ ty.location|default:"Gelephu" }}</span>
+                    <span><strong>Vendor:</strong> {{ ty.vendor|default:"-" }}</span>
+                    <span><strong>WO No:</strong> {{ ty.work_order_no|default:"-" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No tyre logs found.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 6: Movements & Deployments -->
+    <div id="tab-movements" class="k-tab-content" style="display:none;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+            <!-- Movements Block -->
+            <div class="k-timeline" style="margin-bottom: 1.5rem;">
+                <h3 class="k-section-title" style="color: #10b981;"><i class="fa fa-route"></i> Vehicle Movements History:</h3>
+                {% for mv in movements %}
+                <div class="k-log-entry" style="border-left: 4px solid #10b981; padding: 12px 15px; margin-bottom: 12px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px; font-weight:700; color:#10b981;">
+                        <span>To: {{ mv.destination }}</span>
+                        <span>{{ mv.movement_date|date:"d-m-Y" }} {{ mv.movement_time|default:"" }}</span>
+                    </div>
+                    <div style="font-size:0.9rem; color:var(--text-color); margin-bottom:6px;">
+                        <strong>Purpose:</strong> {{ mv.purpose|default:"-" }}
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--sidebar-text); display:flex; justify-content:space-between;">
+                        <span><strong>Driver:</strong> {{ mv.driver_name|default:"-" }}</span>
+                        <span><strong>Shift:</strong> {{ mv.shift }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="color: var(--sidebar-text); font-style: italic; padding: 10px;">No movement entries logged.</div>
+                {% endfor %}
+            </div>
+
+            <!-- Deployments Block -->
+            <div class="k-timeline">
+                <h3 class="k-section-title" style="color: #6366f1;"><i class="fa fa-map-marker-alt"></i> Daily Site Deployments:</h3>
+                {% for dep in deployments %}
+                <div class="k-log-entry" style="border-left: 4px solid #6366f1; padding: 12px 15px; margin-bottom: 12px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:6px; font-weight:700; color:#6366f1;">
+                        <span>Site Deployment</span>
+                        <span>{{ dep.date|date:"d-m-Y" }}</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:var(--text-color); display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; background:var(--card-bg); padding:8px; border-radius:6px; border:1px solid var(--border);">
+                        <div><strong>Zone 1-2 Day:</strong> {{ dep.zone_1_2_day }}</div>
+                        <div><strong>Zone 1-2 Night:</strong> {{ dep.zone_1_2_night }}</div>
+                        <div><strong>Zone 3-4 Day:</strong> {{ dep.zone_3_4_day }}</div>
+                        <div><strong>Zone 3-4 Night:</strong> {{ dep.zone_3_4_night }}</div>
+                        <div><strong>Borrow Area Day:</strong> {{ dep.borrow_area_day }}</div>
+                        <div><strong>Borrow Area Night:</strong> {{ dep.borrow_area_night }}</div>
+                        <div><strong>Culvert Area Day:</strong> {{ dep.culvert_area_day }}</div>
+                        <div><strong>Culvert Area Night:</strong> {{ dep.culvert_area_night }}</div>
+                        <div><strong>Batching Plant Day:</strong> {{ dep.batching_plant_day }}</div>
+                        <div><strong>Crushing Plant Day:</strong> {{ dep.crushing_plant_day }}</div>
+                        <div><strong>Road Maintenance:</strong> {{ dep.road_maint_day }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="color: var(--sidebar-text); font-style: italic; padding: 10px;">No daily deployments logged.</div>
+                {% endfor %}
+    <!-- Tab 7: Shift Allocations -->
+    <div id="tab-allocations" class="k-tab-content" style="display:none;">
+        <div class="k-timeline">
+            <h3 class="k-section-title" style="color: #2563eb;"><i class="fa fa-calendar-check"></i> Daily Shift Allocations:</h3>
+            {% for al in allocations %}
+            <div class="k-log-entry" style="border-left: 4px solid #2563eb; padding: 12px 15px; margin-bottom: 12px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <div class="k-log-header" style="display:flex; justify-content:space-between; margin-bottom: 6px;">
+                    <span style="font-weight:700; color:#2563eb;"><i class="fa fa-map-marker-alt"></i> {{ al.location_zone }} ({{ al.shift }} Shift)</span>
+                    <span style="font-size: 0.85rem; color: var(--sidebar-text); font-weight: 600;">{{ al.date|date:"d-m-Y" }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div><strong>Driver / Operator:</strong> {{ al.driver_name }} {% if al.driver_emp_id %}({{ al.driver_emp_id }}){% endif %}</div>
+                    <div><strong>Driver Contact:</strong> {{ al.driver_contact|default:"-" }}</div>
+                    <div><strong>Timing:</strong> Out: {{ al.out_time|default:"-" }} &bull; In: {{ al.in_time|default:"-" }}</div>
+                    <div><strong>Work Order No:</strong> {{ al.work_order_no|default:"-" }}</div>
+                    <div><strong>Vendor / Supplier:</strong> {{ al.vendor|default:"-" }}</div>
+                    <div><strong>HMR/KMR:</strong> Start: {{ al.start_hmr|default:"-" }} &bull; End: {{ al.end_hmr|default:"-" }}</div>
+                </div>
+                {% if al.remarks %}
+                <div style="font-size: 0.8rem; color: var(--sidebar-text); font-style: italic;">
+                    <strong>Remarks:</strong> {{ al.remarks }}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: var(--sidebar-text); padding: 2rem;">No shift allocations logged for this vehicle.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 8: Documents & Insurance -->
+    <div id="tab-documents" class="k-tab-content" style="display:none;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+            <!-- RC Documents -->
+            <div class="k-timeline">
+                <h3 class="k-section-title" style="color: #14b8a6;"><i class="fa fa-id-card"></i> Vehicle Registration (RC) Documents:</h3>
+                {% for vd in vdocs %}
+                <div class="k-log-entry" style="border-left: 4px solid #14b8a6; padding: 12px 15px; margin-bottom: 12px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; color:#14b8a6; margin-bottom:6px;">
+                        <span>RC Reg No: {{ vd.registration_no }}</span>
+                        <span>Issued: {{ vd.rc_issued_on|date:"d-m-Y"|default:"-" }}</span>
+                    </div>
+                    <div style="font-size:0.85rem; display:grid; grid-template-columns: 1fr 1fr; gap:8px; background:var(--card-bg); padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        <div><strong>Driver / Operator:</strong> {{ vd.driver_operator|default:"-" }}</div>
+                        <div><strong>Vehicle Type:</strong> {{ vd.vehicle_type|default:"-" }}</div>
+                        <div><strong>Contact No:</strong> {{ vd.contact_no|default:"-" }}</div>
+                        <div><strong>Reports To:</strong> {{ vd.reports_to|default:"-" }}</div>
+                        <div style="grid-column: span 2; font-weight:700; color:#b91c1c;">
+                            RC Expiry Date: {{ vd.rc_expiry_date|date:"d-m-Y"|default:"No Expiry Set" }}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="color: var(--sidebar-text); font-style: italic; padding: 10px;">No RC documents registered for this vehicle.</div>
+                {% endfor %}
+            </div>
+
+            <!-- Insurance Documents -->
+            <div class="k-timeline">
+                <h3 class="k-section-title" style="color: #84cc16;"><i class="fa fa-shield-halved"></i> Insurance Policies:</h3>
+                {% for idoc in ins_docs %}
+                <div class="k-log-entry" style="border-left: 4px solid #84cc16; padding: 12px 15px; margin-bottom: 12px; background: var(--bg-color); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; color:#84cc16; margin-bottom:6px;">
+                        <span>Policy No: {{ idoc.policy_no|default:"No Policy No" }}</span>
+                        <span>Expires: {{ idoc.expiry_date|date:"d-m-Y"|default:"-" }}</span>
+                    </div>
+                    <div style="font-size:0.85rem; display:grid; grid-template-columns: 1fr 1fr; gap:8px; background:var(--card-bg); padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        <div><strong>Provider:</strong> {{ idoc.insurance_provider|default:"-" }}</div>
+                        <div><strong>Supplier / Company:</strong> {{ idoc.company_supplier|default:"-" }}</div>
+                        <div><strong>Driver/Operator:</strong> {{ idoc.driver_operator|default:"-" }}</div>
+                        <div><strong>Contact:</strong> {{ idoc.contact_no|default:"-" }}</div>
+                        <div><strong>Work Site:</strong> {{ idoc.work_site|default:"-" }}</div>
+                        <div><strong>Issued On:</strong> {{ idoc.issued_on|date:"d-m-Y"|default:"-" }}</div>
+                    </div>
+                    {% if idoc.remarks %}
+                    <div style="font-size: 0.8rem; color: var(--sidebar-text); font-style: italic; margin-top: 6px;">
+                        <strong>Remarks:</strong> {{ idoc.remarks }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div style="color: var(--sidebar-text); font-style: italic; padding: 10px;">No insurance policies found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchKundaliTab(tabId) {
+    // Hide all tab contents
+    document.querySelectorAll('.k-tab-content').forEach(el => {
+        el.style.display = 'none';
+    });
+    // Show selected tab content
+    document.getElementById(tabId).style.display = 'block';
+
+    // Update active button styling
+    document.querySelectorAll('.k-tab-btn').forEach(btn => {
+        btn.style.background = 'var(--bg-color)';
+        btn.style.color = 'var(--text-color)';
+    });
+    
+    // Find clicked button
+    const activeBtn = event.currentTarget;
+    activeBtn.style.background = 'var(--primary)';
+    activeBtn.style.color = 'white';
+}
+
+function openAddBreakdownModal(vehicleId) {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('kInDate').value = today;
+    const now = new Date();
+    const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('kInTime').value = timeStr;
+    const modal = document.getElementById('modalAddBreakdownKundali');
+    modal.style.display = 'flex';
+}
+
+function closeAddBreakdownModal() {
+    const modal = document.getElementById('modalAddBreakdownKundali');
+    modal.style.display = 'none';
+}
+
+function openResolveModal(logId, vehicleName, complaint, mechanic, garage) {
+    document.getElementById('kResolveLogId').value = logId;
+    document.getElementById('kResolveVehicleName').innerText = vehicleName;
+    document.getElementById('kResolveComplaintText').innerText = complaint ? 'Issue: ' + complaint : '';
+    document.getElementById('kResolveMechanic').value = mechanic || '';
+    const garageInput = document.getElementById('kResolveGarageName');
+    if (garageInput) {
+        garageInput.value = garage || 'Main Yard Workshop';
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('kResolveOutDate').value = today;
+    const now = new Date();
+    const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('kResolveOutTime').value = timeStr;
+
+    const modal = document.getElementById('modalResolveBreakdownKundali');
+    modal.style.display = 'flex';
+}
+
+function closeResolveModal() {
+    const modal = document.getElementById('modalResolveBreakdownKundali');
+    modal.style.display = 'none';
+}
+
+async function submitAddBreakdownKundali(e) {
+    e.preventDefault();
+    const form = document.getElementById('formAddBreakdownKundali');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnSubmitAddBreakdownKundali');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const res = await fetch("{% url 'fleet:api_add_breakdown' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Failed to log breakdown'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-save"></i> Save Breakdown Entry';
+        }
+    } catch (err) {
+        alert('Request failed: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-save"></i> Save Breakdown Entry';
+    }
+}
+
+async function submitResolveBreakdownKundali(e) {
+    e.preventDefault();
+    const form = document.getElementById('formResolveBreakdownKundali');
+    const formData = new FormData(form);
+    const logId = document.getElementById('kResolveLogId').value;
+    const btn = document.getElementById('btnSubmitResolveBreakdownKundali');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Releasing...';
+
+    try {
+        const res = await fetch(`/fleet/api/breakdown/resolve/${logId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Failed to resolve breakdown'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-check"></i> Release to Running Fleet';
+        }
+    } catch (err) {
+        alert('Request failed: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-check"></i> Release to Running Fleet';
+    }
+    // Dynamic Multi-Part Rows
+    function addDynamicPartRow(containerId) {
+        const container = document.getElementById(containerId);
+        const row = document.createElement('div');
+        row.className = 'dynamic-part-row';
+        row.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-top: 6px;';
+        row.innerHTML = `
+            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeDynamicPartRow(btn) {
+        const row = btn.closest('.dynamic-part-row');
+        if (row) row.remove();
+    }
+}
+</script>
+
+<!-- REUSABLE DATALISTS FOR AUTOCOMPLETE & CUSTOM ADD -->
+<datalist id="sparePartsSuggestions">
+    {% for sp in common_spare_parts %}
+    <option value="{{ sp }}">
+    {% endfor %}
+</datalist>
+
+<datalist id="mechanicsSuggestions">
+    {% for m in common_mechanics %}
+    <option value="{{ m }}">
+    {% endfor %}
+</datalist>
+
+<datalist id="kundaliGarageSuggestions">
+    <option value="Main Yard Workshop">
+    <option value="Site 1 Workshop">
+    <option value="Site 2 Workshop">
+    <option value="Outside / Authorized Vendor">
+    <option value="Field Repair / On-Site">
+    <option value="Tata Motors Authorized Garage">
+    <option value="Escorts Workshop">
+</datalist>
+
+<datalist id="kundaliBreakdownLocationsSuggestions">
+    <option value="Main Yard">
+    <option value="Quarry Site">
+    <option value="Crusher Area">
+    <option value="Kiln 1">
+    <option value="Kiln 2">
+    <option value="Kiln 3">
+    <option value="Haul Road">
+    <option value="Workshop Area">
+</datalist>
+
+<!-- MODAL: Log Breakdown for Vehicle (Zero-dependency pure overlay) -->
+<div id="modalAddBreakdownKundali" class="custom-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target===this) closeAddBreakdownModal();">
+    <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+        <div style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-wrench"></i> Log Breakdown for {{ vehicle.dno }}
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #fecaca;">Record vehicle entering workshop (all fields optional)</p>
+            </div>
+            <button type="button" onclick="closeAddBreakdownModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        
+        <form id="formAddBreakdownKundali" onsubmit="submitAddBreakdownKundali(event)" style="overflow-y: auto; display: flex; flex-direction: column;">
+            {% csrf_token %}
+            <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+            <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            In Date
+                        </label>
+                        <input type="date" name="in_date" id="kInDate" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            In Time
+                        </label>
+                        <input type="time" name="in_time" id="kInTime" class="form-control" style="border-radius: 8px;">
+                    </div>
+                </div>
+
+                <!-- Garage & Location -->
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            <i class="fa fa-warehouse" style="color: #0284c7;"></i> Workshop / Garage
+                        </label>
+                        <input type="text" name="garage_name" list="kundaliGarageSuggestions" class="form-control" placeholder="e.g. Main Yard Workshop" value="Main Yard Workshop" style="border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            <i class="fa fa-map-marker-alt" style="color: #ef4444;"></i> Breakdown Location
+                        </label>
+                        <input type="text" name="breakdown_location" list="kundaliBreakdownLocationsSuggestions" class="form-control" placeholder="e.g. Quarry Road, Kiln 3" style="border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Complaint / Issue Description
+                    </label>
+                    <textarea name="complaint" rows="2" class="form-control" 
+                              placeholder="e.g. Starter motor problem, clutch plate worn..." style="border-radius: 8px;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Assigned Mechanic
+                        </label>
+                        <input type="text" list="mechanicsSuggestions" name="mechanic" placeholder="Mechanic name" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            HMR at Breakdown
+                        </label>
+                        <input type="number" step="0.1" name="hmr_at_breakdown" value="{{ vehicle.latest_hmr|default:'' }}" class="form-control" style="border-radius: 8px;">
+                    </div>
+                </div>
+
+                <!-- Multiple Parts Section (Optional) -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin: 0;">
+                            Parts Used / Required (Optional - Multiple parts can be added)
+                        </label>
+                        <button type="button" onclick="addDynamicPartRow('kundaliAddPartsContainer')" style="font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 3px 8px; cursor: pointer;">
+                            <i class="fa fa-plus"></i> + Add Part
+                        </button>
+                    </div>
+                    <div id="kundaliAddPartsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="dynamic-part-row" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Remarks (Optional)
+                    </label>
+                    <input type="text" name="remarks" placeholder="Additional notes..." class="form-control" style="border-radius: 8px;">
+                </div>
+
+            </div>
+
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeAddBreakdownModal()" class="btn btn-secondary" style="border-radius: 8px; font-weight: 600; padding: 8px 16px;">Cancel</button>
+                <button type="submit" id="btnSubmitAddBreakdownKundali" class="btn btn-danger" style="border-radius: 8px; font-weight: 700; padding: 8px 20px;">
+                    <i class="fa fa-save"></i> Save Breakdown Entry
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Mark Repaired / Release Vehicle (Zero-dependency pure overlay) -->
+<div id="modalResolveBreakdownKundali" class="custom-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target===this) closeResolveModal();">
+    <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+        <div style="background: linear-gradient(135deg, #16a34a, #15803d); color: white; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-check-circle"></i> Mark Repaired &amp; Release Vehicle
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #bbf7d0;">Close breakdown ticket and release vehicle back to Running (all fields optional)</p>
+            </div>
+            <button type="button" onclick="closeResolveModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        
+        <form id="formResolveBreakdownKundali" onsubmit="submitResolveBreakdownKundali(event)" style="overflow-y: auto; display: flex; flex-direction: column;">
+            {% csrf_token %}
+            <input type="hidden" id="kResolveLogId" name="log_id">
+            
+            <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;">
+                
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px;">
+                    <div style="font-size: 0.78rem; color: #166534; font-weight: 700; text-transform: uppercase;">Vehicle to Release</div>
+                    <div id="kResolveVehicleName" style="font-size: 1.2rem; font-weight: 800; color: #14532d;">-</div>
+                    <div id="kResolveComplaintText" style="font-size: 0.8rem; color: #374151; margin-top: 2px;">-</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Out Date (Repaired)
+                        </label>
+                        <input type="date" name="out_date" id="kResolveOutDate" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Out Time
+                        </label>
+                        <input type="time" name="out_time" id="kResolveOutTime" class="form-control" style="border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Mechanic Who Repaired
+                        </label>
+                        <input type="text" list="mechanicsSuggestions" name="mechanic" id="kResolveMechanic" placeholder="Name of mechanic" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Workshop / Garage
+                        </label>
+                        <input type="text" list="kundaliGarageSuggestions" name="garage_name" id="kResolveGarageName" placeholder="e.g. Main Yard" class="form-control" style="border-radius: 8px;">
+                    </div>
+                </div>
+
+                <!-- Multiple Parts Replaced (Optional) -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin: 0;">
+                            Parts Replaced / Used (Optional - Multiple parts can be added)
+                        </label>
+                        <button type="button" onclick="addDynamicPartRow('kundaliResolvePartsContainer')" style="font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 3px 8px; cursor: pointer;">
+                            <i class="fa fa-plus"></i> + Add Part
+                        </button>
+                    </div>
+                    <div id="kundaliResolvePartsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="dynamic-part-row" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Closing Remarks / Resolution Note
+                    </label>
+                    <input type="text" name="remarks" placeholder="e.g. Tested on trial run, satisfactory" class="form-control" style="border-radius: 8px;">
+                </div>
+
+            </div>
+
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeResolveModal()" class="btn btn-secondary" style="border-radius: 8px; font-weight: 600; padding: 8px 16px;">Cancel</button>
+                <button type="submit" id="btnSubmitResolveBreakdownKundali" class="btn btn-success" style="border-radius: 8px; font-weight: 700; padding: 8px 20px;">
+                    <i class="fa fa-check"></i> Release to Running Fleet
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

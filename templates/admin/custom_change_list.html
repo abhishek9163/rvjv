@@ -1,0 +1,219 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+    {{ block.super }}
+    {% if excel_export_url or pdf_export_url %}
+    <li>
+        <button type="button" onclick="openAdminExportModal('excel')" class="addlink" style="background-color: #10b981 !important; border-color: #10b981 !important; padding: 0 16px !important; font-weight: bold !important; color: white !important; cursor: pointer; border: none; border-radius: 4px; height: 35px; line-height: 35px; display: inline-flex; align-items: center; gap: 6px;">
+            📥 Export Excel
+        </button>
+    </li>
+    <li>
+        <button type="button" onclick="openAdminExportModal('pdf')" class="viewsitelink" style="background-color: #ef4444 !important; border-color: #ef4444 !important; padding: 0 16px !important; font-weight: bold !important; color: white !important; cursor: pointer; border: none; border-radius: 4px; height: 35px; line-height: 35px; display: inline-flex; align-items: center; gap: 6px;">
+            📄 Export PDF
+        </button>
+    </li>
+    {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <!-- Load Select2 & jQuery for advanced dropdown searches -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        .admin-modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 99999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+        }
+        .admin-modal-box {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #cbd5e1;
+            width: 440px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #333;
+        }
+        .admin-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .admin-modal-title {
+            margin: 0;
+            color: #1e3a8a;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .admin-modal-close {
+            color: #94a3b8;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+            border: none;
+            background: none;
+        }
+        .admin-modal-close:hover {
+            color: #475569;
+        }
+        .modal-input-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+    </style>
+{% endblock %}
+
+{% block footer %}
+    {{ block.super }}
+    
+    <div id="adminExportModal" class="admin-modal-overlay">
+        <div class="admin-modal-box">
+            <div class="admin-modal-header">
+                <h3 id="adminModalTitle" class="admin-modal-title">Export Options</h3>
+                <button type="button" class="admin-modal-close" onclick="closeAdminExportModal()">&times;</button>
+            </div>
+            
+            <form id="adminExportForm" method="GET" action="" onsubmit="return submitAdminExport(event);">
+                <!-- Hidden Format -->
+                <input type="hidden" id="admin_export_fmt" value="excel">
+                
+                <!-- Dynamic Columns list -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <label style="font-weight: 700; font-size: 10px; text-transform: uppercase; color: #64748b; margin:0; letter-spacing: 0.5px;">Select Columns to Export</label>
+                        <div style="display:flex; gap:8px; font-size:10px; font-weight:700;">
+                            <a href="javascript:void(0)" onclick="toggleAdminColCheck(true)" style="color:#1e3a8a; text-decoration:none;">Select All</a>
+                            <span style="color:#cbd5e1;">|</span>
+                            <a href="javascript:void(0)" onclick="toggleAdminColCheck(false)" style="color:#64748b; text-decoration:none;">Unselect All</a>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; max-height: 200px; overflow-y: auto;">
+                        {% for field in model_fields %}
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: #1e293b;">
+                            <input type="checkbox" class="admin-col-check" value="{{ field.name }}" checked>
+                            {{ field.verbose_name }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Special Vendor filter dropdown for Spare Part Transactions -->
+                {% if model_name == 'spareparttransaction' %}
+                <div style="margin-bottom: 16px;">
+                    <label style="display:block; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; letter-spacing: 0.5px;">Filter by Vendor</label>
+                    <select id="admin_export_vendor" class="modal-input-select select2" style="width:100%;">
+                        <option value="">-- All Vendors / Suppliers --</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                    <button type="button" onclick="closeAdminExportModal()" style="flex: 1; padding: 10px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:13px; border-style: solid;">Cancel</button>
+                    <button type="submit" style="flex: 2; padding: 10px; background-color: #1e3a8a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:13px;">📥 Export Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAdminExportModal(fmt) {
+            document.getElementById('admin_export_fmt').value = fmt;
+            document.getElementById('adminModalTitle').innerText = `Export Data to ${fmt.toUpperCase()}`;
+            
+            // If it's SparePartTransaction, populate the vendor dropdown
+            const vendorSelect = document.getElementById('admin_export_vendor');
+            if (vendorSelect && vendorSelect.options.length <= 1) {
+                fetch('/fleet/api/spare-parts/suppliers/')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.suppliers) {
+                            data.suppliers.forEach(s => {
+                                const newOpt = new Option(s, s);
+                                vendorSelect.add(newOpt);
+                            });
+                        }
+                        $(vendorSelect).select2({
+                            dropdownParent: $('#adminExportModal'),
+                            width: '100%'
+                        });
+                    })
+                    .catch(err => {
+                        $(vendorSelect).select2({
+                            dropdownParent: $('#adminExportModal'),
+                            width: '100%'
+                        });
+                    });
+            }
+            
+            document.getElementById('adminExportModal').style.display = 'block';
+        }
+        
+        function toggleAdminColCheck(checked) {
+            document.querySelectorAll('.admin-col-check').forEach(cb => {
+                cb.checked = checked;
+            });
+        }
+
+        function closeAdminExportModal() {
+            document.getElementById('adminExportModal').style.display = 'none';
+        }
+        
+        function submitAdminExport(event) {
+            event.preventDefault();
+            const fmt = document.getElementById('admin_export_fmt').value;
+            
+            // Build columns parameter
+            const checkedCols = [];
+            document.querySelectorAll('.admin-col-check:checked').forEach(cb => {
+                checkedCols.push(cb.value);
+            });
+            const columnsStr = checkedCols.join(',');
+            
+            // Get current page filters from query string
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('columns', columnsStr);
+            
+            const vendorSelect = document.getElementById('admin_export_vendor');
+            if (vendorSelect && vendorSelect.value) {
+                urlParams.set('vendor_name', vendorSelect.value);
+            }
+            
+            // Base URL
+            const actionPath = fmt === 'excel' ? 'export-excel-admin/' : 'export-pdf-admin/';
+            const finalUrl = `${actionPath}?${urlParams.toString()}`;
+            
+            window.open(finalUrl, '_blank');
+            closeAdminExportModal();
+            return false;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('adminExportModal');
+            if (event.target == modal) {
+                closeAdminExportModal();
+            }
+        }
+    </script>
+{% endblock %}

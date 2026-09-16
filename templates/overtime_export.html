@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Overtime &amp; Payroll Export Hub | P&amp;M Portal{% endblock %}
+
+{% block content %}
+<style>
+    .export-hub-container {
+        padding: 12px 0 95px;
+        max-width: 1500px;
+        margin: 0 auto;
+    }
+
+    .export-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .export-title h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .export-title p {
+        margin: 3px 0 0;
+        color: var(--sidebar-text);
+        font-size: 0.85rem;
+    }
+
+    /* Filter Panel Card */
+    .filter-panel-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+        margin-bottom: 18px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .form-group label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+    }
+    .form-control {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.85rem;
+        font-weight: 600;
+        outline: none;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+    }
+
+    /* Preset Date Range Pills */
+    .preset-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+    .preset-pill {
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .preset-pill:hover, .preset-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    /* Live Aggregate Stat Bar */
+    .stat-pill-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .stat-pill-item {
+        flex: 1;
+        min-width: 140px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .stat-pill-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    .stat-pill-val {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1.1;
+    }
+    .stat-pill-lbl {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-top: 2px;
+    }
+
+    /* Action Download Bar */
+    .download-action-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Preview Table Card */
+    .preview-table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .custom-table th {
+        background: var(--bg-color);
+        color: var(--sidebar-text);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 9px 11px;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+    }
+    .custom-table td {
+        padding: 10px 11px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+    }
+    .custom-table tr:hover td {
+        background: rgba(99, 102, 241, 0.03);
+    }
+</style>
+
+<div class="export-hub-container">
+    <!-- Header -->
+    <div class="export-header">
+        <div class="export-title">
+            <h2><i class="fas fa-file-export" style="color:var(--primary);"></i> Overtime Export &amp; Reporting Hub</h2>
+            <p>Export high-accuracy payroll and overtime reports with advance date ranges &amp; custom filters</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <a href="{% url 'overtime_dashboard' %}" class="btn btn-outline" style="font-size:0.82rem; font-weight:700;">
+                <i class="fas fa-arrow-left"></i> Back to Hub
+            </a>
+            <a href="{% url 'overtime_scan' %}" class="btn btn-primary" style="font-size:0.82rem; font-weight:700;">
+                <i class="fas fa-qrcode"></i> QR Scanner
+            </a>
+        </div>
+    </div>
+
+    <!-- Advance Filter Panel Card -->
+    <div class="filter-panel-card">
+        <form method="GET" action="{% url 'overtime_export_page' %}" id="exportFilterForm">
+            <div class="filter-grid">
+                <div class="form-group" style="grid-column: span 1.5;">
+                    <label><i class="fas fa-magnifying-glass"></i> Search Employee / Task</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Emp ID, name, designation..." class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Date From</label>
+                    <input type="date" name="date_from" id="filterDateFrom" value="{{ date_from }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Date To</label>
+                    <input type="date" name="date_to" id="filterDateTo" value="{{ date_to }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-location-dot"></i> Work Zone</label>
+                    <select name="zone" class="form-control">
+                        <option value="All">All Zones</option>
+                        {% for z in zones %}
+                        <option value="{{ z }}" {% if zone == z %}selected{% endif %}>{{ z }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-sun"></i> Shift</label>
+                    <select name="shift" class="form-control">
+                        <option value="All">All Shifts</option>
+                        {% for s in shifts %}
+                        <option value="{{ s }}" {% if shift == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-check-double"></i> Approval Status</label>
+                    <select name="status" class="form-control">
+                        <option value="All">All Status</option>
+                        {% for st in statuses %}
+                        <option value="{{ st }}" {% if status == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user-clock"></i> Time Keeper</label>
+                    <select name="time_keeper" class="form-control">
+                        <option value="All">All Time Keepers</option>
+                        {% for tk in time_keepers %}
+                        <option value="{{ tk.id }}" {% if time_keeper_id == tk.id|stringformat:"i" %}selected{% endif %}>{{ tk.full_name|default:tk.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:row; gap:6px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1; padding:8px 14px; justify-content:center; font-size:0.85rem; font-weight:700;">
+                        <i class="fas fa-filter"></i> Apply
+                    </button>
+                    <a href="{% url 'overtime_export_page' %}" class="btn btn-outline" style="padding:8px 12px;" title="Reset Filters">
+                        <i class="fas fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Date Range Presets -->
+            <div class="preset-pills">
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--sidebar-text); margin-right:4px;">Quick Range:</span>
+                <button type="button" class="preset-pill" onclick="setDateRange('today')">Today</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('yesterday')">Yesterday</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('this_week')">This Week</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('last_7_days')">Last 7 Days</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('this_month')">This Month</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('last_month')">Last Month</button>
+                <button type="button" class="preset-pill" onclick="setDateRange('clear')">All Time</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Aggregates -->
+    <div class="stat-pill-bar">
+        <div class="stat-pill-item">
+            <div class="stat-pill-icon" style="background:rgba(99, 102, 241, 0.12); color:#6366f1;">
+                <i class="fas fa-list-ol"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val">{{ total_records }}</div>
+                <div class="stat-pill-lbl">Filtered Entries</div>
+            </div>
+        </div>
+        <div class="stat-pill-item">
+            <div class="stat-pill-icon" style="background:rgba(37, 99, 235, 0.12); color:#2563eb;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val">{{ unique_workers }}</div>
+                <div class="stat-pill-lbl">Unique Workers</div>
+            </div>
+        </div>
+        <div class="stat-pill-item">
+            <div class="stat-pill-icon" style="background:rgba(245, 158, 11, 0.12); color:#f59e0b;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val">{{ total_hours }} hrs</div>
+                <div class="stat-pill-lbl">Total OT Hours</div>
+            </div>
+        </div>
+        <div class="stat-pill-item">
+            <div class="stat-pill-icon" style="background:rgba(16, 185, 129, 0.12); color:#10b981;">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val">Nu. {{ total_amount }}</div>
+                <div class="stat-pill-lbl">Estimated OT Pay</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signatories & Report Title Setup Panel -->
+    <div class="filter-panel-card" style="margin-bottom:14px; background:linear-gradient(to right, var(--card-bg), var(--bg-color));">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:0.88rem; color:var(--text-color); display:flex; align-items:center; gap:6px;">
+                <i class="fas fa-file-signature" style="color:var(--primary);"></i> Report Title &amp; Signatory Authorities
+            </strong>
+            <span style="font-size:0.72rem; color:var(--sidebar-text); font-weight:700;">Names configured for PDF &amp; Print exports</span>
+        </div>
+        <div class="filter-grid" style="margin-bottom:0; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="form-group" style="grid-column: span 1.5;">
+                <label>Report Header Title</label>
+                <input type="text" id="customReportTitle" value="Sunday Night Emergency Patrolling Team" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>1st Sign Title / Label</label>
+                <input type="text" id="customSignLabel" value="Checked By" placeholder="e.g. Checked By" class="form-control" style="margin-bottom:3px;" oninput="updateExportUrls()">
+                <input type="text" id="customSignName" value="Dorji Wangchuk" placeholder="Name" class="form-control" style="margin-bottom:3px;" oninput="updateExportUrls()">
+                <input type="text" id="customSignDesig" value="Site Supervisor" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Prepared By (Name &amp; Post)</label>
+                <input type="text" id="customPrepName" value="Sonam Lhamo" placeholder="Name" class="form-control" style="margin-bottom:3px;" oninput="updateExportUrls()">
+                <input type="text" id="customPrepDesig" value="HR Assistant" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Verified By (Name &amp; Post)</label>
+                <input type="text" id="customVerName" value="Jasthola" placeholder="Name" class="form-control" style="margin-bottom:3px;" oninput="updateExportUrls()">
+                <input type="text" id="customVerDesig" value="Head HR & Admin" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Approved By (Name &amp; Post)</label>
+                <input type="text" id="customApprName" value="Karma Tshering" placeholder="Name" class="form-control" style="margin-bottom:3px;" oninput="updateExportUrls()">
+                <input type="text" id="customApprDesig" value="Project Manager" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Formats Bar -->
+    <div class="download-action-bar">
+        <div>
+            <span style="font-size:0.9rem; font-weight:800; color:var(--text-color);">
+                <i class="fas fa-cloud-arrow-down" style="color:var(--primary);"></i> Choose Export Format
+            </span>
+            <div style="font-size:0.75rem; color:var(--sidebar-text);">Export with current active filters &amp; signatories applied</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a id="btnExportExcel" href="{% url 'export_overtime_excel' %}?date_from={{ date_from }}&date_to={{ date_to }}&shift={{ shift }}&zone={{ zone }}&status={{ status }}&q={{ q }}&time_keeper={{ time_keeper_id }}" class="btn" style="background:#10b981; color:white; font-size:0.82rem; font-weight:700;">
+                <i class="fas fa-file-excel"></i> Export Excel (.xlsx)
+            </a>
+            <a id="btnExportPdf" href="{% url 'export_overtime_pdf' %}?date_from={{ date_from }}&date_to={{ date_to }}&shift={{ shift }}&zone={{ zone }}&status={{ status }}&q={{ q }}&time_keeper={{ time_keeper_id }}" target="_blank" class="btn btn-outline" style="font-size:0.82rem; font-weight:700; color:#ef4444; border-color:#ef4444;">
+                <i class="fas fa-file-pdf"></i> Official PDF Report (.pdf)
+            </a>
+            <button type="button" onclick="shareOvertimeExport()" class="btn" style="background:#25D366; color:white; font-size:0.82rem; font-weight:700; border:none; cursor:pointer;">
+                <i class="fab fa-whatsapp"></i> Share Report (WhatsApp / Email)
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Preview Table -->
+    <div class="preview-table-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-color);">
+                <i class="fas fa-table-list" style="color:var(--primary);"></i> Preview Records (Showing up to 150)
+            </h3>
+            <span style="font-size:0.75rem; color:var(--sidebar-text); font-weight:700;">Total Matching: {{ total_records }}</span>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Emp ID</th>
+                        <th>Name</th>
+                        <th>Designation / Dept</th>
+                        <th>Shift &amp; Zone</th>
+                        <th>In / Out</th>
+                        <th style="text-align:center;">OT Hours</th>
+                        <th style="text-align:right;">Rate</th>
+                        <th style="text-align:right;">Total Pay</th>
+                        <th>Time Keeper</th>
+                        <th style="text-align:center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td style="white-space:nowrap; font-weight:700; font-size:0.78rem;">{{ r.date|date:"d M Y" }}</td>
+                        <td>
+                            <div style="font-family:monospace; font-weight:700;">{{ r.emp_id_snapshot }}</div>
+                            {% if r.account_number or r.employee.account_number %}
+                            <span class="badge" style="background:rgba(16, 185, 129, 0.12); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;" title="Bank Account Number">
+                                <i class="fas fa-building-columns" style="font-size:0.6rem;"></i> {{ r.account_number|default:r.employee.account_number }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight:800;">{{ r.employee_name }}</td>
+                        <td>
+                            <div>{{ r.designation }}</div>
+                            <div style="font-size:0.7rem; color:var(--sidebar-text);">{{ r.department }}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); font-size:0.7rem;">{{ r.shift }}</span>
+                            <div style="font-size:0.7rem; color:var(--sidebar-text);">{{ r.location_zone }}</div>
+                        </td>
+                        <td style="font-size:0.75rem; white-space:nowrap;">
+                            <div>IN: {{ r.in_time|default:"-" }}</div>
+                            <div>OUT: {{ r.out_time|default:"-" }}</div>
+                        </td>
+                        <td style="text-align:center; font-weight:800; color:var(--primary);">{{ r.overtime_hours }} hrs</td>
+                        <td style="text-align:right; font-size:0.75rem;">Nu. {{ r.overtime_rate }}</td>
+                        <td style="text-align:right; font-weight:800; color:#10b981;">Nu. {{ r.overtime_amount }}</td>
+                        <td style="font-size:0.75rem;">{{ r.time_keeper_name|default:"Self" }}</td>
+                        <td style="text-align:center;">
+                            {% if r.status == 'Approved' %}
+                            <span class="badge" style="background:#10b981; color:white; font-size:0.68rem;">Approved</span>
+                            {% elif r.status == 'Rejected' %}
+                            <span class="badge" style="background:#ef4444; color:white; font-size:0.68rem;">Rejected</span>
+                            {% else %}
+                            <span class="badge" style="background:#f59e0b; color:white; font-size:0.68rem;">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" style="text-align:center; padding:35px 15px; color:var(--sidebar-text);">
+                            <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                            No overtime records found matching the filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function setDateRange(type) {
+    const fromInput = document.getElementById('filterDateFrom');
+    const toInput = document.getElementById('filterDateTo');
+    const today = new Date();
+    
+    function fmt(d) {
+        return d.toISOString().split('T')[0];
+    }
+
+    if (type === 'today') {
+        fromInput.value = fmt(today);
+        toInput.value = fmt(today);
+    } else if (type === 'yesterday') {
+        const yest = new Date(today);
+        yest.setDate(yest.getDate() - 1);
+        fromInput.value = fmt(yest);
+        toInput.value = fmt(yest);
+    } else if (type === 'this_week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(today.setDate(diff));
+        fromInput.value = fmt(monday);
+        toInput.value = fmt(new Date());
+    } else if (type === 'last_7_days') {
+        const past7 = new Date(today);
+        past7.setDate(past7.getDate() - 6);
+        fromInput.value = fmt(past7);
+        toInput.value = fmt(today);
+    } else if (type === 'this_month') {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        fromInput.value = fmt(firstDay);
+        toInput.value = fmt(today);
+    } else if (type === 'last_month') {
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        fromInput.value = fmt(firstDayLastMonth);
+        toInput.value = fmt(lastDayLastMonth);
+    } else if (type === 'clear') {
+        fromInput.value = '';
+        toInput.value = '';
+    }
+
+    document.getElementById('exportFilterForm').submit();
+}
+
+function updateExportUrls() {
+    const pdfBtn = document.getElementById('btnExportPdf');
+    const excelBtn = document.getElementById('btnExportExcel');
+    
+    const title = encodeURIComponent(document.getElementById('customReportTitle').value || 'Sunday Night Emergency Patrolling Team');
+    const customLabel = encodeURIComponent(document.getElementById('customSignLabel').value || 'Checked By');
+    const customName = encodeURIComponent(document.getElementById('customSignName').value || 'Dorji Wangchuk');
+    const customDesig = encodeURIComponent(document.getElementById('customSignDesig').value || 'Site Supervisor');
+    const prepName = encodeURIComponent(document.getElementById('customPrepName').value || 'Sonam Lhamo');
+    const prepDesig = encodeURIComponent(document.getElementById('customPrepDesig').value || 'HR Assistant');
+    const verName = encodeURIComponent(document.getElementById('customVerName').value || 'Jasthola');
+    const verDesig = encodeURIComponent(document.getElementById('customVerDesig').value || 'Head HR & Admin');
+    const apprName = encodeURIComponent(document.getElementById('customApprName').value || 'Karma Tshering');
+    const apprDesig = encodeURIComponent(document.getElementById('customApprDesig').value || 'Project Manager');
+
+    const baseParams = `date_from={{ date_from }}&date_to={{ date_to }}&shift={{ shift }}&zone={{ zone }}&status={{ status }}&q={{ q }}&time_keeper={{ time_keeper_id }}`;
+    const signParams = `&report_title=${title}&custom_sign_label=${customLabel}&custom_sign_name=${customName}&custom_sign_desig=${customDesig}&prepared_by_name=${prepName}&prepared_by_desig=${prepDesig}&verified_by_name=${verName}&verified_by_desig=${verDesig}&approved_by_name=${apprName}&approved_by_desig=${apprDesig}`;
+
+    if (pdfBtn) pdfBtn.href = `{% url 'export_overtime_pdf' %}?${baseParams}${signParams}`;
+    if (excelBtn) excelBtn.href = `{% url 'export_overtime_excel' %}?${baseParams}${signParams}`;
+}
+document.addEventListener('DOMContentLoaded', updateExportUrls);
+
+function shareOvertimeExport() {
+    updateExportUrls();
+    const pdfBtn = document.getElementById('btnExportPdf');
+    const excelBtn = document.getElementById('btnExportExcel');
+    const title = document.getElementById('customReportTitle').value || 'Overtime & Payroll Report';
+    
+    openReportShareModal({
+        title: title,
+        subtitle: 'GIAP Gelephu Overtime Records',
+        excelUrl: excelBtn ? excelBtn.href : '',
+        pdfUrl: pdfBtn ? pdfBtn.href : '',
+        defaultFormat: 'excel'
+    });
+}
+</script>
+{% endblock %}

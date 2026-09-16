@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Monthly Muster Roll Matrix — RVJV Attendance System{% endblock %}
+
+{% block content %}
+<style>
+    .muster-container {
+        padding: 10px 14px 80px;
+        max-width: 100%;
+    }
+    
+    /* Header Bar */
+    .muster-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .muster-header h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .muster-header p {
+        margin: 3px 0 0;
+        font-size: 0.8rem;
+        color: var(--sidebar-text);
+    }
+
+    /* KPI Summary Cards */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .kpi-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .kpi-val {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1;
+    }
+    .kpi-lbl {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        margin-top: 3px;
+    }
+
+    /* Filter Bar */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .f-group label {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-bottom: 4px;
+    }
+    .f-group select, .f-group input {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    /* Matrix Table Container */
+    .muster-table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    .table-scroll {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    .muster-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    .muster-table th, .muster-table td {
+        padding: 8px 6px;
+        border: 1px solid var(--border);
+        text-align: center;
+        vertical-align: middle;
+    }
+    .muster-table thead th {
+        background: var(--card-bg);
+        color: var(--text-color);
+        font-weight: 800;
+        font-size: 0.75rem;
+    }
+    .muster-table thead tr:first-child th {
+        background: #1e293b;
+        color: #ffffff;
+    }
+    .th-sun {
+        background: #dc2626 !important;
+        color: white !important;
+    }
+    .td-sun {
+        background: rgba(220, 38, 38, 0.05);
+    }
+
+    /* Sticky Columns */
+    .col-sticky-1 {
+        position: sticky;
+        left: 0;
+        background: var(--card-bg);
+        z-index: 2;
+        min-width: 40px;
+    }
+    .col-sticky-2 {
+        position: sticky;
+        left: 40px;
+        background: var(--card-bg);
+        z-index: 2;
+        min-width: 90px;
+        text-align: left !important;
+    }
+    .col-sticky-3 {
+        position: sticky;
+        left: 130px;
+        background: var(--card-bg);
+        z-index: 2;
+        min-width: 160px;
+        text-align: left !important;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.06);
+    }
+    .muster-table thead th.col-sticky-1,
+    .muster-table thead th.col-sticky-2,
+    .muster-table thead th.col-sticky-3 {
+        background: #1e293b;
+        color: white;
+        z-index: 4;
+    }
+
+    /* Attendance Cells & Badges */
+    .att-badge {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.72rem;
+        text-align: center;
+    }
+    .b-P { background: #dcfce7; color: #15803d; }
+    .b-A { background: #fee2e2; color: #b91c1c; }
+    .b-L { background: #fef9c3; color: #a16207; }
+    .b-HD { background: #e0e7ff; color: #4338ca; }
+    .b-WO { background: #f1f5f9; color: #64748b; font-size: 0.65rem; }
+    .b-dash { color: var(--sidebar-text); opacity: 0.4; }
+
+    /* Summary Totals */
+    .tot-p { color: #15803d; font-weight: 800; }
+    .tot-a { color: #b91c1c; font-weight: 800; }
+    .tot-l { color: #a16207; font-weight: 800; }
+    .tot-final { color: #2563eb; font-weight: 900; background: rgba(37,99,235,0.08); }
+
+    /* Print View */
+    @media print {
+        .muster-header, .filter-card, .kpi-grid, nav, .sidebar { display: none !important; }
+        .muster-container { padding: 0 !important; }
+        .table-scroll { overflow: visible !important; }
+        .muster-table { font-size: 7pt !important; }
+        .att-badge { width: 16px; height: 16px; line-height: 16px; font-size: 6pt; }
+    }
+</style>
+
+<div class="muster-container">
+    <!-- Header -->
+    <div class="muster-header">
+        <div>
+            <h2><i class="fas fa-calendar-check text-primary"></i> Monthly Muster Roll Attendance Sheet</h2>
+            <p>Full 31-Day Attendance Matrix & Present Day Aggregations for P&M Department</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="{% url 'attendance_hub' %}" class="btn btn-outline-secondary btn-sm" style="font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-list"></i> Daily Register
+            </a>
+            <a href="{% url 'attendance_scanner' %}" class="btn btn-outline-primary btn-sm" style="font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-qrcode"></i> QR Scanner
+            </a>
+            <a href="{% url 'export_attendance_muster_excel' %}?month={{ month }}&year={{ year }}&dept={{ dept_filter }}&shift={{ shift_filter }}" class="btn btn-success btn-sm" style="font-weight: 800; border-radius: 8px;">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </a>
+            <a href="{% url 'export_attendance_pdf' %}?mode=muster&month={{ month }}&year={{ year }}&dept={{ dept_filter }}&shift={{ shift_filter }}" target="_blank" class="btn btn-danger btn-sm" style="font-weight: 800; border-radius: 8px; background: #ef4444; border: none;">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+            <button onclick="window.print()" class="btn btn-dark btn-sm" style="font-weight: 800; border-radius: 8px;">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fas fa-users"></i></div>
+            <div>
+                <div class="kpi-val">{{ total_employees }}</div>
+                <div class="kpi-lbl">Total Staff</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #f0fdf4; color: #16a34a;"><i class="fas fa-user-check"></i></div>
+            <div>
+                <div class="kpi-val">{{ total_p_sum }}</div>
+                <div class="kpi-lbl">Present Days</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #fef2f2; color: #dc2626;"><i class="fas fa-user-times"></i></div>
+            <div>
+                <div class="kpi-val">{{ total_a_sum }}</div>
+                <div class="kpi-lbl">Absent Days</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #fefce8; color: #ca8a04;"><i class="fas fa-bed"></i></div>
+            <div>
+                <div class="kpi-val">{{ total_l_sum }}</div>
+                <div class="kpi-lbl">Leaves Taken</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-card">
+        <form method="GET" class="filter-grid">
+            <div class="f-group">
+                <label><i class="fas fa-calendar"></i> Month</label>
+                <select name="month" onchange="this.form.submit()">
+                    {% for m_num, m_name in months_range %}
+                    <option value="{{ m_num }}" {% if m_num == month %}selected{% endif %}>{{ m_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="f-group">
+                <label><i class="fas fa-calendar-alt"></i> Year</label>
+                <select name="year" onchange="this.form.submit()">
+                    {% for y in years_range %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="f-group">
+                <label><i class="fas fa-building"></i> Department Scope</label>
+                <select name="dept" onchange="this.form.submit()">
+                    <option value="pnm" {% if dept_filter == 'pnm' or dept_filter == 'all' %}selected{% endif %}>All P&M Departments</option>
+                    {% for d in all_departments %}
+                    <option value="{{ d }}" {% if dept_filter == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="f-group">
+                <label><i class="fas fa-clock"></i> Shift (2 Shifts)</label>
+                <select name="shift" onchange="this.form.submit()">
+                    <option value="all" {% if shift_filter == 'all' %}selected{% endif %}>All Shifts</option>
+                    <option value="Morning" {% if shift_filter == 'Morning' %}selected{% endif %}>☀️ Morning Shift (7:00 AM - 7:00 PM)</option>
+                    <option value="Night" {% if shift_filter == 'Night' %}selected{% endif %}>🌙 Night Shift (7:00 PM - 7:00 AM)</option>
+                </select>
+            </div>
+            <div class="f-group">
+                <label><i class="fas fa-search"></i> Search Employee</label>
+                <input type="text" id="musterSearchInput" placeholder="Type name or ID..." onkeyup="filterMusterTable()" />
+            </div>
+        </form>
+    </div>
+
+    <!-- Muster Roll Table -->
+    <div class="muster-table-card">
+        <div class="table-scroll">
+            <table class="muster-table" id="musterTable">
+                <thead>
+                    <tr>
+                        <th class="col-sticky-1">SL</th>
+                        <th class="col-sticky-2">EMP ID</th>
+                        <th class="col-sticky-3">EMPLOYEE NAME</th>
+                        <th>DESIGNATION</th>
+                        <th>SHIFT</th>
+                        {% for d in days_list %}
+                        <th>{{ d }}</th>
+                        {% endfor %}
+                        <th style="background: #0f766e; color: white;">P</th>
+                        <th style="background: #991b1b; color: white;">A</th>
+                        <th style="background: #854d0e; color: white;">L</th>
+                        <th style="background: #3730a3; color: white;">HD</th>
+                        <th style="background: #1d4ed8; color: white;">TOTAL DAYS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in muster_data %}
+                    <tr class="muster-row" data-emp="{{ item.employee.name|lower }} {{ item.employee.emp_id|lower }}">
+                        <td class="col-sticky-1">{{ forloop.counter }}</td>
+                        <td class="col-sticky-2" style="font-weight: 700;">{{ item.employee.emp_id|default:"-" }}</td>
+                        <td class="col-sticky-3" style="font-weight: 800;">{{ item.employee.name }}</td>
+                        <td style="color: var(--sidebar-text); font-size: 0.74rem;">{{ item.employee.designation|default:"-" }}</td>
+                        <td><span style="font-size: 0.72rem; font-weight: 700; background: var(--bg-color); padding: 2px 6px; border-radius: 4px;">{{ item.employee.current_shift|default:"General" }}</span></td>
+
+                        {% for d_rec in item.days %}
+                        <td class="{% if d_rec.is_sunday %}td-sun{% endif %}">
+                            {% if d_rec.code == 'P' %}
+                                <span class="att-badge b-P" title="Present">P</span>
+                            {% elif d_rec.code == 'A' %}
+                                <span class="att-badge b-A" title="Absent">A</span>
+                            {% elif d_rec.code == 'L' %}
+                                <span class="att-badge b-L" title="Leave">L</span>
+                            {% elif d_rec.code == 'HD' %}
+                                <span class="att-badge b-HD" title="Half Day">HD</span>
+                            {% elif d_rec.code == 'WO' %}
+                                <span class="att-badge b-WO" title="Weekly Off">WO</span>
+                            {% else %}
+                                <span class="b-dash">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+
+                        <td class="tot-p">{{ item.present_count }}</td>
+                        <td class="tot-a">{{ item.absent_count }}</td>
+                        <td class="tot-l">{{ item.leave_count }}</td>
+                        <td style="color: #4338ca; font-weight: 700;">{{ item.half_day_count }}</td>
+                        <td class="tot-final">{{ item.total_present_days }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ num_days|add:10 }}" style="padding: 40px; text-align: center; color: var(--sidebar-text);">
+                            <i class="fas fa-users-slash" style="font-size: 2rem; opacity: 0.3; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-weight: 700;">No employees found matching the selected filters.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterMusterTable() {
+        const query = document.getElementById('musterSearchInput').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.muster-row');
+        rows.forEach(r => {
+            const data = r.getAttribute('data-emp') || '';
+            if (!query || data.includes(query)) {
+                r.style.display = '';
+            } else {
+                r.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

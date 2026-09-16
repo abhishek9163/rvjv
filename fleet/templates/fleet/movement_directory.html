@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}Fleet Records - P&M{% endblock %}
+{% block content %}
+<style>
+.rec-wrap{max-width:1250px;margin:1rem auto}
+.back-link{margin-bottom:1rem;display:inline-flex;gap:.4rem;align-items:center;text-decoration:none;color:var(--primary);font-weight:600}
+.rec-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem}
+.rec-tabs{display:flex;gap:.5rem;margin:1rem 0 .5rem;border-bottom:2px solid var(--border);padding-bottom:.5rem}
+.rec-tab{padding:.6rem 1.2rem;border-radius:9px;cursor:pointer;font-weight:700;border:1px solid var(--border);background:var(--card-bg);color:var(--text-color)}
+.rec-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.search-bar{margin-bottom:1rem}
+.search-bar input{width:100%;box-sizing:border-box;padding:.85rem 1rem;border:1px solid var(--border);border-radius:10px;font-size:.95rem;background:var(--bg-color);color:var(--text-color)}
+.chip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.7rem}
+.chip{display:flex;flex-direction:column;gap:.15rem;padding:.8rem 1rem;border:1px solid var(--border);border-radius:11px;background:var(--card-bg);cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--primary)}
+.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.chip small{color:var(--sidebar-text);font-size:.72rem}
+.chip.active small{color:rgba(255,255,255,.85)}
+.chip .cnt{font-weight:800;font-size:.78rem;margin-left:auto}
+.rec-empty{padding:2.4rem;text-align:center;color:var(--sidebar-text);grid-column:1/-1}
+.sel-title{background:var(--primary-light);border:1px solid var(--primary);border-left:5px solid var(--primary);border-radius:10px;padding:.85rem 1rem;margin:1rem 0;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap}
+.detail-filters{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
+.detail-filters .f{display:flex;flex-direction:column;gap:.3rem}
+.detail-filters label{font-size:.72rem;font-weight:700;color:var(--sidebar-text)}
+.detail-filters input{border:1px solid var(--border);border-radius:8px;padding:.5rem;background:var(--bg-color);color:var(--text-color)}
+.rec-table{width:100%;border-collapse:collapse;min-width:760px}
+.rec-table th,.rec-table td{padding:.7rem;text-align:left;border-bottom:1px solid var(--border)}
+.rec-table th{font-size:.72rem;text-transform:uppercase;background:var(--bg-subtle);color:var(--sidebar-text)}
+.rec-table tr:hover td{background:var(--bg-subtle)}
+.badge{display:inline-block;padding:.2rem .55rem;border-radius:99px;font-size:.72rem;font-weight:800}
+.badge-day{background:#dbeafe;color:#1d4ed8}.badge-night{background:#ede9fe;color:#6d28d9}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card-bg);border-radius:14px;width:100%;max-width:430px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;border-bottom:1px solid var(--border)}
+.modal-body{padding:1.2rem;display:flex;flex-direction:column;gap:.9rem}
+.modal-body label{font-size:.75rem;font-weight:700;color:var(--sidebar-text);display:block;margin-bottom:.25rem}
+.modal-body input{width:100%;box-sizing:border-box;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-color);color:var(--text-color)}
+.fmt-row{display:flex;gap:.6rem}
+.fmt-opt{flex:1;border:2px solid var(--border);border-radius:10px;padding:.7rem;text-align:center;cursor:pointer;font-weight:700}
+.fmt-opt.sel{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+@media(max-width:700px){.chip-grid{grid-template-columns:1fr 1fr}.detail-filters{flex-direction:column;align-items:stretch}.modal-overlay{align-items:flex-end}.modal-box{max-width:none;border-radius:14px 14px 0 0}}
+</style>
+
+<div class="rec-wrap">
+  <a class="back-link" href="{% url 'fleet:vehicle_movements' %}"><i class="fas fa-arrow-left"></i> Back</a>
+  <div class="rec-head">
+    <div>
+      <h2 style="margin:0">Fleet Records</h2>
+      <p style="margin:.3rem 0 0;color:var(--sidebar-text)">Search a vehicle or driver, then click one to open its records.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openExport()"><i class="fas fa-file-export"></i> Export</button>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+  </div>
+
+  <div class="rec-tabs">
+    <button class="rec-tab active" id="tV" onclick="switchTab('v')">Vehicles ({{ vehicles|length }})</button>
+    <button class="rec-tab" id="tD" onclick="switchTab('d')">Drivers ({{ drivers|length }})</button>
+  </div>
+
+  <div id="panelV">
+    <div class="search-bar"><input id="searchV" placeholder="Type to search vehicles by number or model..." autocomplete="off"></div>
+    <div class="chip-grid" id="chipV"></div>
+  </div>
+
+  <div id="panelD" style="display:none">
+    <div class="search-bar"><input id="searchD" placeholder="Type to search drivers by name..." autocomplete="off"></div>
+    <div class="chip-grid" id="chipD"></div>
+  </div>
+
+  <div id="detailWrap" style="display:none">
+    <div class="sel-title"><span id="selTitle"></span><button class="btn btn-outline" onclick="clearSelection()">Clear Selection</button></div>
+    <div class="detail-filters">
+      <div class="f"><label>From</label><input type="date" id="dFrom" onchange="renderDetail()"></div>
+      <div class="f"><label>To</label><input type="date" id="dTo" onchange="renderDetail()"></div>
+      <button class="btn btn-outline" onclick="clearDates()">Clear Dates</button>
+    </div>
+    <div class="card" style="overflow-x:auto;padding:0">
+      <table class="rec-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Shift</th><th>Vehicle</th><th>Driver</th><th>Destination</th><th>Purpose</th><th>Entered By</th></tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-box">
+    <div class="modal-head"><strong>Export Records</strong><button onclick="closeExport()" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button></div>
+    <div class="modal-body">
+      <div><label>Scope</label><div id="expScope" style="font-weight:700"></div></div>
+      <div style="display:flex;gap:.7rem">
+        <div style="flex:1"><label>From Date</label><input type="date" id="eFrom"></div>
+        <div style="flex:1"><label>To Date</label><input type="date" id="eTo"></div>
+      </div>
+      <div><label>Format</label>
+        <div class="fmt-row">
+          <div class="fmt-opt sel" id="fX" onclick="pickFmt('excel')">&#128202; Excel (.xlsx)</div>
+          <div class="fmt-opt" id="fP" onclick="pickFmt('pdf')">&#128196; PDF</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="doExport()">Download</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const VEHICLES = {{ vehicles_json|safe }};
+const DRIVERS = {{ drivers_json|safe }};
+const MOVEMENTS = {{ movements_json|safe }};
+let selectedType = null, selected = null, currentTab = 'v', expFmt = 'excel';
+window.__fV = []; window.__fD = [];
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function chips(container, list, type) {
+  container.innerHTML = list.map((x, i) =>
+    '<div class="chip" id="chip-' + type + '-' + i + '" onclick="select(\'' + type + '\',' + i + ')">' +
+      '<span style="display:flex;justify-content:space-between;align-items:center">' +
+        '<strong>' + (type === 'v' ? '\uD83D\uDE9B ' : '\uD83D\uDC64 ') + esc(x.name) + '</strong>' +
+        '<span class="cnt">' + x.count + '</span>' +
+      '</span>' +
+      '<small>' + esc(x.meta) + '</small>' +
+    '</div>'
+  ).join('');
+}
+
+function doSearch(type) {
+  const inp = document.getElementById(type === 'v' ? 'searchV' : 'searchD');
+  const q = (inp ? inp.value : '').toLowerCase().trim();
+  const all = type === 'v' ? VEHICLES : DRIVERS;
+  const f = q ? all.filter(x => (x.name || '').toLowerCase().includes(q) || (x.meta || '').toLowerCase().includes(q)) : [];
+  if (type === 'v') window.__fV = f; else window.__fD = f;
+  const container = document.getElementById(type === 'v' ? 'chipV' : 'chipD');
+  if (!f.length) {
+    container.innerHTML = '<div class="rec-empty">' + (q ? 'No items match your search.' : 'Type above to search.') + '</div>';
+    return;
+  }
+  chips(container, f, type);
+}
+
+function switchTab(t) {
+  currentTab = t;
+  document.getElementById('tV').classList.toggle('active', t === 'v');
+  document.getElementById('tD').classList.toggle('active', t === 'd');
+  document.getElementById('panelV').style.display = t === 'v' ? 'block' : 'none';
+  document.getElementById('panelD').style.display = t === 'd' ? 'block' : 'none';
+  doSearch(t);
+}
+
+document.getElementById('searchV').addEventListener('input', () => doSearch('v'));
+document.getElementById('searchD').addEventListener('input', () => doSearch('d'));
+
+function select(type, idx) {
+  const list = type === 'v' ? window.__fV : window.__fD;
+  const item = list[idx];
+  if (!item) return;
+  selected = item.name;
+  selectedType = type;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('chip-' + type + '-' + idx);
+  if (el) el.classList.add('active');
+  renderDetail();
+}
+
+function filtered() {
+  const from = document.getElementById('dFrom').value;
+  const to = document.getElementById('dTo').value;
+  let rows = MOVEMENTS;
+  if (selectedType === 'v') {
+    rows = rows.filter(m => String(m.vehicle_number).toLowerCase() === String(selected).toLowerCase());
+  } else if (selectedType === 'd') {
+    rows = rows.filter(m => String(m.driver_name).toLowerCase() === String(selected).toLowerCase());
+  }
+  if (from) rows = rows.filter(m => m.movement_date >= from);
+  if (to) rows = rows.filter(m => m.movement_date <= to);
+  return rows;
+}
+
+function renderDetail() {
+  const rows = filtered();
+  document.getElementById('detailWrap').style.display = 'block';
+  const label = selectedType === 'v' ? 'Vehicle' : 'Driver';
+  document.getElementById('selTitle').innerHTML =
+    label + ': <strong>' + esc(selected || '') + '</strong> &nbsp;' + rows.length + ' record(s)';
+  const body = document.getElementById('detailBody');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.4rem;color:var(--sidebar-text)">No records found for the selected period.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(r =>
+    '<tr><td>' + esc(r.movement_date_display) + '</td>' +
+    '<td>' + esc(r.movement_time_display) + '</td>' +
+    '<td><span class="badge ' + (r.shift === 'Night' ? 'badge-night' : 'badge-day') + '">' + esc(r.shift) + '</span></td>' +
+    '<td>' + esc(r.vehicle_number) + '</td>' +
+    '<td>' + esc(r.driver_name) + '</td>' +
+    '<td>' + esc(r.destination || '-') + '</td>' +
+    '<td>' + esc(r.purpose || '-') + '</td>' +
+    '<td>' + esc(r.entered_by) + '</td></tr>'
+  ).join('');
+}
+
+function clearSelection() {
+  selected = null;
+  selectedType = null;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('detailWrap').style.display = 'none';
+}
+
+function clearDates() {
+  document.getElementById('dFrom').value = '';
+  document.getElementById('dTo').value = '';
+  renderDetail();
+}
+
+/* Export */
+function openExport() {
+  document.getElementById('exportModal').classList.add('open');
+  document.getElementById('eFrom').value = document.getElementById('dFrom').value;
+  document.getElementById('eTo').value = document.getElementById('dTo').value;
+  const bits = [];
+  if (selected && selectedType === 'v') bits.push('Vehicle: ' + selected);
+  if (selected && selectedType === 'd') bits.push('Driver: ' + selected);
+  document.getElementById('expScope').textContent = bits.length ? bits.join(' | ') : 'All vehicles & drivers';
+}
+function closeExport() { document.getElementById('exportModal').classList.remove('open'); }
+function pickFmt(f) {
+  expFmt = f;
+  document.getElementById('fX').classList.toggle('sel', f === 'excel');
+  document.getElementById('fP').classList.toggle('sel', f === 'pdf');
+}
+function doExport() {
+  const p = new URLSearchParams();
+  p.set('format', expFmt);
+  if (selected && selectedType === 'v') p.set('vehicle', selected);
+  if (selected && selectedType === 'd') p.set('driver', selected);
+  const f = document.getElementById('eFrom').value;
+  if (f) p.set('date_from', f);
+  const t = document.getElementById('eTo').value;
+  if (t) p.set('date_to', t);
+  window.location.href = '{% url "fleet:directory_export" %}?' + p.toString();
+  closeExport();
+}
+document.getElementById('exportModal').addEventListener('click', e => { if (e.target.id === 'exportModal') closeExport(); });
+
+switchTab('v');
+</script>
+{% endblock %}

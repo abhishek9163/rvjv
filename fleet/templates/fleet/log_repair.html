@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+    <h2>🚜 {{ section.name }} - Data Entry</h2>
+    <div style="display:flex; gap: 1rem;">
+        <a href="{% url 'fleet:dashboard' section.id %}" class="btn btn-outline">Back to Dashboard</a>
+    </div>
+</div>
+
+<style>
+    .tab-header {
+        display: flex; gap: 1rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem;
+    }
+    .tab-btn {
+        padding: 0.75rem 1.5rem; border: none; background: var(--card-bg); border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-color); border: 1px solid var(--border); transition: 0.2s; white-space: nowrap;
+    }
+    .tab-btn.active {
+        background: var(--primary); color: white; border-color: var(--primary);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+</style>
+
+<div class="tab-header">
+    <button class="tab-btn active" onclick="switchTab(this, 'tab-breakdown')">🔧 Log Breakdown</button>
+    <button class="tab-btn" onclick="switchTab(this, 'tab-repair')">✅ Mark Repaired</button>
+    <button class="tab-btn" onclick="switchTab(this, 'tab-service')">🛢️ Oil / Service Log</button>
+    <button class="tab-btn" onclick="switchTab(this, 'tab-hmr')">⏱️ Update HMR</button>
+</div>
+
+<!-- Log New Breakdown -->
+<div id="tab-breakdown" class="tab-content active card" style="max-width: 600px;">
+    <h3 style="color:var(--error); margin-bottom:1rem;">Log New Breakdown (In)</h3>
+    <form method="POST" action="{% url 'fleet:log_repair' section.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="log_in">
+        <div class="form-group">
+            <label>Vehicle (D.No)</label>
+            <select name="vehicle_id" class="form-control" required>
+                <option value="">-- Select Vehicle --</option>
+                {% for v in vehicles %}
+                <option value="{{ v.id }}">{{ v.dno }} ({{ v.regn|default:v.model_name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex; gap:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>In Date</label>
+                <input type="date" name="in_date" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>In Time</label>
+                <input type="time" name="in_time" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Complaint</label>
+            <textarea name="complaint" class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>HMR / KMR at Breakdown</label>
+            <input type="number" step="0.01" name="hmr" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Submit Breakdown</button>
+    </form>
+</div>
+
+<!-- Update Repair Status -->
+<div id="tab-repair" class="tab-content card" style="max-width: 600px;">
+    <h3 style="color:var(--success); margin-bottom:1rem;">Update Repair Status (Out)</h3>
+    <form method="POST" action="{% url 'fleet:log_repair' section.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="log_out">
+        <div class="form-group">
+            <label>Pending Breakdown Record</label>
+            <select name="repair_id" class="form-control" required>
+                <option value="">-- Select Pending Vehicle --</option>
+                {% for p in pending_logs %}
+                <option value="{{ p.id }}">{{ p.vehicle.dno }} (Since: {{ p.in_date|date:'d-m-Y' }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex; gap:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Out Date</label>
+                <input type="date" name="out_date" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Out Time</label>
+                <input type="time" name="out_time" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Mechanic Name</label>
+            <input type="text" name="mechanic" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Parts Used & Qty</label>
+            <textarea name="parts" class="form-control" rows="2" placeholder="E.g., Oil filter 1pc, Engine Oil 15L"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Remarks</label>
+            <input type="text" name="remarks" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem; background:var(--success);">Mark as Repaired</button>
+    </form>
+</div>
+
+<!-- Service / Oil Log -->
+<div id="tab-service" class="tab-content card" style="max-width: 600px;">
+    <h3 style="color:#0284c7; margin-bottom:1rem;">Log Oil Change / Service</h3>
+    <form method="POST" action="{% url 'fleet:log_repair' section.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="log_service">
+        <div class="form-group">
+            <label>Vehicle (D.No)</label>
+            <select name="vehicle_id" class="form-control" required>
+                <option value="">-- Select Vehicle --</option>
+                {% for v in vehicles %}
+                <option value="{{ v.id }}">{{ v.dno }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Service Interval</label>
+            <select name="interval" class="form-control" required>
+                <option value="250H">250H (Primary)</option>
+                <option value="500H">500H</option>
+                <option value="1000H">1000H (Major)</option>
+                <option value="2000H">2000H</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Service Date</label>
+            <input type="date" name="last_date" class="form-control" required>
+        </div>
+        <div style="display:flex; gap:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Current HMR</label>
+                <input type="number" step="0.01" name="current_hmr" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Next Due HMR (Optional)</label>
+                <input type="number" step="0.01" name="next_due" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Remarks / Parts Replaced</label>
+            <textarea name="remarks" class="form-control" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem; background:#0284c7;">Save Service Log</button>
+    </form>
+</div>
+
+<!-- Update HMR -->
+<div id="tab-hmr" class="tab-content card" style="max-width: 600px;">
+    <h3 style="color:#d97706; margin-bottom:1rem;">Update Daily HMR</h3>
+    <form method="POST" action="{% url 'fleet:log_repair' section.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_hmr">
+        <div class="form-group">
+            <label>Vehicle (D.No)</label>
+            <select name="vehicle_id" class="form-control" required>
+                <option value="">-- Select Vehicle --</option>
+                {% for v in vehicles %}
+                <option value="{{ v.id }}">{{ v.dno }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>HMR Date</label>
+            <input type="date" name="hmr_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Current Reading (HMR / KMR)</label>
+            <input type="number" step="0.01" name="latest_hmr" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem; background:#d97706;">Update HMR</button>
+    </form>
+</div>
+
+<script>
+    function switchTab(btn, tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+    
+    // Auto-fill dates with today
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelectorAll('input[type="date"]').forEach(input => {
+        if(!input.value) input.value = today;
+    });
+</script>
+{% endblock %}

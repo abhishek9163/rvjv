@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Vehicle & Garage Management</h2>
+    <div>
+        {% if is_manager %}
+        <button class="btn btn-primary" onclick="alert('Add vehicle form opens here')">+ Add Vehicle</button>
+        {% endif %}
+        <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="grid-container">
+    {% for vehicle in vehicles %}
+    <div class="card">
+        <h3>{{ vehicle.name }} ({{ vehicle.number }})</h3>
+        <p class="card-content">
+            <strong>Department:</strong> {{ vehicle.department }}<br>
+            <strong>Driver:</strong> {{ vehicle.driver_name }} ({{ vehicle.driver_number }})<br>
+            <strong>Garage In:</strong> {{ vehicle.garage_in_time|default:"Not in garage" }}<br>
+            <strong>Status/Issue:</strong> {{ vehicle.garage_issue|default:"All Good" }}
+        </p>
+        <br>
+        <button class="btn btn-outline" style="width: 100%;">Update Details</button>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+        <p>No vehicles found in the system.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

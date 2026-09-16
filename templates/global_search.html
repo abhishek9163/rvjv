@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>Global Search Results for "{{ query }}"</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline" style="margin-top: 1rem;">Back to Dashboard</a>
+</div>
+
+{% if query %}
+<div class="grid-container">
+
+    <!-- Modules/Sections Results -->
+    {% if results.sections %}
+    <div style="grid-column: 1/-1;">
+        <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">Modules Matching "{{ query }}"</h3>
+    </div>
+    {% for sec in results.sections %}
+    <div class="card" style="border-left: 4px solid var(--primary);">
+        <h4 style="margin-bottom: 0.5rem;">{{ sec.name }}</h4>
+        <p style="font-size: 0.9rem; color: var(--sidebar-text);">Dynamic Module</p>
+        <div style="margin-top: 1rem;">
+            <a href="#" class="btn btn-primary" style="padding: 0.5rem 1rem;">Open Module</a>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Employee Results -->
+    {% if results.employees %}
+    <div style="grid-column: 1/-1; margin-top: 2rem;">
+        <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">Employees / Logins Matching "{{ query }}"</h3>
+    </div>
+    {% for emp in results.employees %}
+    <div class="card">
+        <h4 style="margin-bottom: 0.5rem;">{{ emp.full_name|default:emp.username }}</h4>
+        <p style="font-size: 0.9rem; color: var(--sidebar-text);">
+            Email: {{ emp.email }}<br>
+            Phone: {{ emp.phone_number }}<br>
+            Role: <strong>{{ emp.get_system_role_display }}</strong>
+        </p>
+        <div style="margin-top: 1rem;">
+            <a href="{% url 'edit_employee_role' emp.id %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Manage Role</a>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Data Entries Results -->
+    {% if results.entries %}
+    <div style="grid-column: 1/-1; margin-top: 2rem;">
+        <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">Data Entries Matching "{{ query }}"</h3>
+    </div>
+    {% for entry in results.entries %}
+    <div class="card" style="border-top: 2px solid var(--border);">
+        <small style="color: var(--sidebar-text); text-transform: uppercase; font-weight: bold;">Found in Module: {{ entry.section.name }}</small>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--sidebar-text);">
+            Entered By: {{ entry.entered_by.full_name|default:entry.entered_by.username }}<br>
+            Date: {{ entry.created_at|date:"M d, Y" }}
+        </p>
+        
+        <div style="margin-top: 1rem; background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+            {% for key, value in entry.data.items %}
+                <span style="font-size: 0.8rem; color: var(--primary); font-weight:bold;">{{ key }}:</span> {{ value }}<br>
+            {% endfor %}
+        </div>
+        <div style="margin-top: 1rem;">
+            <a href="#" class="btn btn-outline" style="padding: 0.5rem 1rem;">View Full Module</a>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not results.sections and not results.employees and not results.entries %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 3rem;" class="card">
+        <p style="font-size: 1.2rem; color: var(--sidebar-text);">No results found for "{{ query }}" anywhere in the system.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% else %}
+<p style="color: var(--sidebar-text);">Please enter a search query.</p>
+{% endif %}
+{% endblock %}

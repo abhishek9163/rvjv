@@ -1,0 +1,3585 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Safety Department - Store & Equipment Hub{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --safety-primary: #f59e0b;
+        --safety-dark: #b45309;
+        --safety-light: #fffbeb;
+        --safety-border: #fde68a;
+    }
+
+    .safety-container {
+        padding: 24px 20px 48px 20px;
+        max-width: 1440px;
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
+
+    .safety-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .safety-title-wrap h1 {
+        margin: 0;
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        letter-spacing: -0.5px;
+    }
+
+    .safety-title-wrap p {
+        margin: 4px 0 0 0;
+        color: #64748b;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .safety-header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* KPI Cards Grid */
+    .safety-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .safety-kpi-card {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .safety-kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.09);
+        border-color: #94a3b8;
+    }
+
+    .safety-kpi-card.kpi-selected {
+        border: 2px solid #2563eb !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18), 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+        background: #f8fafc;
+    }
+
+    .kpi-click-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.70rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px dashed #e2e8f0;
+        transition: color 0.2s;
+    }
+
+    .safety-kpi-card:hover .kpi-click-tag {
+        color: #2563eb;
+    }
+
+    /* Safety Hub Filter Bar */
+    .safety-hub-filters-bar {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 12px 18px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .hub-filter-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .hub-filter-title {
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .hub-filter-select {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1.5px solid #cbd5e1;
+        font-weight: 700;
+        font-size: 0.84rem;
+        color: #0f172a;
+        background-color: #fff;
+    }
+
+    .hub-filter-pills {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .hub-pill-btn {
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+    }
+
+    .hub-pill-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .hub-pill-btn.active {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+    }
+
+    .btn-reset-filters {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+    }
+
+    .btn-reset-filters:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    /* View Toggle Button Group */
+    .view-toggle-group {
+        display: inline-flex;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 3px;
+        gap: 2px;
+    }
+
+    .btn-view-toggle {
+        border: none;
+        background: transparent;
+        padding: 6px 12px;
+        border-radius: 7px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+    }
+
+    .btn-view-toggle:hover {
+        color: #0f172a;
+    }
+
+    .btn-view-toggle.active {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Card Grids */
+    .safety-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+        margin-top: 4px;
+    }
+
+    .safety-item-card {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        position: relative;
+    }
+
+    .safety-item-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.07);
+        border-color: #cbd5e1;
+    }
+
+    .card-meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+    .card-meta-row b {
+        color: #1e293b;
+    }
+
+    .safety-kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .card-yellow::before { background: #f59e0b; }
+    .card-blue::before { background: #3b82f6; }
+    .card-red::before { background: #ef4444; }
+    .card-purple::before { background: #8b5cf6; }
+    .card-green::before { background: #10b981; }
+
+    .kpi-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .kpi-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    .kpi-val {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+
+    .kpi-subtext {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* Tabs Navigation */
+    .safety-nav-tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .safety-tab-btn {
+        padding: 10px 18px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 10px 10px 0 0;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .safety-tab-btn:hover {
+        color: #f59e0b;
+        background: #fffbeb;
+    }
+
+    .safety-tab-btn.active {
+        color: #b45309;
+        background: #ffffff;
+        border-bottom: 3px solid #f59e0b;
+        font-weight: 800;
+    }
+
+    .tab-badge {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .safety-tab-btn.active .tab-badge {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    /* Search & Filter Bar */
+    .filter-action-bar {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+    }
+
+    .search-input-wrap input {
+        width: 100%;
+        padding: 8px 12px 8px 36px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.88rem;
+        box-sizing: border-box;
+    }
+
+    .search-input-wrap i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    /* Tables */
+    .safety-table-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .safety-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.86rem;
+    }
+
+    .safety-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        text-transform: uppercase;
+        font-size: 0.74rem;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+    }
+
+    .safety-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #1e293b;
+        vertical-align: middle;
+    }
+
+    .safety-table tr:hover td {
+        background: #fafafa;
+    }
+
+    /* Status Badges */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 16px;
+        white-space: nowrap;
+    }
+
+    .badge-active { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-expired { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .badge-neutral { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .badge-purple { background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
+    /* Action Buttons in Tables */
+    .btn-action-icon {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-action-icon:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+    .btn-action-delete:hover {
+        background: #fee2e2 !important;
+        color: #dc2626 !important;
+        border-color: #fca5a5 !important;
+    }
+
+    /* Modal Styles */
+    .safety-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+
+    .safety-modal {
+        background: #ffffff;
+        border-radius: 18px;
+        width: 100%;
+        max-width: 580px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        box-sizing: border-box;
+    }
+
+    .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 12px;
+    }
+
+    .modal-head h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 1.3rem;
+        color: #94a3b8;
+        cursor: pointer;
+    }
+
+    .modal-close-btn:hover {
+        color: #ef4444;
+    }
+
+    .custom-search-dropdown {
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.18), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        scrollbar-width: thin;
+    }
+    .custom-search-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-search-dropdown::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+    .search-drop-item {
+        transition: background-color 0.15s ease;
+    }
+    .search-drop-item:hover {
+        background-color: #f1f5f9 !important;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1100px) {
+        .safety-kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+        .safety-container { padding: 14px 10px 36px; }
+        .safety-kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .safety-title-wrap h1 { font-size: 1.3rem; }
+    }
+    @media (max-width: 480px) {
+        .safety-kpi-grid { grid-template-columns: 1fr; }
+    }
+    .custom-search-dropdown { display: none; }
+    .search-drop-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.84rem;
+        transition: background 0.15s;
+    }
+    .search-drop-item:last-child { border-bottom: none; }
+    .search-drop-item:hover { background: #eff6ff; }
+    .search-drop-item.out-of-stock { color: #dc2626; }
+    .search-drop-item strong { display: block; font-weight: 700; color: #1e293b; }
+    .search-drop-item small { color: #64748b; font-size: 0.77rem; }
+</style>
+
+<div class="safety-container">
+
+    <!-- Top Header -->
+    <div class="safety-header-top">
+        <div class="safety-title-wrap">
+            <h1><span>🦺</span> Safety Department Hub</h1>
+            <p>PPE Store Inventory &bull; Worker Equipment Allocation &bull; Smart Warranty &amp; Fine Desk</p>
+        </div>
+        <div class="safety-header-actions">
+            <button type="button" onclick="openSafetyExportModal()" class="btn" style="background: #10b981; color: white; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-file-export"></i> Export Reports
+            </button>
+            <button type="button" onclick="openAddStoreItemModal()" class="btn" style="background: #f59e0b; color: #000; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-plus-circle"></i> Add Store Item
+            </button>
+            <button type="button" onclick="openIssueModal()" class="btn btn-primary" style="font-weight: 700; border-radius: 10px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-hand-holding"></i> Issue Equipment
+            </button>
+            <button type="button" onclick="switchSafetyTab('replacementDesk')" class="btn" style="background: #8b5cf6; color: white; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-exchange-alt"></i> Replacement Desk
+            </button>
+            <button type="button" onclick="openExcelUploadModal()" class="btn" style="background: #6366f1; color: white; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Upload safety_office_data.xlsx to sync inventory & issuances">
+                <i class="fas fa-file-upload"></i> Upload Excel
+            </button>
+            <a href="{% url 'manpower_dashboard' %}" class="btn" style="background: #0891b2; color: white; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-hard-hat"></i> Manpower
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline" style="border-radius: 10px; font-weight: 600;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Safety Department Hub Global Filter Bar -->
+    <div class="safety-hub-filters-bar">
+        <div class="hub-filter-left">
+            <div class="hub-filter-title">
+                <i class="fas fa-sliders-h" style="color: #f59e0b;"></i>
+                <span>Hub Filters:</span>
+            </div>
+            <select id="hubGlobalDeptFilter" class="hub-filter-select" onchange="applyHubGlobalDepartment(this.value)">
+                <option value="ALL">🏢 All Departments (Global)</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}">{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="hub-filter-pills">
+            <span style="font-size: 0.76rem; font-weight: 700; color: #64748b;">Quick Views:</span>
+            <button type="button" class="hub-pill-btn" onclick="clickKpiCard('inventory')">
+                <i class="fas fa-boxes"></i> All Store Items
+            </button>
+            <button type="button" class="hub-pill-btn" onclick="clickKpiCard('active_issued')">
+                <i class="fas fa-user-shield"></i> Active Issues
+            </button>
+            <button type="button" class="hub-pill-btn" onclick="clickKpiCard('low_stock')">
+                <i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> Low Stock
+            </button>
+            <button type="button" class="hub-pill-btn" onclick="clickKpiCard('warranty_expiries')">
+                <i class="fas fa-clock" style="color: #8b5cf6;"></i> Expiries / Due
+            </button>
+            <button type="button" class="hub-pill-btn" onclick="clickKpiCard('pending_fines')">
+                <i class="fas fa-coins" style="color: #10b981;"></i> Pending Fines
+            </button>
+            <button type="button" class="btn-reset-filters" onclick="resetAllSafetyFilters()">
+                <i class="fas fa-sync-alt"></i> Reset All
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Summary Grid (Clickable Drill-Down Cards) -->
+    <div class="safety-kpi-grid">
+        <!-- KPI 1: In-Store Inventory -->
+        <div class="safety-kpi-card card-yellow" id="kpiCard-inventory" onclick="clickKpiCard('inventory')" title="Click to view & filter Store Inventory">
+            <div class="kpi-top-row">
+                <span class="kpi-label">Store Inventory</span>
+                <div class="kpi-icon-box" style="background: #fef3c7; color: #d97706;">🦺</div>
+            </div>
+            <div class="kpi-val">{{ total_available_all }}</div>
+            <div class="kpi-subtext">{{ total_store_types }} Catalog Types &bull; Total: {{ total_stock_all }}</div>
+            <div class="kpi-click-tag"><i class="fas fa-external-link-alt"></i> Click to view store data &rarr;</div>
+        </div>
+
+        <!-- KPI 2: Active Issues -->
+        <div class="safety-kpi-card card-blue" id="kpiCard-active_issued" onclick="clickKpiCard('active_issued')" title="Click to view & filter Active Issued Equipment">
+            <div class="kpi-top-row">
+                <span class="kpi-label">Active Issued</span>
+                <div class="kpi-icon-box" style="background: #eff6ff; color: #2563eb;">👷</div>
+            </div>
+            <div class="kpi-val">{{ active_issues_count }}</div>
+            <div class="kpi-subtext">Assigned to active workers</div>
+            <div class="kpi-click-tag"><i class="fas fa-filter"></i> Click to filter active issues &rarr;</div>
+        </div>
+
+        <!-- KPI 3: Low Stock Alerts -->
+        <div class="safety-kpi-card card-red" id="kpiCard-low_stock" onclick="clickKpiCard('low_stock')" title="Click to view items needing Restock">
+            <div class="kpi-top-row">
+                <span class="kpi-label">Low Stock Alert</span>
+                <div class="kpi-icon-box" style="background: #fef2f2; color: #dc2626;">⚠️</div>
+            </div>
+            <div class="kpi-val" style="color: {% if low_stock_count > 0 %}#dc2626{% else %}#10b981{% endif %};">
+                {{ low_stock_count }}
+            </div>
+            <div class="kpi-subtext">{% if low_stock_count > 0 %}Items below alert threshold{% else %}All item stocks healthy{% endif %}</div>
+            <div class="kpi-click-tag"><i class="fas fa-exclamation-triangle"></i> Click to filter low stock &rarr;</div>
+        </div>
+
+        <!-- KPI 4: Warranty Expiries -->
+        <div class="safety-kpi-card card-purple" id="kpiCard-warranty_expiries" onclick="clickKpiCard('warranty_expiries')" title="Click to view Expired & Expiring Equipment">
+            <div class="kpi-top-row">
+                <span class="kpi-label">Warranty Expiries</span>
+                <div class="kpi-icon-box" style="background: #faf5ff; color: #9333ea;">⏳</div>
+            </div>
+            <div class="kpi-val">{{ expiring_soon_count }}</div>
+            <div class="kpi-subtext">Expiring in &le;30 days &bull; {{ expired_warranty_count }} already expired</div>
+            <div class="kpi-click-tag"><i class="fas fa-history"></i> Click to filter expiries &rarr;</div>
+        </div>
+
+        <!-- KPI 5: Pending Fines / Penalties -->
+        <div class="safety-kpi-card card-green" id="kpiCard-pending_fines" onclick="clickKpiCard('pending_fines')" title="Click to view & approve Fine Deductions">
+            <div class="kpi-top-row">
+                <span class="kpi-label">Fine Deductions</span>
+                <div class="kpi-icon-box" style="background: #f0fdf4; color: #16a34a;">💰</div>
+            </div>
+            <div class="kpi-val">Nu. {{ total_pending_fine_amount|floatformat:0 }}</div>
+            <div class="kpi-subtext">{{ pending_fines_count }} Pending approval &bull; Nu. {{ total_fine_collected|floatformat:0 }} collected</div>
+            <div class="kpi-click-tag"><i class="fas fa-file-invoice-dollar"></i> Click to filter pending fines &rarr;</div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="safety-nav-tabs">
+        <button class="safety-tab-btn {% if active_tab == 'inventory' %}active{% endif %}" onclick="switchSafetyTab('inventory')" id="tabBtn-inventory">
+            <i class="fas fa-boxes"></i> Store Inventory &amp; Stock
+            <span class="tab-badge">{{ total_store_types }}</span>
+        </button>
+        <button class="safety-tab-btn {% if active_tab == 'issuances' %}active{% endif %}" onclick="switchSafetyTab('issuances')" id="tabBtn-issuances">
+            <i class="fas fa-clipboard-list"></i> Equipment Issuance Register
+            <span class="tab-badge">{{ issues|length }}</span>
+        </button>
+        <button class="safety-tab-btn {% if active_tab == 'replacementDesk' %}active{% endif %}" onclick="switchSafetyTab('replacementDesk')" id="tabBtn-replacementDesk" style="color: #7c3aed;">
+            <i class="fas fa-balance-scale"></i> Smart Return &amp; Replacement Desk
+            <span class="tab-badge" style="background: #ede9fe; color: #6d28d9;">POLICY CHECK</span>
+        </button>
+        <button class="safety-tab-btn {% if active_tab == 'fines' %}active{% endif %}" onclick="switchSafetyTab('fines')" id="tabBtn-fines">
+            <i class="fas fa-file-invoice-dollar"></i> Fine &amp; Deduction Register
+            <span class="tab-badge" style="background: #fee2e2; color: #b91c1c;">{{ pending_fines_count }} Pending</span>
+        </button>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 1: STORE INVENTORY & STOCK CONTROL                              -->
+    <!-- =================================================================== -->
+    <div id="tabContent-inventory" class="safety-tab-content" style="display: {% if active_tab == 'inventory' %}block{% else %}none{% endif %};">
+        <div class="filter-action-bar">
+            <div class="search-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="inventorySearch" placeholder="Search equipment by name, code (SKU), or specs..." onkeyup="filterInventoryTable()">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="inventoryCategoryFilter" onchange="filterInventoryTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <select id="inventoryStockFilter" onchange="filterInventoryTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Stock Levels</option>
+                    <option value="LOW">⚠️ Low Stock Only</option>
+                    <option value="IN_STOCK">✅ In Stock (&gt;0)</option>
+                </select>
+                <select id="inventoryCreatorFilter" onchange="filterInventoryTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Added By</option>
+                    {% for cr in creators %}
+                    <option value="{{ cr }}">{{ cr }}</option>
+                    {% endfor %}
+                </select>
+                <select id="inventoryWarrantyFilter" onchange="filterInventoryTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Warranties</option>
+                    <option value="3">3 Months</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months (1 Yr)</option>
+                    <option value="24">24 Months (2 Yrs)</option>
+                </select>
+                <button type="button" class="btn-reset-filters" onclick="resetInventoryFilters()" title="Reset Inventory Filters">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+                <button type="button" class="btn" onclick="syncGoogleSheetInventory()" style="background: #ecfdf5; border: 1.5px solid #6ee7b7; color: #065f46; font-weight: 700; font-size: 0.85rem; border-radius: 8px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-cloud-download-alt" id="syncSheetSpinner"></i> Sync Google Sheet
+                </button>
+                <a href="{% url 'export_safety_inventory_excel' %}" class="btn btn-outline" style="border-radius: 8px; font-weight: 700; font-size: 0.85rem;">
+                    <i class="fas fa-file-excel" style="color: #10b981;"></i> Export Excel
+                </a>
+                <div class="view-toggle-group">
+                    <button type="button" class="btn-view-toggle active" id="viewToggle-inventory-table" onclick="setTabViewModel('inventory', 'table')" title="Table View">
+                        <i class="fas fa-list"></i> Table
+                    </button>
+                    <button type="button" class="btn-view-toggle" id="viewToggle-inventory-cards" onclick="setTabViewModel('inventory', 'cards')" title="Card View">
+                        <i class="fas fa-th-large"></i> Cards
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 1: Table View -->
+        <div class="safety-table-card" id="inventoryTableView">
+            <div class="table-responsive">
+                <table class="safety-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Item Code / SKU</th>
+                            <th>Equipment Name</th>
+                            <th>Category</th>
+                            <th>Stock (Avail / Total)</th>
+                            <th>Warranty</th>
+                            <th>Full Cost / Penalty</th>
+                            <th>Added By</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in store_items %}
+                        <tr class="inv-row" data-cat="{{ item.category }}" data-low="{% if item.is_low_stock %}LOW{% else %}NORMAL{% endif %}" data-avail="{{ item.available_stock }}" data-creator="{% if item.created_by %}{{ item.created_by.username }}{% endif %}" data-warranty="{{ item.warranty_months }}">
+                            <td style="font-family: monospace; font-weight: 700; color: #2563eb;">{{ item.item_code }}</td>
+                            <td>
+                                <b>{{ item.name }}</b>
+                                {% if item.specification %}
+                                <div style="font-size: 0.76rem; color: #64748b;">{{ item.specification }}</div>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge-status badge-neutral">{{ item.category }}</span></td>
+                            <td>
+                                <span style="font-weight: 800; font-size: 1rem; color: {% if item.is_low_stock %}#dc2626{% else %}#0f172a{% endif %};">
+                                    {{ item.available_stock }}
+                                </span>
+                                <span style="color: #64748b; font-size: 0.8rem;"> / {{ item.total_stock }} {{ item.unit }}</span>
+                                <div style="font-size: 0.72rem; color: #64748b;">Issued: {{ item.issued_stock }} {{ item.unit }}</div>
+                            </td>
+                            <td><b>{{ item.warranty_months }} Months</b></td>
+                            <td><b>Nu. {{ item.fine_amount|floatformat:2 }}</b></td>
+                            <td>
+                                <span class="badge-status badge-neutral" style="font-size: 0.74rem;">
+                                    <i class="fas fa-user-circle" style="color: #64748b;"></i>
+                                    {% if item.created_by %}{{ item.created_by.get_full_name|default:item.created_by.username }}{% else %}Store Admin{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if item.is_low_stock %}
+                                <span class="badge-status badge-expired">⚠️ Low Stock (&le;{{ item.minimum_alert_level }})</span>
+                                {% else %}
+                                <span class="badge-status badge-active">🟢 Available</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <button type="button" class="btn-action-icon" title="Restock Equipment (+)" onclick="openRestockModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.available_stock }}', '{{ item.unit|escapejs }}')" style="color: #16a34a;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn-action-icon" title="Edit Item" onclick="openEditItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.item_code|escapejs }}', '{{ item.category|escapejs }}', '{{ item.unit|escapejs }}', '{{ item.specification|default:''|escapejs }}', '{{ item.warranty_months }}', '{{ item.fine_amount }}', '{{ item.minimum_alert_level }}', '{{ item.available_stock }}', '{{ item.notes|default:''|escapejs }}')">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button type="button" class="btn-action-icon btn-action-delete" title="Delete Item" onclick="confirmDeleteItem('{{ item.id }}', '{{ item.name|escapejs }}')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 32px; color: #64748b;">
+                                🦺 No equipment items currently in safety store. Click <b>"+ Add Store Item"</b> or <b>"Sync HSE Store from Google Sheet"</b> above to load items.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 1: Card View (Grid) -->
+        <div id="inventoryCardsView" class="safety-cards-grid" style="display: none;">
+            {% for item in store_items %}
+            <div class="safety-item-card inv-card" data-cat="{{ item.category }}" data-low="{% if item.is_low_stock %}LOW{% else %}NORMAL{% endif %}" data-avail="{{ item.available_stock }}" data-creator="{% if item.created_by %}{{ item.created_by.username }}{% endif %}" data-warranty="{{ item.warranty_months }}">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">{{ item.category }}</span>
+                        {% if item.is_low_stock %}
+                        <span class="badge-status badge-expired" style="font-size: 0.72rem;">⚠️ Low Stock</span>
+                        {% else %}
+                        <span class="badge-status badge-active" style="font-size: 0.72rem;">🟢 In Stock</span>
+                        {% endif %}
+                    </div>
+
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            🦺
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a;">{{ item.name }}</h4>
+                            <div style="font-family: monospace; font-size: 0.76rem; font-weight: 700; color: #2563eb;">{{ item.item_code }}</div>
+                        </div>
+                    </div>
+
+                    {% if item.specification %}
+                    <div style="font-size: 0.76rem; color: #64748b; background: #f8fafc; padding: 6px 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                        {{ item.specification }}
+                    </div>
+                    {% endif %}
+
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 10px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                            <span style="font-size: 0.76rem; font-weight: 700; color: #64748b;">Available Stock:</span>
+                            <span>
+                                <b style="font-size: 1.15rem; color: {% if item.is_low_stock %}#dc2626{% else %}#0f172a{% endif %};">{{ item.available_stock }}</b>
+                                <small style="color: #64748b;">/ {{ item.total_stock }} {{ item.unit }}</small>
+                            </span>
+                        </div>
+                        <div style="font-size: 0.72rem; color: #64748b; text-align: right;">Issued to workers: <b>{{ item.issued_stock }} {{ item.unit }}</b></div>
+                    </div>
+
+                    <div class="card-meta-row">
+                        <span>Warranty Validity:</span>
+                        <b>{{ item.warranty_months }} Months</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Full Cost / Fine Rate:</span>
+                        <b style="color: #0f172a;">Nu. {{ item.fine_amount|floatformat:2 }}</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Added By:</span>
+                        <span style="font-size: 0.74rem; color: #475569;">
+                            <i class="fas fa-user-circle"></i> {{ item.created_by.get_full_name|default:item.created_by.username|default:"Store Admin" }}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px;">
+                    <button type="button" class="btn" onclick="openRestockModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.available_stock }}', '{{ item.unit|escapejs }}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 700; font-size: 0.78rem; border-radius: 8px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-plus"></i> Restock
+                    </button>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" class="btn-action-icon" title="Edit Item" onclick="openEditItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.item_code|escapejs }}', '{{ item.category|escapejs }}', '{{ item.unit|escapejs }}', '{{ item.specification|default:''|escapejs }}', '{{ item.warranty_months }}', '{{ item.fine_amount }}', '{{ item.minimum_alert_level }}', '{{ item.available_stock }}', '{{ item.notes|default:''|escapejs }}')">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button type="button" class="btn-action-icon btn-action-delete" title="Delete Item" onclick="confirmDeleteItem('{{ item.id }}', '{{ item.name|escapejs }}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">
+                🦺 No equipment items currently in safety store.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 2: EQUIPMENT ISSUANCE REGISTER                                  -->
+    <!-- =================================================================== -->
+    <div id="tabContent-issuances" class="safety-tab-content" style="display: {% if active_tab == 'issuances' %}block{% else %}none{% endif %};">
+        <div class="filter-action-bar">
+            <div class="search-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="issuesSearch" placeholder="Search by employee name, badge ID, or equipment..." onkeyup="filterIssuesTable()">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="issueDeptFilter" onchange="filterIssuesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}">{{ dept }}</option>
+                    {% endfor %}
+                </select>
+                <select id="issueCategoryFilter" onchange="filterIssuesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <select id="issueStatusFilter" onchange="filterIssuesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE" selected>🟢 Active Issues</option>
+                    <option value="REPLACED_NORMAL">Replaced (Normal Expired)</option>
+                    <option value="REPLACED_PREMATURE">Replaced (Premature Damage)</option>
+                    <option value="RETURNED_RESIGNED">Returned (Resigned)</option>
+                </select>
+                <select id="issueWarrantyFilter" onchange="filterIssuesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Warranty Statuses</option>
+                    <option value="ACTIVE">🟢 Under Warranty (&gt;30d)</option>
+                    <option value="EXPIRING_SOON">⏳ Expiring Soon (&le;30d)</option>
+                    <option value="EXPIRED">🔴 Expired Warranty</option>
+                    <option value="EXPIRING_OR_EXPIRED">⏳+🔴 Expiring Soon &amp; Expired</option>
+                </select>
+                <div style="display: flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #64748b;">From:</span>
+                    <input type="date" id="issueDateFrom" onchange="filterIssuesTable()" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 600; color: #0f172a;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #64748b;">To:</span>
+                    <input type="date" id="issueDateTo" onchange="filterIssuesTable()" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 600; color: #0f172a;">
+                </div>
+                <button type="button" class="btn-reset-filters" onclick="resetIssuesFilters()" title="Reset Issuances Filters">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+                <button type="button" onclick="openSafetyExportModalWithReport('issues')" class="btn btn-outline" style="border-radius: 8px; font-weight: 700; font-size: 0.85rem;">
+                    <i class="fas fa-file-export" style="color: #10b981;"></i> Export Register
+                </button>
+                <div class="view-toggle-group">
+                    <button type="button" class="btn-view-toggle active" id="viewToggle-issuances-table" onclick="setTabViewModel('issuances', 'table')" title="Table View">
+                        <i class="fas fa-list"></i> Table
+                    </button>
+                    <button type="button" class="btn-view-toggle" id="viewToggle-issuances-cards" onclick="setTabViewModel('issuances', 'cards')" title="Card View">
+                        <i class="fas fa-th-large"></i> Cards
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Table View -->
+        <div class="safety-table-card" id="issuancesTableView">
+            <div class="table-responsive">
+                <table class="safety-table" id="issuesTable">
+                    <thead>
+                        <tr>
+                            <th>Worker ID &amp; Name</th>
+                            <th>Department</th>
+                            <th>Equipment</th>
+                            <th>Size / Spec</th>
+                            <th>Issue Date</th>
+                            <th>Warranty Expiry</th>
+                            <th>Warranty Status</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for iss in issues %}
+                        <tr class="issue-row" data-status="{{ iss.status }}" data-dept="{{ iss.employee.department|default:'' }}" data-cat="{{ iss.item.category|default:'' }}" data-warranty-status="{% if iss.is_under_warranty %}{% if iss.days_remaining <= 30 %}EXPIRING_SOON{% else %}ACTIVE{% endif %}{% else %}EXPIRED{% endif %}" data-days-rem="{{ iss.days_remaining }}" data-date="{{ iss.issue_date|date:'Y-m-d' }}">
+                            <td>
+                                <b>{{ iss.employee.name }}</b>
+                                <div style="font-size: 0.75rem; color: #2563eb; font-family: monospace;">ID: {{ iss.employee.emp_id }}</div>
+                            </td>
+                            <td>{{ iss.employee.department }}</td>
+                            <td>
+                                <b>{{ iss.item.name }}</b>
+                                <span style="font-size: 0.75rem; color: #64748b;">({{ iss.item.item_code }})</span>
+                            </td>
+                            <td>{{ iss.size_specification|default:"Standard" }}</td>
+                            <td>{{ iss.issue_date|date:"d M Y" }}</td>
+                            <td>
+                                <b>{{ iss.warranty_expiry_date|date:"d M Y" }}</b>
+                            </td>
+                            <td>
+                                {% if iss.is_under_warranty %}
+                                <span class="badge-status badge-active">🟢 Active ({{ iss.days_remaining }}d left)</span>
+                                {% else %}
+                                <span class="badge-status badge-neutral">⚪ Expired ({{ iss.days_used }}d used)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if iss.status == 'ACTIVE' %}
+                                <span class="badge-status badge-active">Active</span>
+                                {% elif iss.status == 'REPLACED_NORMAL' %}
+                                <span class="badge-status badge-purple">Replaced (Normal)</span>
+                                {% elif iss.status == 'REPLACED_PREMATURE' %}
+                                <span class="badge-status badge-expired">Premature Replace</span>
+                                {% else %}
+                                <span class="badge-status badge-neutral">{{ iss.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <button type="button" class="btn-action-icon" title="Edit Issue Record" onclick="openEditIssueModal('{{ iss.id }}', '{{ iss.employee.name|escapejs }}', '{{ iss.item.name|escapejs }}', '{{ iss.size_specification|default:''|escapejs }}', '{{ iss.issue_date|date:'Y-m-d' }}', '{{ iss.warranty_expiry_date|date:'Y-m-d' }}', '{{ iss.status }}', '{{ iss.remarks|default:''|escapejs }}')">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button type="button" class="btn-action-icon btn-action-delete" title="Delete Issue Record" onclick="confirmDeleteIssue('{{ iss.id }}', '{{ iss.employee.name|escapejs }}', '{{ iss.item.name|escapejs }}')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 32px; color: #64748b;">
+                                👷 No equipment issuance records found. Click <b>"+ Issue Equipment"</b> to assign gear to workers.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Card View (Grid) -->
+        <div id="issuancesCardsView" class="safety-cards-grid" style="display: none;">
+            {% for iss in issues %}
+            <div class="safety-item-card issue-card" data-status="{{ iss.status }}" data-dept="{{ iss.employee.department|default:'' }}" data-cat="{{ iss.item.category|default:'' }}" data-warranty-status="{% if iss.is_under_warranty %}{% if iss.days_remaining <= 30 %}EXPIRING_SOON{% else %}ACTIVE{% endif %}{% else %}EXPIRED{% endif %}" data-days-rem="{{ iss.days_remaining }}" data-date="{{ iss.issue_date|date:'Y-m-d' }}">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">{{ iss.employee.department|default:"Site Workforce" }}</span>
+                        {% if iss.status == 'ACTIVE' %}
+                        <span class="badge-status badge-active" style="font-size: 0.72rem;">🟢 Active</span>
+                        {% elif iss.status == 'REPLACED_NORMAL' %}
+                        <span class="badge-status badge-purple" style="font-size: 0.72rem;">Replaced (Normal)</span>
+                        {% elif iss.status == 'REPLACED_PREMATURE' %}
+                        <span class="badge-status badge-expired" style="font-size: 0.72rem;">Premature Replace</span>
+                        {% else %}
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">{{ iss.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                            👷
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 0.96rem; font-weight: 800; color: #0f172a;">{{ iss.employee.name }}</h4>
+                            <div style="font-family: monospace; font-size: 0.75rem; color: #2563eb; font-weight: 700;">ID: {{ iss.employee.emp_id }}</div>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 10px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 2px;">Allotted Equipment:</div>
+                        <div style="font-size: 0.92rem; font-weight: 800; color: #0f172a;">{{ iss.item.name }}</div>
+                        <div style="font-size: 0.74rem; color: #64748b;">Code: <b>{{ iss.item.item_code }}</b> &bull; Spec: <b>{{ iss.size_specification|default:"Standard" }}</b></div>
+                    </div>
+
+                    <div class="card-meta-row">
+                        <span>Issue Date:</span>
+                        <b>{{ iss.issue_date|date:"d M Y" }}</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Warranty Expiry:</span>
+                        <b>{{ iss.warranty_expiry_date|date:"d M Y" }}</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Warranty Status:</span>
+                        {% if iss.is_under_warranty %}
+                        <span class="badge-status badge-active" style="font-size: 0.7rem;">Active ({{ iss.days_remaining }}d left)</span>
+                        {% else %}
+                        <span class="badge-status badge-neutral" style="font-size: 0.7rem;">Expired ({{ iss.days_used }}d used)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 12px;">
+                    <button type="button" class="btn-action-icon" title="Edit Issue Record" onclick="openEditIssueModal('{{ iss.id }}', '{{ iss.employee.name|escapejs }}', '{{ iss.item.name|escapejs }}', '{{ iss.size_specification|default:''|escapejs }}', '{{ iss.issue_date|date:'Y-m-d' }}', '{{ iss.warranty_expiry_date|date:'Y-m-d' }}', '{{ iss.status }}', '{{ iss.remarks|default:''|escapejs }}')">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button type="button" class="btn-action-icon btn-action-delete" title="Delete Issue Record" onclick="confirmDeleteIssue('{{ iss.id }}', '{{ iss.employee.name|escapejs }}', '{{ iss.item.name|escapejs }}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">
+                👷 No equipment issuance records found.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 3: SMART RETURN & REPLACEMENT DESK                              -->
+    <!-- =================================================================== -->
+    <div id="tabContent-replacementDesk" class="safety-tab-content" style="display: {% if active_tab == 'replacementDesk' %}block{% else %}none{% endif %};">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; margin: 0 auto;">
+            
+            <!-- Left Card: Input & Selection -->
+            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 18px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
+                <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 18px;">
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                        <span>🔄</span> Equipment Return / Replacement Desk
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.84rem; color: #64748b;">
+                        Select an employee to view their active equipment and automatically enforce warranty policies.
+                    </p>
+                </div>
+
+                <form id="replacementForm" onsubmit="submitReplacement(event)">
+                    <!-- Step 1: Select Worker -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.8rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 6px;">
+                            1. Select Employee / Worker *
+                        </label>
+                        <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <div style="position: relative;">
+                                <input type="text" id="deskWorkerSearchFilter" placeholder="🔍 Type worker name or badge ID to search..." oninput="onDeskWorkerSearch(this.value)" onfocus="onDeskWorkerSearch(this.value)" autocomplete="off" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+                                <div id="deskWorkerDropdownList" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); z-index: 1050; margin-top: 4px;"></div>
+                            </div>
+                            <select id="deskDeptFilter" onchange="onDeskDeptFilterChange()" class="form-control" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem; font-weight: 600;">
+                                <option value="ALL">All Departments</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept }}">{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="position: relative;">
+                            <select id="desk_worker_select" class="form-control" onchange="onDeskWorkerSelectChange(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700;">
+                                <option value="">-- Choose Employee --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Choose Currently Issued Item -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.8rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 6px;">
+                            2. Equipment Being Replaced / Returned (Active Issued Items) *
+                        </label>
+                        <select id="desk_item_select" class="form-control" onchange="onDeskItemChange()" required style="display: none;">
+                            <option value="">-- First Select Worker Above --</option>
+                        </select>
+                        <div id="desk_active_items_container">
+                            <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; color: #64748b; font-size: 0.85rem;">
+                                👈 Select a worker above to inspect all equipment previously issued to them.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Replacement Reason -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.8rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 6px;">
+                            3. Reason for Replacement *
+                        </label>
+                        <select id="desk_reason_select" class="form-control" onchange="evaluateWarrantyDecision()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700;">
+                            <option value="WORN_OUT_NORMAL">Normal Wear &amp; Tear (Warranty Expired)</option>
+                            <option value="DAMAGED_PREMATURE" selected>Premature Damage / Torn Before Expiry</option>
+                            <option value="LOST_BY_WORKER">Lost / Misplaced by Worker</option>
+                            <option value="SIZE_EXCHANGE">Size Exchange (Good / Unused Condition)</option>
+                            <option value="OTHER">Other Reason</option>
+                        </select>
+                    </div>
+
+                    <!-- Step 4: Old Condition Remarks -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.8rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 6px;">
+                            4. Condition of Old Item Returned
+                        </label>
+                        <input type="text" id="desk_old_condition" class="form-control" placeholder="e.g. Sole detached, strap broken, lost" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    </div>
+
+                    <!-- Step 5: Issue Fresh Replacement Option -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; color: #0f172a;">
+                            <input type="checkbox" id="desk_issue_new" checked style="accent-color: #2563eb; width: 18px; height: 18px;">
+                            Immediately Issue Fresh New Equipment from Store
+                        </label>
+                        <div id="desk_new_size_wrap" style="margin-top: 10px;">
+                            <input type="text" id="desk_new_size" class="form-control" placeholder="Replacement Size / Specification (e.g. Size 9, XL)" style="width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                        </div>
+                    </div>
+
+                    <!-- Action Submit -->
+                    <button type="submit" id="btnSubmitDeskReplacement" class="btn btn-primary" style="width: 100%; font-weight: 800; padding: 12px; font-size: 1rem; border-radius: 10px;">
+                        🔄 Process Replacement &amp; Log Record
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Card: Live Warranty & Fine Policy Decision Card -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div id="deskPolicyCard" style="background: #ffffff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.03); flex: 1;">
+                    <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-shield-alt" style="color: #f59e0b;"></i> Live Warranty Policy Evaluation
+                        </h4>
+                    </div>
+
+                    <div id="deskEmptyPrompt" style="text-align: center; padding: 40px 10px; color: #94a3b8;">
+                        <i class="fas fa-user-check" style="font-size: 2.5rem; margin-bottom: 12px; color: #cbd5e1;"></i>
+                        <p style="font-size: 0.9rem; font-weight: 600; margin: 0;">Select a worker on the left to review their equipment warranty status.</p>
+                    </div>
+
+                    <div id="deskEvaluationDetails" style="display: none;">
+                        <div style="background: #f8fafc; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #e2e8f0; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">Equipment:</span>
+                                <b id="deskEvalItemName" style="color: #0f172a;">-</b>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">Issue Date:</span>
+                                <b id="deskEvalIssueDate">-</b>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">Warranty Expiry:</span>
+                                <b id="deskEvalExpiryDate">-</b>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">Usage Period:</span>
+                                <b id="deskEvalDaysUsed">-</b>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">Warranty Status:</span>
+                                <span id="deskEvalWarrantyBadge" class="badge-status badge-active">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Prorated Fine Breakdown Box -->
+                        <div id="deskProratedFormulaBox" style="background: #fefce8; border: 1.5px solid #fde047; border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+                            <div style="font-size: 0.78rem; font-weight: 800; color: #854d0e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-calculator"></i> Prorated Fine Calculation (Company Policy)
+                            </div>
+                            <div style="font-size: 0.85rem; color: #713f12; line-height: 1.5;">
+                                <div>Full PPE Cost: <b>Nu. <span id="deskFormulaFullCost">0.00</span></b> &bull; Total Life: <b><span id="deskFormulaTotalLife">0</span> Months</b></div>
+                                <div>Completed: <b><span id="deskFormulaUsedMonths">0</span> Months</b> &bull; Remaining: <b><span id="deskFormulaRemainingMonths">0</span> Months</b></div>
+                                <div style="margin-top: 6px; padding: 6px 10px; background: #ffffff; border-radius: 6px; border: 1px dashed #eab308; font-family: monospace; font-size: 0.86rem; font-weight: 700; color: #a16207;">
+                                    Formula: (<span id="deskFormulaCostSpan">Cost</span> &divide; <span id="deskFormulaLifeSpan">Life</span>) &times; <span id="deskFormulaRemSpan">Rem</span> = <span id="deskFormulaMathText">Nu. 0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Policy Decision Alert Box -->
+                        <div id="deskPolicyAlert" style="border-radius: 14px; padding: 16px; margin-bottom: 16px; border: 1.5px solid transparent;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div id="deskAlertIcon" style="font-size: 1.5rem; line-height: 1;">💡</div>
+                                <div>
+                                    <h5 id="deskAlertTitle" style="margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 800;">Policy Ruling</h5>
+                                    <p id="deskAlertMsg" style="margin: 0; font-size: 0.84rem; line-height: 1.4;"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fine Enforcement Settings -->
+                        <div id="deskFineConfigBox" style="background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 14px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <label style="font-size: 0.85rem; font-weight: 800; color: #9a3412;">Chargeable Fine Amount (Nu.):</label>
+                                <input type="number" id="deskFineOverride" step="0.01" style="width: 110px; padding: 6px 10px; border-radius: 6px; border: 1.5px solid #fdba74; font-weight: 800; font-size: 0.95rem; text-align: right;">
+                            </div>
+                            <div style="font-size: 0.78rem; color: #7c2d12; margin-bottom: 10px;">
+                                Standard Prorated Rate: Nu. <span id="deskStandardFineSpan">0.00</span>. Will be logged into payroll deduction approval queue.
+                            </div>
+                            <!-- Waive fine option removed -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 4: FINE & DEDUCTION REGISTER                                    -->
+    <!-- =================================================================== -->
+    <div id="tabContent-fines" class="safety-tab-content" style="display: {% if active_tab == 'fines' %}block{% else %}none{% endif %};">
+        <div class="filter-action-bar">
+            <div class="search-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="finesSearch" placeholder="Search fines by worker name, ID, or item..." onkeyup="filterFinesTable()">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="fineDeptFilter" onchange="filterFinesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}">{{ dept }}</option>
+                    {% endfor %}
+                </select>
+                <select id="fineReasonFilter" onchange="filterFinesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL">All Reasons</option>
+                    <option value="DAMAGED_PREMATURE">Premature Damage</option>
+                    <option value="LOST_BY_WORKER">Lost by Worker</option>
+                    <option value="WORN_OUT_NORMAL">Normal Wear &amp; Tear</option>
+                    <option value="SIZE_EXCHANGE">Size Exchange</option>
+                    <option value="OTHER">Other</option>
+                </select>
+                <select id="fineStatusFilter" onchange="filterFinesTable()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 0.85rem;">
+                    <option value="ALL" selected>All Fine Statuses</option>
+                    <option value="PENDING_APPROVAL">⏳ Pending Manager Approval</option>
+                    <option value="APPROVED_SALARY_DEDUCTION">Approved for Salary Deduction</option>
+                    <option value="PAID_CASH">Paid in Cash</option>
+                    <option value="WAIVED">Waived / Excused</option>
+                    <option value="NO_FINE">No Fine (Normal)</option>
+                </select>
+                <div style="display: flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #64748b;">From:</span>
+                    <input type="date" id="fineDateFrom" onchange="filterFinesTable()" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 600; color: #0f172a;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #64748b;">To:</span>
+                    <input type="date" id="fineDateTo" onchange="filterFinesTable()" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 600; color: #0f172a;">
+                </div>
+                <button type="button" class="btn-reset-filters" onclick="resetFinesFilters()" title="Reset Fines Filters">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+                <button type="button" onclick="openSafetyExportModalWithReport('fines')" class="btn btn-outline" style="border-radius: 8px; font-weight: 700; font-size: 0.85rem;">
+                    <i class="fas fa-file-export" style="color: #10b981;"></i> Export Payroll
+                </button>
+                <div class="view-toggle-group">
+                    <button type="button" class="btn-view-toggle active" id="viewToggle-fines-table" onclick="setTabViewModel('fines', 'table')" title="Table View">
+                        <i class="fas fa-list"></i> Table
+                    </button>
+                    <button type="button" class="btn-view-toggle" id="viewToggle-fines-cards" onclick="setTabViewModel('fines', 'cards')" title="Card View">
+                        <i class="fas fa-th-large"></i> Cards
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Table View -->
+        <div class="safety-table-card" id="finesTableView">
+            <div class="table-responsive">
+                <table class="safety-table" id="finesTable">
+                    <thead>
+                        <tr>
+                            <th>Sl.</th>
+                            <th>Worker Name &amp; ID</th>
+                            <th>Designation / Section</th>
+                            <th>Contractor / Agency</th>
+                            <th>Material Issued</th>
+                            <th>Re-issue Date</th>
+                            <th>Lifeline &amp; Usage</th>
+                            <th>Unit Cost</th>
+                            <th>Deduction Amount</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fine in fines %}
+                        <tr class="fine-row" data-status="{{ fine.fine_status }}" data-dept="{{ fine.employee.department|default:'' }}" data-reason="{{ fine.reason|default:'' }}" data-date="{{ fine.replacement_date|date:'Y-m-d' }}">
+                            <td style="text-align: center; font-weight: 700; color: #64748b;">{{ forloop.counter }}</td>
+                            <td>
+                                <b>{{ fine.employee.name }}</b>
+                                <div style="font-size: 0.75rem; color: #2563eb; font-family: monospace;">ID: {{ fine.employee.emp_id }}</div>
+                            </td>
+                            <td>
+                                <b>{{ fine.employee.designation|default:fine.employee.department }}</b>
+                                <div style="font-size: 0.72rem; color: #64748b;">{{ fine.employee.department }}</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.78rem; font-weight: 700; color: #334155; background: #f1f5f9; padding: 3px 8px; border-radius: 6px; display: inline-block;">
+                                    {{ fine.employee.contractor_agency|default:fine.employee.department }}
+                                </span>
+                            </td>
+                            <td>
+                                <b>{{ fine.item.name }}</b>
+                                <div style="font-size: 0.72rem; color: #64748b;">Code: {{ fine.item.item_code }}</div>
+                            </td>
+                            <td>{{ fine.replacement_date|date:"d M Y" }}</td>
+                            <td>
+                                <b>{{ fine.item.warranty_months|default:6 }}m Lifeline</b>
+                                <div style="font-size: 0.74rem; color: #64748b;">Used: {{ fine.months_used }}m &bull; Rem: {{ fine.remaining_months }}m</div>
+                            </td>
+                            <td style="font-weight: 600; color: #475569;">
+                                Nu. {{ fine.full_cost|default:fine.item.fine_amount|floatformat:2 }}
+                            </td>
+                            <td>
+                                <b style="font-size: 0.95rem; color: {% if fine.fine_amount > 0 %}#dc2626{% else %}#16a34a{% endif %};">
+                                    Nu. {{ fine.fine_amount|floatformat:2 }}
+                                </b>
+                            </td>
+                            <td>
+                                {% if fine.fine_status == 'APPROVED_SALARY_DEDUCTION' %}
+                                <span class="badge-status" style="background: #f3e8ff; color: #6b21a8; font-weight: 700;">💼 Deduction Approved</span>
+                                {% elif fine.fine_status == 'PAID_CASH' %}
+                                <span class="badge-status badge-active">💵 Paid Cash</span>
+                                {% elif fine.fine_status == 'WAIVED' %}
+                                <span class="badge-status badge-neutral">🤝 Waived</span>
+                                {% elif fine.fine_status == 'NO_FINE' %}
+                                <span class="badge-status badge-active" style="background: #dcfce7; color: #15803d;">✅ No Fine</span>
+                                {% else %}
+                                <span class="badge-status badge-neutral">{{ fine.get_fine_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <button type="button" class="btn-action-icon" title="Update Fine Status / Waive" onclick="openUpdateFineModal('{{ fine.id }}', '{{ fine.employee.name|escapejs }}', '{{ fine.item.name|escapejs }}', '{{ fine.fine_amount }}', '{{ fine.fine_status }}', '{{ fine.waived_reason|default:''|escapejs }}')">
+                                    <i class="fas fa-gavel" style="color: #b45309;"></i>
+                                </button>
+                                <button type="button" class="btn-action-icon btn-action-delete" title="Delete Fine Record" onclick="confirmDeleteFine('{{ fine.id }}', '{{ fine.employee.name|escapejs }}', '{{ fine.item.name|escapejs }}')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" style="text-align: center; padding: 32px; color: #64748b;">
+                                💰 No fine or penalty records logged yet. Use <b>"Smart Return &amp; Replacement Desk"</b> to process worn-out or damaged equipment.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: Card View (Grid) -->
+        <div id="finesCardsView" class="safety-cards-grid" style="display: none;">
+            {% for fine in fines %}
+            <div class="safety-item-card fine-card" data-status="{{ fine.fine_status }}" data-dept="{{ fine.employee.department|default:'' }}" data-reason="{{ fine.reason|default:'' }}" data-date="{{ fine.replacement_date|date:'Y-m-d' }}">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">{{ fine.employee.department|default:"Site Workforce" }}</span>
+                        {% if fine.fine_status == 'PENDING_APPROVAL' %}
+                        <span class="badge-status badge-warning" style="font-size: 0.72rem;">⏳ Pending Approval</span>
+                        {% elif fine.fine_status == 'APPROVED_SALARY_DEDUCTION' %}
+                        <span class="badge-status badge-purple" style="font-size: 0.72rem;">💼 Salary Deduction</span>
+                        {% elif fine.fine_status == 'PAID_CASH' %}
+                        <span class="badge-status badge-active" style="font-size: 0.72rem;">💵 Paid Cash</span>
+                        {% elif fine.fine_status == 'WAIVED' %}
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">🤝 Waived</span>
+                        {% else %}
+                        <span class="badge-status badge-neutral" style="font-size: 0.72rem;">{{ fine.get_fine_status_display }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #fee2e2; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                            💰
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 0.96rem; font-weight: 800; color: #0f172a;">{{ fine.employee.name }}</h4>
+                            <div style="font-family: monospace; font-size: 0.75rem; color: #2563eb; font-weight: 700;">ID: {{ fine.employee.emp_id }}</div>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 10px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.76rem; color: #64748b;">Replaced Equipment:</span>
+                            <b style="font-size: 0.88rem; color: #0f172a;">{{ fine.item.name }}</b>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.76rem; color: #64748b;">Fine Amount:</span>
+                            <b style="font-size: 1.15rem; color: {% if fine.fine_amount > 0 %}#dc2626{% else %}#16a34a{% endif %};">
+                                Nu. {{ fine.fine_amount|floatformat:2 }}
+                            </b>
+                        </div>
+                    </div>
+
+                    <div class="card-meta-row">
+                        <span>Replacement Date:</span>
+                        <b>{{ fine.replacement_date|date:"d M Y" }}</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Reason:</span>
+                        <b>{{ fine.get_reason_display }}</b>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Usage Log:</span>
+                        <span><b>{{ fine.days_used }}d used</b> (Limit: {{ fine.warranty_days }}d)</span>
+                    </div>
+                    <div class="card-meta-row">
+                        <span>Handled By:</span>
+                        <span style="font-size: 0.74rem; color: #475569;">{{ fine.processed_by.get_full_name|default:fine.processed_by.username|default:"Admin" }}</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 12px;">
+                    <button type="button" class="btn-action-icon" title="Update Fine Status / Waive" onclick="openUpdateFineModal('{{ fine.id }}', '{{ fine.employee.name|escapejs }}', '{{ fine.item.name|escapejs }}', '{{ fine.fine_amount }}', '{{ fine.fine_status }}', '{{ fine.waived_reason|default:''|escapejs }}')">
+                        <i class="fas fa-gavel" style="color: #b45309;"></i>
+                    </button>
+                    <button type="button" class="btn-action-icon btn-action-delete" title="Delete Fine Record" onclick="confirmDeleteFine('{{ fine.id }}', '{{ fine.employee.name|escapejs }}', '{{ fine.item.name|escapejs }}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">
+                💰 No fine records found.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODALS & POPUPS                                                         -->
+<!-- ======================================================================= -->
+
+<!-- MODAL: EXCEL UPLOAD & SYNC -->
+<div id="modalExcelUpload" class="safety-modal-backdrop" style="display:none; z-index:9999;">
+    <div class="safety-modal" style="max-width:500px;">
+        <div class="modal-head">
+            <h3><span>📤</span> Upload & Sync Excel</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalExcelUpload')">&times;</button>
+        </div>
+        <div style="padding:20px;">
+            <p style="margin-bottom:12px; color:#475569; font-size:0.88rem;">
+                Upload <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">safety_office_data.xlsx</code> (same format) to auto-sync:
+            </p>
+            <ul style="margin:0 0 16px 16px; color:#475569; font-size:0.85rem; line-height:1.8;">
+                <li>📦 Store Inventory — from latest monthly stock sheet</li>
+                <li>👷 Employee Issuances — from the Employee sheet</li>
+            </ul>
+            <input type="file" id="excelUploadInput" accept=".xlsx"
+                   style="width:100%; padding:10px; border:2px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:0.85rem; cursor:pointer; margin-bottom:14px;">
+            <div id="excelUploadResult" style="display:none; padding:12px; border-radius:8px; font-size:0.83rem; line-height:1.7; margin-bottom:14px;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeModal('modalExcelUpload')" class="btn btn-outline" style="border-radius:8px; padding:7px 16px; font-weight:600;">Cancel</button>
+                <button type="button" onclick="submitExcelUpload()" class="btn" style="background:#6366f1;color:white;border-radius:8px;padding:7px 18px;font-weight:700;border:none;cursor:pointer;">
+                    <i class="fas fa-sync-alt"></i> Upload & Sync
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 1: ADD SAFETY STORE ITEM -->
+<div id="modalAddStoreItem" class="safety-modal-backdrop">
+    <div class="safety-modal">
+        <div class="modal-head">
+            <h3><span>🦺</span> Add Equipment to Safety Store</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalAddStoreItem')">&times;</button>
+        </div>
+        <form onsubmit="submitCreateStoreItem(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Equipment Name</label>
+                    <input type="text" id="ai_name" placeholder="e.g. Safety Helmet (White)" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Item Code / SKU</label>
+                    <input type="text" id="ai_code" placeholder="e.g. SAF-HLM-001" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; text-transform: uppercase;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Category</label>
+                    <select id="ai_cat" class="form-control" onchange="toggleCustomCatInput('ai_cat', 'ai_custom_cat_wrap')" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                        <option value="__NEW__" style="color: #2563eb; font-weight: 800;">➕ + Add New Custom Category...</option>
+                    </select>
+                    <div id="ai_custom_cat_wrap" style="display: none; margin-top: 6px;">
+                        <input type="text" id="ai_custom_cat" placeholder="Type new category name..." class="form-control" style="width: 100%; padding: 7px; border-radius: 6px; border: 1.5px solid #3b82f6; font-size: 0.85rem;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Unit of Measure</label>
+                    <input type="text" id="ai_unit" value="Pairs" placeholder="Pairs, Pcs, Sets" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Brand / Specifications / Standards</label>
+                <input type="text" id="ai_spec" placeholder="e.g. Karam / ISI Certified Steel Toe, Sizes 7-10" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Initial Stock</label>
+                    <input type="number" id="ai_stock" value="50" min="0" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Warranty (Months)</label>
+                    <input type="number" id="ai_warranty" value="6" min="0" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #dc2626;">Full Price / Penalty (Nu.)</label>
+                    <input type="number" id="ai_fine" value="350.00" min="0" step="0.01" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #fca5a5; font-weight: 800;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Low Stock Alert Threshold</label>
+                <input type="number" id="ai_min" value="10" min="0" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalAddStoreItem')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 800; padding: 8px 20px;">Save Equipment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: EDIT SAFETY STORE ITEM -->
+<div id="modalEditStoreItem" class="safety-modal-backdrop">
+    <div class="safety-modal">
+        <div class="modal-head">
+            <h3><span>✏️</span> Edit Store Equipment</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalEditStoreItem')">&times;</button>
+        </div>
+        <form onsubmit="submitEditStoreItem(event)">
+            <input type="hidden" id="ei_id">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Equipment Name *</label>
+                    <input type="text" id="ei_name" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Item Code / SKU *</label>
+                    <input type="text" id="ei_code" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; text-transform: uppercase;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Category *</label>
+                    <select id="ei_cat" class="form-control" onchange="toggleCustomCatInput('ei_cat', 'ei_custom_cat_wrap')" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                        <option value="__NEW__" style="color: #2563eb; font-weight: 800;">➕ + Add New Custom Category...</option>
+                    </select>
+                    <div id="ei_custom_cat_wrap" style="display: none; margin-top: 6px;">
+                        <input type="text" id="ei_custom_cat" placeholder="Type new category name..." class="form-control" style="width: 100%; padding: 7px; border-radius: 6px; border: 1.5px solid #3b82f6; font-size: 0.85rem;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Unit of Measure *</label>
+                    <input type="text" id="ei_unit" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Brand / Specifications</label>
+                <input type="text" id="ei_spec" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Available Stock</label>
+                    <input type="number" id="ei_avail" min="0" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Warranty (Months) *</label>
+                    <input type="number" id="ei_warranty" min="1" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #dc2626;">Full Price / Penalty (Nu.) *</label>
+                    <input type="number" id="ei_fine" min="0" step="0.01" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #fca5a5; font-weight: 800;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Low Stock Alert Threshold</label>
+                <input type="number" id="ei_min" min="0" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalEditStoreItem')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 800; padding: 8px 20px;">Update Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: RESTOCK STORE ITEM -->
+<div id="modalRestockItem" class="safety-modal-backdrop">
+    <div class="safety-modal" style="max-width: 420px;">
+        <div class="modal-head">
+            <h3><span>📦</span> Restock Store Equipment</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalRestockItem')">&times;</button>
+        </div>
+        <form onsubmit="submitRestockItem(event)">
+            <input type="hidden" id="ri_id">
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.8rem; color: #64748b; font-weight: 700;">Equipment:</label>
+                <div id="ri_name" style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">-</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                    Current In-Stock: <b id="ri_cur_stock">0</b> <span id="ri_unit">Units</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #166534;">Quantity to Add (+) *</label>
+                <input type="number" id="ri_qty" min="1" value="25" required class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #86efac; font-size: 1.1rem; font-weight: 800;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalRestockItem')">Cancel</button>
+                <button type="submit" class="btn" style="background: #10b981; color: white; font-weight: 800; padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;">
+                    Add to Stock
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 4: ISSUE EQUIPMENT TO WORKER -->
+<div id="modalIssueEquipment" class="safety-modal-backdrop">
+    <div class="safety-modal">
+        <div class="modal-head">
+            <h3><span>👷</span> Issue Safety Equipment</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalIssueEquipment')">&times;</button>
+        </div>
+        <form onsubmit="submitIssueEquipment(event)">
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Select Employee / Worker *</label>
+                <!-- Searchable Dropdown with Suggestion List -->
+                <div style="position: relative; margin-bottom: 6px;">
+                    <input type="text" id="issueEmpSearchFilter" placeholder="🔍 Search employee by name, badge ID or department..." oninput="onIssueEmpSearch(this.value)" onfocus="onIssueEmpSearch(this.value)" autocomplete="off" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                    <div id="issueEmpDropdownList" class="custom-search-dropdown" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 3px); max-height: 220px; overflow-y: auto; background: #ffffff; border: 1.5px solid #3b82f6; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1050;"></div>
+                </div>
+                <!-- Native Dropdown Select -->
+                <select id="issue_emp" class="form-control" required onchange="onIssueEmpSelectChange(this)" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                    <option value="">-- Choose Employee --</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Select Equipment from Store *</label>
+                <!-- Searchable Dropdown with Suggestion List -->
+                <div style="position: relative; margin-bottom: 6px;">
+                    <input type="text" id="issueItemSearchFilter" placeholder="🔍 Search equipment by name, code or category..." oninput="onIssueItemSearch(this.value)" onfocus="onIssueItemSearch(this.value)" autocomplete="off" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                    <div id="issueItemDropdownList" class="custom-search-dropdown" style="display: none; position: absolute; left: 0; right: 0; top: calc(100% + 3px); max-height: 220px; overflow-y: auto; background: #ffffff; border: 1.5px solid #f59e0b; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1050;"></div>
+                </div>
+                <!-- Native Dropdown Select -->
+                <select id="issue_item" class="form-control" required onchange="onIssueItemSelectChange(this)" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                    <option value="">-- Choose Equipment --</option>
+                    {% for item in store_items %}
+                    <option value="{{ item.id }}" data-name="{{ item.name|escapejs }}" data-code="{{ item.item_code|escapejs }}" data-cat="{{ item.category|escapejs }}" data-stock="{{ item.available_stock }}" data-unit="{{ item.unit|escapejs }}" data-warranty="{{ item.warranty_months }}" {% if item.available_stock == 0 %}disabled{% endif %}>
+                        {{ item.name }} ({{ item.item_code }}) &bull; Stock: {{ item.available_stock }} {{ item.unit }} &bull; {{ item.warranty_months }}mo Warranty
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Size / Specifications</label>
+                    <input type="text" id="issue_size" placeholder="e.g. Size 8, Size 9, XL" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Issue Date *</label>
+                    <input type="date" id="issue_date" value="{{ today|date:'Y-m-d' }}" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Remarks / Job Location</label>
+                <input type="text" id="issue_remarks" placeholder="Optional notes e.g. Site Tunnel section" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalIssueEquipment')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 800; padding: 8px 20px;">Confirm &amp; Issue Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 5: EDIT ISSUE RECORD -->
+<div id="modalEditIssue" class="safety-modal-backdrop">
+    <div class="safety-modal">
+        <div class="modal-head">
+            <h3><span>✏️</span> Edit Issue Record</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalEditIssue')">&times;</button>
+        </div>
+        <form onsubmit="submitEditIssue(event)">
+            <input type="hidden" id="edit_issue_id">
+            <div style="margin-bottom: 12px;">
+                <div style="font-size: 0.82rem; color: #64748b;">Worker: <b id="ei_worker_name" style="color: #0f172a;">-</b></div>
+                <div style="font-size: 0.82rem; color: #64748b;">Equipment: <b id="ei_item_name" style="color: #0f172a;">-</b></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Size / Specification</label>
+                    <input type="text" id="edit_issue_size" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Issue Status *</label>
+                    <select id="edit_issue_status" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                        {% for st_val, st_label in issue_statuses %}
+                        <option value="{{ st_val }}">{{ st_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Issue Date *</label>
+                    <input type="date" id="edit_issue_date" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Warranty Expiry Date</label>
+                    <input type="date" id="edit_issue_expiry" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Remarks</label>
+                <input type="text" id="edit_issue_remarks" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalEditIssue')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 800; padding: 8px 20px;">Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 6: UPDATE FINE STATUS / WAIVER -->
+
+<!-- =================================================================== -->
+<!-- MODAL: DEDICATED SAFETY REPORTS EXPORT (EXCEL & PDF)                 -->
+<!-- =================================================================== -->
+<div id="modalSafetyExport" class="safety-modal-backdrop">
+    <div class="safety-modal" style="max-width: 520px; border-radius: 18px; overflow: hidden; padding: 0;">
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="color: white; margin: 0; font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <span>📥</span> Export Safety Reports
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalSafetyExport')" style="color: #94a3b8; font-size: 1.4rem;">&times;</button>
+        </div>
+
+        <div style="padding: 22px 24px;">
+            <!-- Step 1: Report Type -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 0.82rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 8px;">
+                    1. Select Report to Export *
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div id="cardReportInv" onclick="selectExportReport('inventory')" style="border: 2px solid #2563eb; background: #eff6ff; border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s;">
+                        <span style="font-size: 1.4rem; display: block; margin-bottom: 4px;">📦</span>
+                        <b style="font-size: 0.8rem; color: #1e293b;">Store Catalog</b>
+                    </div>
+                    <div id="cardReportIss" onclick="selectExportReport('issues')" style="border: 2px solid #cbd5e1; background: #ffffff; border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s;">
+                        <span style="font-size: 1.4rem; display: block; margin-bottom: 4px;">👷</span>
+                        <b style="font-size: 0.8rem; color: #1e293b;">Issuances</b>
+                    </div>
+                    <div id="cardReportFine" onclick="selectExportReport('fines')" style="border: 2px solid #cbd5e1; background: #ffffff; border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s;">
+                        <span style="font-size: 1.4rem; display: block; margin-bottom: 4px;">💰</span>
+                        <b style="font-size: 0.8rem; color: #1e293b;">Fine Deductions</b>
+                    </div>
+                </div>
+                <input type="hidden" id="currentExportReportType" value="inventory">
+            </div>
+
+            <!-- Step 2: Date Range -->
+            <div id="exportDateRangeSection" style="margin-bottom: 14px;">
+                <label style="font-size: 0.82rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 6px;">
+                    2. Date Filter (Optional)
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #64748b;">From Date:</span>
+                        <input type="date" id="expFromDate" class="form-control" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600; font-size: 0.84rem;">
+                    </div>
+                    <div>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #64748b;">To Date:</span>
+                        <input type="date" id="expToDate" class="form-control" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600; font-size: 0.84rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Scope Options -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;">
+                <div id="expDeptWrap">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 4px;">Department</label>
+                    <select id="expDept" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600; font-size: 0.82rem;">
+                        <option value="ALL">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}">{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="expCatWrap">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 4px;">Category</label>
+                    <select id="expCat" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600; font-size: 0.82rem;">
+                        <option value="ALL">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 4: Export Format Buttons -->
+            <div style="border-top: 1.5px solid #e2e8f0; padding-top: 16px;">
+                <label style="font-size: 0.82rem; font-weight: 800; color: #1e293b; display: block; margin-bottom: 10px;">
+                    3. Choose Download Format
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button type="button" onclick="triggerSafetyExport('excel')" class="btn" style="background: #10b981; color: white; font-weight: 800; padding: 12px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.92rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                        <i class="fas fa-file-excel" style="font-size: 1.1rem;"></i>
+                        <span>Download Excel (.xlsx)</span>
+                    </button>
+                    <button type="button" onclick="triggerSafetyExport('pdf')" class="btn" style="background: #ef4444; color: white; font-weight: 800; padding: 12px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.92rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);">
+                        <i class="fas fa-file-pdf" style="font-size: 1.1rem;"></i>
+                        <span>Download / Print PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalUpdateFine" class="safety-modal-backdrop">
+    <div class="safety-modal" style="max-width: 460px;">
+        <div class="modal-head">
+            <h3><span>⚖️</span> Manage Fine &amp; Penalty</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modalUpdateFine')">&times;</button>
+        </div>
+        <form onsubmit="submitUpdateFine(event)">
+            <input type="hidden" id="uf_fine_id">
+            <div style="margin-bottom: 14px; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 0.82rem; color: #64748b;">Worker: <b id="uf_worker_name" style="color: #0f172a;">-</b></div>
+                <div style="font-size: 0.82rem; color: #64748b;">Item: <b id="uf_item_name" style="color: #0f172a;">-</b></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Fine Amount (Nu.) *</label>
+                <input type="number" id="uf_amount" step="0.01" min="0" required class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 800; font-size: 1rem;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Fine Status *</label>
+                <select id="uf_status" class="form-control" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                    {% for st_val, st_label in fine_statuses %}
+                    <option value="{{ st_val }}">{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Waiver Reason / Notes (If Waived or Excused)</label>
+                <input type="text" id="uf_waive_reason" placeholder="e.g. Accidental damage approved by PM" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalUpdateFine')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 800; padding: 8px 20px;">Update Fine</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+// Tab Switcher
+function switchSafetyTab(tabName) {
+    document.querySelectorAll('.safety-tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.safety-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    const activeContent = document.getElementById('tabContent-' + tabName);
+    const activeBtn = document.getElementById('tabBtn-' + tabName);
+
+    if (activeContent) activeContent.style.display = 'block';
+    if (activeBtn) activeBtn.classList.add('active');
+
+    try {
+        history.replaceState(null, '', '?tab=' + tabName);
+    } catch(e) {}
+
+    // Trigger filters so data is visible on first visit
+    if (tabName === 'fines') {
+        setTimeout(function() { if (typeof filterFinesTable === 'function') filterFinesTable(); }, 60);
+    }
+    if (tabName === 'issuances') {
+        setTimeout(function() { if (typeof filterIssuesTable === 'function') filterIssuesTable(); }, 60);
+    }
+    if (tabName === 'inventory') {
+        setTimeout(function() { if (typeof filterInventoryTable === 'function') filterInventoryTable(); }, 60);
+    }
+}
+
+// Modal Helpers
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+}
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+
+function openAddStoreItemModal() { openModal('modalAddStoreItem'); }
+function openIssueModal(preselectedEmpId, preselectedItemId) {
+    const empInput = document.getElementById('issueEmpSearchFilter');
+    if (empInput) empInput.value = '';
+    const itemInput = document.getElementById('issueItemSearchFilter');
+    if (itemInput) itemInput.value = '';
+    const empList = document.getElementById('issueEmpDropdownList');
+    if (empList) empList.style.display = 'none';
+    const itemList = document.getElementById('issueItemDropdownList');
+    if (itemList) itemList.style.display = 'none';
+
+    const empSelect = document.getElementById('issue_emp');
+    if (empSelect) {
+        empSelect.value = preselectedEmpId || '';
+        if (preselectedEmpId && empInput) {
+            const opt = empSelect.options[empSelect.selectedIndex];
+            if (opt) empInput.value = opt.dataset.name || opt.text;
+        }
+    }
+
+    const itemSelect = document.getElementById('issue_item');
+    if (itemSelect) {
+        itemSelect.value = preselectedItemId || '';
+        if (preselectedItemId && itemInput) {
+            const opt = itemSelect.options[itemSelect.selectedIndex];
+            if (opt) itemInput.value = opt.dataset.name || opt.text;
+        }
+    }
+
+    openModal('modalIssueEquipment');
+}
+
+// -----------------------------------------------------------------------------
+// INTERACTIVE KPI CARD DRILL-DOWN & HUB FILTER FUNCTIONS
+// -----------------------------------------------------------------------------
+function clickKpiCard(type) {
+    document.querySelectorAll('.safety-kpi-card').forEach(c => c.classList.remove('kpi-selected'));
+    const card = document.getElementById('kpiCard-' + type);
+    if (card) card.classList.add('kpi-selected');
+
+    if (type === 'inventory') {
+        switchSafetyTab('inventory');
+        resetInventoryFilters();
+        scrollToSection('tabContent-inventory');
+    } else if (type === 'active_issued') {
+        switchSafetyTab('issuances');
+        resetIssuesFilters();
+        const statusSelect = document.getElementById('issueStatusFilter');
+        if (statusSelect) statusSelect.value = 'ACTIVE';
+        filterIssuesTable();
+        scrollToSection('tabContent-issuances');
+    } else if (type === 'low_stock') {
+        switchSafetyTab('inventory');
+        resetInventoryFilters();
+        const stockSelect = document.getElementById('inventoryStockFilter');
+        if (stockSelect) stockSelect.value = 'LOW';
+        filterInventoryTable();
+        scrollToSection('tabContent-inventory');
+    } else if (type === 'warranty_expiries') {
+        switchSafetyTab('issuances');
+        resetIssuesFilters();
+        const statusSelect = document.getElementById('issueStatusFilter');
+        if (statusSelect) statusSelect.value = 'ALL';
+        const warrantySelect = document.getElementById('issueWarrantyFilter');
+        if (warrantySelect) warrantySelect.value = 'EXPIRING_OR_EXPIRED';
+        filterIssuesTable();
+        scrollToSection('tabContent-issuances');
+    } else if (type === 'pending_fines') {
+        switchSafetyTab('fines');
+        resetFinesFilters();
+        const statusSelect = document.getElementById('fineStatusFilter');
+        if (statusSelect) statusSelect.value = 'PENDING_APPROVAL';
+        filterFinesTable();
+        scrollToSection('tabContent-fines');
+    }
+}
+
+function scrollToSection(id) {
+    setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 80);
+}
+
+function applyHubGlobalDepartment(dept) {
+    const issueDept = document.getElementById('issueDeptFilter');
+    if (issueDept) {
+        issueDept.value = dept;
+        filterIssuesTable();
+    }
+    const fineDept = document.getElementById('fineDeptFilter');
+    if (fineDept) {
+        fineDept.value = dept;
+        filterFinesTable();
+    }
+    const deskDept = document.getElementById('deskDeptFilter');
+    if (deskDept) {
+        deskDept.value = dept;
+        filterDeskWorkers();
+    }
+}
+
+
+// -----------------------------------------------------------------------------
+// EXPORT POPUP MODAL HANDLERS (EXCEL & PDF)
+// -----------------------------------------------------------------------------
+function openSafetyExportModal() {
+    openModal('modalSafetyExport');
+}
+
+function openSafetyExportModalWithReport(reportType) {
+    selectExportReport(reportType);
+    openModal('modalSafetyExport');
+}
+
+function selectExportReport(reportType) {
+    document.getElementById('currentExportReportType').value = reportType;
+    ['Inv', 'Iss', 'Fine'].forEach(k => {
+        const el = document.getElementById('cardReport' + k);
+        if (el) {
+            el.style.border = '2px solid #cbd5e1';
+            el.style.background = '#ffffff';
+        }
+    });
+
+    if (reportType === 'inventory') {
+        const el = document.getElementById('cardReportInv');
+        if (el) { el.style.border = '2px solid #2563eb'; el.style.background = '#eff6ff'; }
+    } else if (reportType === 'issues') {
+        const el = document.getElementById('cardReportIss');
+        if (el) { el.style.border = '2px solid #2563eb'; el.style.background = '#eff6ff'; }
+    } else if (reportType === 'fines') {
+        const el = document.getElementById('cardReportFine');
+        if (el) { el.style.border = '2px solid #2563eb'; el.style.background = '#eff6ff'; }
+    }
+}
+
+function triggerSafetyExport(format) {
+    const reportType = document.getElementById('currentExportReportType').value || 'inventory';
+    const fromDate = document.getElementById('expFromDate') ? document.getElementById('expFromDate').value : '';
+    const toDate = document.getElementById('expToDate') ? document.getElementById('expToDate').value : '';
+    const dept = document.getElementById('expDept') ? document.getElementById('expDept').value : 'ALL';
+    const cat = document.getElementById('expCat') ? document.getElementById('expCat').value : 'ALL';
+
+    const params = new URLSearchParams();
+    if (fromDate) params.append('from_date', fromDate);
+    if (toDate) params.append('to_date', toDate);
+    if (dept && dept !== 'ALL') params.append('department', dept);
+    if (cat && cat !== 'ALL') params.append('category', cat);
+
+    if (format === 'excel') {
+        if (reportType === 'inventory') {
+            window.location.href = '/safety/export/inventory-excel/?' + params.toString();
+        } else if (reportType === 'issues') {
+            window.location.href = '/safety/export/issues-excel/?' + params.toString();
+        } else if (reportType === 'fines') {
+            window.location.href = '/safety/export/fines-excel/?' + params.toString();
+        }
+    } else if (format === 'pdf') {
+        params.append('report_type', reportType);
+        params.append('format', 'print'); // opens print preview with PDF download/print options
+        window.open('/safety/export/report-pdf/?' + params.toString(), '_blank');
+    }
+}
+
+function resetAllSafetyFilters() {
+    document.querySelectorAll('.safety-kpi-card').forEach(c => c.classList.remove('kpi-selected'));
+    const hubDept = document.getElementById('hubGlobalDeptFilter');
+    if (hubDept) hubDept.value = 'ALL';
+    resetInventoryFilters();
+    resetIssuesFilters();
+    resetFinesFilters();
+    if (document.getElementById('deskWorkerSearchFilter')) document.getElementById('deskWorkerSearchFilter').value = '';
+    if (document.getElementById('deskDeptFilter')) document.getElementById('deskDeptFilter').value = 'ALL';
+    filterDeskWorkers();
+}
+
+
+// -----------------------------------------------------------------------------
+// CARD VIEW TOGGLE HANDLERS (TABLE VS CARDS)
+// -----------------------------------------------------------------------------
+function setTabViewModel(tab, mode) {
+    const tableView = document.getElementById(tab + 'TableView');
+    const cardsView = document.getElementById(tab + 'CardsView');
+    const btnTable = document.getElementById('viewToggle-' + tab + '-table');
+    const btnCards = document.getElementById('viewToggle-' + tab + '-cards');
+
+    if (mode === 'cards') {
+        if (tableView) tableView.style.display = 'none';
+        if (cardsView) cardsView.style.display = 'grid';
+        if (btnTable) btnTable.classList.remove('active');
+        if (btnCards) btnCards.classList.add('active');
+    } else {
+        if (tableView) tableView.style.display = '';
+        if (cardsView) cardsView.style.display = 'none';
+        if (btnTable) btnTable.classList.add('active');
+        if (btnCards) btnCards.classList.remove('active');
+    }
+
+    try {
+        localStorage.setItem('safety_view_mode_' + tab, mode);
+    } catch(e) {}
+}
+
+function initViewModes() {
+    ['inventory', 'issuances', 'fines'].forEach(tab => {
+        try {
+            const saved = localStorage.getItem('safety_view_mode_' + tab);
+            if (saved === 'cards') {
+                setTabViewModel(tab, 'cards');
+            }
+        } catch(e) {}
+    });
+}
+document.addEventListener('DOMContentLoaded', initViewModes);
+
+function filterInventoryTable() {
+    const search = (document.getElementById('inventorySearch').value || '').toLowerCase().trim();
+    const cat = document.getElementById('inventoryCategoryFilter').value;
+    const stock = document.getElementById('inventoryStockFilter').value;
+    const creator = document.getElementById('inventoryCreatorFilter') ? document.getElementById('inventoryCreatorFilter').value : 'ALL';
+    const warranty = document.getElementById('inventoryWarrantyFilter') ? document.getElementById('inventoryWarrantyFilter').value : 'ALL';
+
+    document.querySelectorAll('#inventoryTable tbody tr.inv-row').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const rowCat = row.getAttribute('data-cat') || '';
+        const rowLow = row.getAttribute('data-low') || '';
+        const avail = parseInt(row.getAttribute('data-avail') || '0', 10);
+        const rowCreator = row.getAttribute('data-creator') || '';
+        const rowWarranty = row.getAttribute('data-warranty') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesCat = (cat === 'ALL' || rowCat === cat);
+        let matchesStock = true;
+        if (stock === 'LOW') matchesStock = (rowLow === 'LOW');
+        if (stock === 'IN_STOCK') matchesStock = (avail > 0);
+        let matchesCreator = (creator === 'ALL' || rowCreator === creator);
+        let matchesWarranty = (warranty === 'ALL' || rowWarranty === warranty);
+
+        row.style.display = (matchesSearch && matchesCat && matchesStock && matchesCreator && matchesWarranty) ? '' : 'none';
+    });
+
+    document.querySelectorAll('#inventoryCardsView .inv-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const rowCat = card.getAttribute('data-cat') || '';
+        const rowLow = card.getAttribute('data-low') || '';
+        const avail = parseInt(card.getAttribute('data-avail') || '0', 10);
+        const rowCreator = card.getAttribute('data-creator') || '';
+        const rowWarranty = card.getAttribute('data-warranty') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesCat = (cat === 'ALL' || rowCat === cat);
+        let matchesStock = true;
+        if (stock === 'LOW') matchesStock = (rowLow === 'LOW');
+        if (stock === 'IN_STOCK') matchesStock = (avail > 0);
+        let matchesCreator = (creator === 'ALL' || rowCreator === creator);
+        let matchesWarranty = (warranty === 'ALL' || rowWarranty === warranty);
+
+        card.style.display = (matchesSearch && matchesCat && matchesStock && matchesCreator && matchesWarranty) ? '' : 'none';
+    });
+}
+
+function resetInventoryFilters() {
+    if (document.getElementById('inventorySearch')) document.getElementById('inventorySearch').value = '';
+    if (document.getElementById('inventoryCategoryFilter')) document.getElementById('inventoryCategoryFilter').value = 'ALL';
+    if (document.getElementById('inventoryStockFilter')) document.getElementById('inventoryStockFilter').value = 'ALL';
+    if (document.getElementById('inventoryCreatorFilter')) document.getElementById('inventoryCreatorFilter').value = 'ALL';
+    if (document.getElementById('inventoryWarrantyFilter')) document.getElementById('inventoryWarrantyFilter').value = 'ALL';
+    filterInventoryTable();
+}
+
+function filterIssuesTable() {
+    const search = (document.getElementById('issuesSearch').value || '').toLowerCase().trim();
+    const status = document.getElementById('issueStatusFilter').value;
+    const dept = document.getElementById('issueDeptFilter') ? document.getElementById('issueDeptFilter').value : 'ALL';
+    const cat = document.getElementById('issueCategoryFilter') ? document.getElementById('issueCategoryFilter').value : 'ALL';
+    const warranty = document.getElementById('issueWarrantyFilter') ? document.getElementById('issueWarrantyFilter').value : 'ALL';
+    const fromDate = document.getElementById('issueDateFrom') ? document.getElementById('issueDateFrom').value : '';
+    const toDate = document.getElementById('issueDateTo') ? document.getElementById('issueDateTo').value : '';
+
+    document.querySelectorAll('#issuesTable tbody tr.issue-row').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const rowStatus = row.getAttribute('data-status') || '';
+        const rowDept = row.getAttribute('data-dept') || '';
+        const rowCat = row.getAttribute('data-cat') || '';
+        const rowWStatus = row.getAttribute('data-warranty-status') || '';
+        const rowDate = row.getAttribute('data-date') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesStatus = (status === 'ALL' || rowStatus === status);
+        let matchesDept = (dept === 'ALL' || rowDept === dept);
+        let matchesCat = (cat === 'ALL' || rowCat === cat);
+        let matchesWarranty = true;
+        if (warranty === 'ACTIVE') matchesWarranty = (rowWStatus === 'ACTIVE');
+        else if (warranty === 'EXPIRING_SOON') matchesWarranty = (rowWStatus === 'EXPIRING_SOON');
+        else if (warranty === 'EXPIRED') matchesWarranty = (rowWStatus === 'EXPIRED');
+        else if (warranty === 'EXPIRING_OR_EXPIRED') matchesWarranty = (rowWStatus === 'EXPIRING_SOON' || rowWStatus === 'EXPIRED');
+
+        let matchesDate = true;
+        if (fromDate && rowDate && rowDate < fromDate) matchesDate = false;
+        if (toDate && rowDate && rowDate > toDate) matchesDate = false;
+
+        row.style.display = (matchesSearch && matchesStatus && matchesDept && matchesCat && matchesWarranty && matchesDate) ? '' : 'none';
+    });
+
+    document.querySelectorAll('#issuancesCardsView .issue-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const rowStatus = card.getAttribute('data-status') || '';
+        const rowDept = card.getAttribute('data-dept') || '';
+        const rowCat = card.getAttribute('data-cat') || '';
+        const rowWStatus = card.getAttribute('data-warranty-status') || '';
+        const rowDate = card.getAttribute('data-date') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesStatus = (status === 'ALL' || rowStatus === status);
+        let matchesDept = (dept === 'ALL' || rowDept === dept);
+        let matchesCat = (cat === 'ALL' || rowCat === cat);
+        let matchesWarranty = true;
+        if (warranty === 'ACTIVE') matchesWarranty = (rowWStatus === 'ACTIVE');
+        else if (warranty === 'EXPIRING_SOON') matchesWarranty = (rowWStatus === 'EXPIRING_SOON');
+        else if (warranty === 'EXPIRED') matchesWarranty = (rowWStatus === 'EXPIRED');
+        else if (warranty === 'EXPIRING_OR_EXPIRED') matchesWarranty = (rowWStatus === 'EXPIRING_SOON' || rowWStatus === 'EXPIRED');
+
+        let matchesDate = true;
+        if (fromDate && rowDate && rowDate < fromDate) matchesDate = false;
+        if (toDate && rowDate && rowDate > toDate) matchesDate = false;
+
+        card.style.display = (matchesSearch && matchesStatus && matchesDept && matchesCat && matchesWarranty && matchesDate) ? '' : 'none';
+    });
+}
+
+function resetIssuesFilters() {
+    if (document.getElementById('issuesSearch')) document.getElementById('issuesSearch').value = '';
+    if (document.getElementById('issueStatusFilter')) document.getElementById('issueStatusFilter').value = 'ALL';
+    if (document.getElementById('issueDeptFilter')) document.getElementById('issueDeptFilter').value = 'ALL';
+    if (document.getElementById('issueCategoryFilter')) document.getElementById('issueCategoryFilter').value = 'ALL';
+    if (document.getElementById('issueWarrantyFilter')) document.getElementById('issueWarrantyFilter').value = 'ALL';
+    if (document.getElementById('issueDateFrom')) document.getElementById('issueDateFrom').value = '';
+    if (document.getElementById('issueDateTo')) document.getElementById('issueDateTo').value = '';
+    filterIssuesTable();
+}
+
+function filterFinesTable() {
+    const search = (document.getElementById('finesSearch').value || '').toLowerCase().trim();
+    const status = document.getElementById('fineStatusFilter').value;
+    const dept = document.getElementById('fineDeptFilter') ? document.getElementById('fineDeptFilter').value : 'ALL';
+    const reason = document.getElementById('fineReasonFilter') ? document.getElementById('fineReasonFilter').value : 'ALL';
+    const fromDate = document.getElementById('fineDateFrom') ? document.getElementById('fineDateFrom').value : '';
+    const toDate = document.getElementById('fineDateTo') ? document.getElementById('fineDateTo').value : '';
+
+    document.querySelectorAll('#finesTable tbody tr.fine-row').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const rowStatus = row.getAttribute('data-status') || '';
+        const rowDept = row.getAttribute('data-dept') || '';
+        const rowReason = row.getAttribute('data-reason') || '';
+        const rowDate = row.getAttribute('data-date') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesStatus = (status === 'ALL' || rowStatus === status);
+        let matchesDept = (dept === 'ALL' || rowDept === dept);
+        let matchesReason = (reason === 'ALL' || rowReason === reason);
+        let matchesDate = true;
+        if (fromDate && rowDate && rowDate < fromDate) matchesDate = false;
+        if (toDate && rowDate && rowDate > toDate) matchesDate = false;
+
+        row.style.display = (matchesSearch && matchesStatus && matchesDept && matchesReason && matchesDate) ? '' : 'none';
+    });
+
+    document.querySelectorAll('#finesCardsView .fine-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const rowStatus = card.getAttribute('data-status') || '';
+        const rowDept = card.getAttribute('data-dept') || '';
+        const rowReason = card.getAttribute('data-reason') || '';
+        const rowDate = card.getAttribute('data-date') || '';
+
+        let matchesSearch = !search || text.includes(search);
+        let matchesStatus = (status === 'ALL' || rowStatus === status);
+        let matchesDept = (dept === 'ALL' || rowDept === dept);
+        let matchesReason = (reason === 'ALL' || rowReason === reason);
+        let matchesDate = true;
+        if (fromDate && rowDate && rowDate < fromDate) matchesDate = false;
+        if (toDate && rowDate && rowDate > toDate) matchesDate = false;
+
+        card.style.display = (matchesSearch && matchesStatus && matchesDept && matchesReason && matchesDate) ? '' : 'none';
+    });
+}
+
+function resetFinesFilters() {
+    if (document.getElementById('finesSearch')) document.getElementById('finesSearch').value = '';
+    if (document.getElementById('fineStatusFilter')) document.getElementById('fineStatusFilter').value = 'ALL';
+    if (document.getElementById('fineDeptFilter')) document.getElementById('fineDeptFilter').value = 'ALL';
+    if (document.getElementById('fineReasonFilter')) document.getElementById('fineReasonFilter').value = 'ALL';
+    if (document.getElementById('fineDateFrom')) document.getElementById('fineDateFrom').value = '';
+    if (document.getElementById('fineDateTo')) document.getElementById('fineDateTo').value = '';
+    filterFinesTable();
+}
+
+let _deskWorkerSearchTimer = null;
+function onDeskWorkerSearch(query) {
+    const listEl = document.getElementById('deskWorkerDropdownList');
+    if (!listEl) return;
+    clearTimeout(_deskWorkerSearchTimer);
+    const q = (query || '').trim();
+    if (!q) { listEl.style.display = 'none'; return; }
+    const dept = (document.getElementById('deskDeptFilter') || {}).value || 'ALL';
+    listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b;font-size:0.82rem;">🔍 Searching...</div>';
+    listEl.style.display = 'block';
+    _deskWorkerSearchTimer = setTimeout(async () => {
+        try {
+            const url = `/safety/api/employees/search/?q=${encodeURIComponent(q)}&dept=${encodeURIComponent(dept === 'ALL' ? '' : dept)}`;
+            const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const data = await resp.json();
+            const employees = data.employees || [];
+            if (employees.length === 0) {
+                listEl.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:0.85rem;">👷 No matching workers found</div>';
+            } else {
+                const selectEl = document.getElementById('desk_worker_select');
+                const currentVal = selectEl ? selectEl.value : '';
+                let html = '';
+                employees.forEach(emp => {
+                    const isSelected = currentVal === String(emp.id);
+                    html += `<div class="search-drop-item" onclick="selectDeskWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}','${(emp.designation||'').replace(/'/g,"\\'")}','${(emp.contractor_agency||'').replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#f0fdf4':'#ffffff'};transition:background 0.15s ease;">
+                        <div>
+                            <div style="font-weight:800;color:#0f172a;font-size:0.9rem;">${emp.name}</div>
+                            <div style="font-size:0.76rem;color:#2563eb;font-family:monospace;">Badge ID: <b>${emp.emp_id||'N/A'}</b></div>
+                        </div>
+                        <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:3px 8px;border-radius:9999px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${emp.department||'General'}</span>
+                    </div>`;
+                });
+                if (data.employees && data.employees.length >= 35) {
+                    html += '<div style="padding:8px;text-align:center;color:#64748b;font-size:0.78rem;background:#f8fafc;">...type more characters to refine search...</div>';
+                }
+                listEl.innerHTML = html;
+            }
+        } catch(e) {
+            listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#ef4444;font-size:0.82rem;">Error searching. Try again.</div>';
+        }
+        listEl.style.display = 'block';
+    }, 300);
+}
+
+function selectDeskWorker(val, name, empId, dept, designation, agency) {
+    const selectEl = document.getElementById('desk_worker_select');
+    const inputEl = document.getElementById('deskWorkerSearchFilter');
+    const listEl = document.getElementById('deskWorkerDropdownList');
+
+    if (selectEl) {
+        // Remove any previously injected dynamic option
+        const existing = selectEl.querySelector(`option[value="${val}"]`);
+        if (!existing) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.setAttribute('data-name', name || '');
+            opt.setAttribute('data-empid', empId || '');
+            opt.setAttribute('data-dept', dept || '');
+            opt.setAttribute('data-designation', designation || '');
+            opt.setAttribute('data-agency', agency || '');
+            opt.text = `${name} (ID: ${empId||'N/A'}) - ${dept||''}`;
+            selectEl.appendChild(opt);
+        }
+        selectEl.value = val;
+        if (inputEl) inputEl.value = name || '';
+    }
+    if (listEl) listEl.style.display = 'none';
+    onDeskWorkerChange();
+}
+
+function onDeskWorkerSelectChange(sel) {
+    const inputEl = document.getElementById('deskWorkerSearchFilter');
+    const opt = sel.options[sel.selectedIndex];
+    if (inputEl && opt) {
+        inputEl.value = opt.value ? (opt.getAttribute('data-name') || opt.text) : '';
+    }
+    onDeskWorkerChange();
+}
+
+function onDeskDeptFilterChange() {
+    const inputEl = document.getElementById('deskWorkerSearchFilter');
+    onDeskWorkerSearch(inputEl ? inputEl.value : '');
+}
+
+// Close desk dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const listEl = document.getElementById('deskWorkerDropdownList');
+    const inputEl = document.getElementById('deskWorkerSearchFilter');
+    if (listEl && inputEl && !listEl.contains(e.target) && e.target !== inputEl) {
+        listEl.style.display = 'none';
+    }
+});
+
+function filterDeskWorkers() {
+    const inputEl = document.getElementById('deskWorkerSearchFilter');
+    if (inputEl) onDeskWorkerSearch(inputEl.value);
+}
+
+// -----------------------------------------------------------------------------
+// HELPER: CUSTOM CATEGORY TOGGLE & EMPLOYEE SEARCH
+// -----------------------------------------------------------------------------
+function toggleCustomCatInput(selectId, wrapId) {
+    const val = document.getElementById(selectId).value;
+    const wrap = document.getElementById(wrapId);
+    if (wrap) {
+        wrap.style.display = (val === '__NEW__') ? 'block' : 'none';
+        if (val === '__NEW__') {
+            const input = wrap.querySelector('input');
+            if (input) input.focus();
+        }
+    }
+}
+
+function filterEmployeeDropdown(selectId, filterText) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const filter = (filterText || '').toLowerCase().trim();
+    const options = select.options;
+    let firstMatch = null;
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === '') continue;
+        const text = options[i].text.toLowerCase();
+        if (!filter || text.includes(filter)) {
+            options[i].style.display = '';
+            if (!firstMatch) firstMatch = options[i];
+        } else {
+            options[i].style.display = 'none';
+        }
+    }
+    if (filter && firstMatch) {
+        select.value = firstMatch.value;
+        if (selectId === 'desk_worker_select') {
+            onDeskWorkerChange();
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// ISSUE MODAL: DUAL SEARCHABLE DROPDOWNS & SYNCHRONIZED SELECTS
+// -----------------------------------------------------------------------------
+let _issueEmpSearchTimer = null;
+function onIssueEmpSearch(query) {
+    const listEl = document.getElementById('issueEmpDropdownList');
+    if (!listEl) return;
+    clearTimeout(_issueEmpSearchTimer);
+    const q = (query || '').trim();
+    if (!q) { listEl.style.display = 'none'; return; }
+    listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b;font-size:0.82rem;">🔍 Searching...</div>';
+    listEl.style.display = 'block';
+    _issueEmpSearchTimer = setTimeout(async () => {
+        try {
+            const url = `/safety/api/employees/search/?q=${encodeURIComponent(q)}`;
+            const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const data = await resp.json();
+            const employees = data.employees || [];
+            if (employees.length === 0) {
+                listEl.innerHTML = '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:0.85rem;">No matching employees found</div>';
+            } else {
+                const selectEl = document.getElementById('issue_emp');
+                const currentVal = selectEl ? selectEl.value : '';
+                let html = '';
+                employees.forEach(emp => {
+                    const isSelected = currentVal === String(emp.id);
+                    html += `<div class="search-drop-item" onclick="selectIssueWorker('${emp.id}','${(emp.name||'').replace(/'/g,"\\'")}','${emp.emp_id||''}','${(emp.department||'').replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:${isSelected?'#eff6ff':'#ffffff'};">
+                        <div>
+                            <div style="font-weight:700;color:#0f172a;font-size:0.88rem;">${emp.name}</div>
+                            <div style="font-size:0.76rem;color:#64748b;">ID: <b>${emp.emp_id||''}</b></div>
+                        </div>
+                        <span style="font-size:0.72rem;font-weight:700;background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:9999px;">${emp.department||'General'}</span>
+                    </div>`;
+                });
+                listEl.innerHTML = html;
+            }
+        } catch(e) {
+            listEl.innerHTML = '<div style="padding:10px;text-align:center;color:#ef4444;font-size:0.82rem;">Error searching. Try again.</div>';
+        }
+        listEl.style.display = 'block';
+    }, 300);
+}
+
+function selectIssueWorker(val, name, empId, dept) {
+    const selectEl = document.getElementById('issue_emp');
+    const inputEl = document.getElementById('issueEmpSearchFilter');
+    const listEl = document.getElementById('issueEmpDropdownList');
+    if (selectEl) {
+        const existing = selectEl.querySelector(`option[value="${val}"]`);
+        if (!existing) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.dataset.name = name || '';
+            opt.dataset.empid = empId || '';
+            opt.dataset.dept = dept || '';
+            opt.text = `${name} (ID: ${empId||'N/A'}) - ${dept||''}`;
+            selectEl.appendChild(opt);
+        }
+        selectEl.value = val;
+        if (inputEl) inputEl.value = name || '';
+    }
+    if (listEl) listEl.style.display = 'none';
+}
+
+function onIssueEmpSelectChange(sel) {
+    const inputEl = document.getElementById('issueEmpSearchFilter');
+    const opt = sel.options[sel.selectedIndex];
+    if (inputEl && opt) {
+        inputEl.value = opt.value ? (opt.dataset.name || opt.text) : '';
+    }
+}
+
+function onIssueItemSearch(query) {
+    const listEl = document.getElementById('issueItemDropdownList');
+    const selectEl = document.getElementById('issue_item');
+    if (!listEl || !selectEl) return;
+
+    const q = (query || '').toLowerCase().trim();
+    const options = selectEl.options;
+    let html = '';
+    let matchCount = 0;
+
+    for (let i = 0; i < options.length; i++) {
+        const opt = options[i];
+        if (!opt.value) continue;
+        const text = opt.text.toLowerCase();
+        if (!q || text.includes(q)) {
+            matchCount++;
+            const name = opt.dataset.name || opt.text;
+            const code = opt.dataset.code || '';
+            const cat = opt.dataset.cat || '';
+            const stock = parseInt(opt.dataset.stock || '0');
+            const unit = opt.dataset.unit || 'Pairs';
+            const warranty = opt.dataset.warranty || '';
+            const isOutOfStock = stock <= 0;
+            const isSelected = selectEl.value === opt.value;
+
+            html += `
+                <div class="search-drop-item" ${isOutOfStock ? 'style="padding: 9px 14px; opacity: 0.55; cursor: not-allowed; border-bottom: 1px solid #f1f5f9; background: #fff1f2;"' : `onclick="selectIssueItem('${opt.value}')" style="padding: 9px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; background: ${isSelected ? '#fef3c7' : '#ffffff'};"`}>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">${name}</div>
+                            <div style="font-size: 0.76rem; color: #64748b;">SKU: <b>${code}</b> &bull; ${cat} &bull; ${warranty}mo Warranty</div>
+                        </div>
+                        <div style="text-align: right; flex-shrink: 0;">
+                            ${isOutOfStock ? 
+                                `<span style="font-size: 0.72rem; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 9999px;">Out of Stock</span>` :
+                                `<span style="font-size: 0.72rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px;">${stock} ${unit}</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    if (matchCount === 0) {
+        html = '<div style="padding: 12px; text-align: center; color: #94a3b8; font-size: 0.85rem;">No matching equipment found</div>';
+    }
+
+    listEl.innerHTML = html;
+    listEl.style.display = 'block';
+}
+
+function selectIssueItem(val) {
+    const selectEl = document.getElementById('issue_item');
+    const inputEl = document.getElementById('issueItemSearchFilter');
+    const listEl = document.getElementById('issueItemDropdownList');
+    if (selectEl) {
+        selectEl.value = val;
+        for (let i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].value === val) {
+                if (inputEl) inputEl.value = selectEl.options[i].dataset.name || selectEl.options[i].text;
+                break;
+            }
+        }
+    }
+    if (listEl) listEl.style.display = 'none';
+}
+
+function onIssueItemSelectChange(sel) {
+    const inputEl = document.getElementById('issueItemSearchFilter');
+    const opt = sel.options[sel.selectedIndex];
+    if (inputEl && opt) {
+        inputEl.value = opt.value ? (opt.dataset.name || opt.text) : '';
+    }
+}
+
+// Close suggestion dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    const empInput = document.getElementById('issueEmpSearchFilter');
+    const empList = document.getElementById('issueEmpDropdownList');
+    if (empList && empInput && !empInput.contains(e.target) && !empList.contains(e.target)) {
+        empList.style.display = 'none';
+    }
+
+    const itemInput = document.getElementById('issueItemSearchFilter');
+    const itemList = document.getElementById('issueItemDropdownList');
+    if (itemList && itemInput && !itemInput.contains(e.target) && !itemList.contains(e.target)) {
+        itemList.style.display = 'none';
+    }
+});
+
+function syncGoogleSheetInventory() {
+    if (!confirm('Sync HSE Store Inventory with official Google Sheet?\nThis will import/update standard items (Helmets, Shoes, Reflectors, Gloves, Harnesses) with stock and standard pricing.')) return;
+
+    const spinner = document.getElementById('syncSheetSpinner');
+    if (spinner) spinner.classList.add('fa-spin');
+
+    fetch('/safety/api/inventory/sync-google-sheet/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (spinner) spinner.classList.remove('fa-spin');
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => {
+        if (spinner) spinner.classList.remove('fa-spin');
+        alert('Network error: ' + err);
+    });
+}
+
+// -----------------------------------------------------------------------------
+// AJAX STORE ITEM ACTIONS
+// -----------------------------------------------------------------------------
+function submitCreateStoreItem(e) {
+    e.preventDefault();
+    let category = document.getElementById('ai_cat').value;
+    if (category === '__NEW__') {
+        category = (document.getElementById('ai_custom_cat').value || '').trim();
+        if (!category) category = 'General PPE';
+    }
+
+    const payload = {
+        name: document.getElementById('ai_name').value,
+        item_code: document.getElementById('ai_code').value,
+        category: category,
+        unit: document.getElementById('ai_unit').value,
+        specification: document.getElementById('ai_spec').value,
+        total_stock: document.getElementById('ai_stock').value,
+        warranty_months: document.getElementById('ai_warranty').value,
+        fine_amount: document.getElementById('ai_fine').value,
+        minimum_alert_level: document.getElementById('ai_min').value
+    };
+
+    fetch('/safety/api/item/create/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalAddStoreItem');
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function openEditItemModal(id, name, code, cat, unit, spec, warranty, fine, min, avail, notes) {
+    document.getElementById('ei_id').value = id;
+    document.getElementById('ei_name').value = name;
+    document.getElementById('ei_code').value = code;
+    
+    const catSelect = document.getElementById('ei_cat');
+    let hasOption = false;
+    for (let opt of catSelect.options) {
+        if (opt.value === cat) {
+            hasOption = true;
+            break;
+        }
+    }
+    if (!hasOption && cat) {
+        const newOpt = new Option(cat, cat, true, true);
+        catSelect.add(newOpt, catSelect.options[catSelect.options.length - 1]);
+    }
+    catSelect.value = cat;
+    document.getElementById('ei_custom_cat_wrap').style.display = 'none';
+
+    document.getElementById('ei_unit').value = unit;
+    document.getElementById('ei_spec').value = spec;
+    document.getElementById('ei_warranty').value = warranty;
+    document.getElementById('ei_fine').value = fine;
+    document.getElementById('ei_min').value = min;
+    document.getElementById('ei_avail').value = avail;
+    openModal('modalEditStoreItem');
+}
+
+function submitEditStoreItem(e) {
+    e.preventDefault();
+    const id = document.getElementById('ei_id').value;
+    let category = document.getElementById('ei_cat').value;
+    if (category === '__NEW__') {
+        category = (document.getElementById('ei_custom_cat').value || '').trim();
+        if (!category) category = 'General PPE';
+    }
+
+    const payload = {
+        name: document.getElementById('ei_name').value,
+        item_code: document.getElementById('ei_code').value,
+        category: category,
+        unit: document.getElementById('ei_unit').value,
+        specification: document.getElementById('ei_spec').value,
+        warranty_months: document.getElementById('ei_warranty').value,
+        fine_amount: document.getElementById('ei_fine').value,
+        minimum_alert_level: document.getElementById('ei_min').value,
+        available_stock: document.getElementById('ei_avail').value
+    };
+
+    fetch(`/safety/api/item/${id}/edit/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalEditStoreItem');
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function confirmDeleteItem(id, name) {
+    if (!confirm(`Are you sure you want to delete equipment "${name}" from store catalog?\n(Active worker issues must be 0)`)) return;
+
+    fetch(`/safety/api/item/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function openRestockModal(id, name, curStock, unit) {
+    document.getElementById('ri_id').value = id;
+    document.getElementById('ri_name').innerText = name;
+    document.getElementById('ri_cur_stock').innerText = curStock;
+    document.getElementById('ri_unit').innerText = unit;
+    document.getElementById('ri_qty').value = '25';
+    openModal('modalRestockItem');
+}
+
+function submitRestockItem(e) {
+    e.preventDefault();
+    const id = document.getElementById('ri_id').value;
+    const qty = document.getElementById('ri_qty').value;
+
+    fetch(`/safety/api/item/${id}/restock/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ quantity: qty })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalRestockItem');
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+// -----------------------------------------------------------------------------
+// AJAX EQUIPMENT ISSUANCE ACTIONS
+// -----------------------------------------------------------------------------
+function submitIssueEquipment(e) {
+    e.preventDefault();
+    const payload = {
+        employee_id: document.getElementById('issue_emp').value,
+        item_id: document.getElementById('issue_item').value,
+        size_specification: document.getElementById('issue_size').value,
+        issue_date: document.getElementById('issue_date').value,
+        remarks: document.getElementById('issue_remarks').value,
+        quantity: 1
+    };
+
+    fetch('/safety/api/issue/create/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalIssueEquipment');
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function openEditIssueModal(id, workerName, itemName, size, issueDate, expiryDate, status, remarks) {
+    document.getElementById('edit_issue_id').value = id;
+    document.getElementById('ei_worker_name').innerText = workerName;
+    document.getElementById('ei_item_name').innerText = itemName;
+    document.getElementById('edit_issue_size').value = size;
+    document.getElementById('edit_issue_date').value = issueDate;
+    document.getElementById('edit_issue_expiry').value = expiryDate;
+    document.getElementById('edit_issue_status').value = status;
+    document.getElementById('edit_issue_remarks').value = remarks;
+    openModal('modalEditIssue');
+}
+
+function submitEditIssue(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit_issue_id').value;
+    const payload = {
+        size_specification: document.getElementById('edit_issue_size').value,
+        status: document.getElementById('edit_issue_status').value,
+        issue_date: document.getElementById('edit_issue_date').value,
+        warranty_expiry_date: document.getElementById('edit_issue_expiry').value,
+        remarks: document.getElementById('edit_issue_remarks').value
+    };
+
+    fetch(`/safety/api/issue/${id}/edit/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalEditIssue');
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function confirmDeleteIssue(id, workerName, itemName) {
+    if (!confirm(`Are you sure you want to delete issue record for ${workerName} - ${itemName}?\n(If status is Active, +1 stock will be restored to store)`)) return;
+
+    fetch(`/safety/api/issue/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+// -----------------------------------------------------------------------------
+// SMART RETURN & REPLACEMENT DESK (LIVE WARRANTY & POLICY ENGINE)
+// -----------------------------------------------------------------------------
+let deskWorkerIssues = [];
+let currentSelectedItem = null;
+
+function onDeskWorkerChange() {
+    const empId = document.getElementById('desk_worker_select').value;
+    const itemSelect = document.getElementById('desk_item_select');
+    const container = document.getElementById('desk_active_items_container');
+    const emptyPrompt = document.getElementById('deskEmptyPrompt');
+    const evalDetails = document.getElementById('deskEvaluationDetails');
+
+    if (!empId) {
+        if (itemSelect) itemSelect.innerHTML = '<option value="">-- First Select Worker Above --</option>';
+        if (container) container.innerHTML = '<div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; color: #64748b; font-size: 0.85rem;">👈 Select a worker above to inspect all equipment previously issued to them.</div>';
+        emptyPrompt.style.display = 'block';
+        evalDetails.style.display = 'none';
+        currentSelectedItem = null;
+        return;
+    }
+
+    if (container) {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-spinner fa-spin"></i> Fetching worker equipment history...</div>';
+    }
+
+    fetch(`/safety/api/worker/${empId}/active-issues/`)
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            deskWorkerIssues = data.active_issues || [];
+            
+            // Populate hidden select for form validity
+            let selectHtml = '<option value="">-- Select Equipment --</option>';
+            deskWorkerIssues.forEach(iss => {
+                selectHtml += `<option value="${iss.issue_id}">${iss.item_name} (Size: ${iss.size})</option>`;
+            });
+            if (itemSelect) itemSelect.innerHTML = selectHtml;
+
+            // Render interactive cards
+            renderDeskActiveItems(deskWorkerIssues, data.employee_name);
+
+            if (deskWorkerIssues.length > 0) {
+                // Auto-select first item
+                selectDeskItemCard(deskWorkerIssues[0].issue_id);
+            } else {
+                emptyPrompt.innerHTML = `<div style="color: #64748b; padding: 30px;"><i class="fas fa-info-circle" style="font-size: 2rem; color: #94a3b8; margin-bottom: 10px;"></i><p>Worker <b>${data.employee_name}</b> currently has 0 active equipment records in system.</p></div>`;
+                emptyPrompt.style.display = 'block';
+                evalDetails.style.display = 'none';
+                currentSelectedItem = null;
+            }
+        }
+    })
+    .catch(err => alert('Error loading worker equipment: ' + err));
+}
+
+function renderDeskActiveItems(items, empName) {
+    const container = document.getElementById('desk_active_items_container');
+    if (!container) return;
+
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; color: #64748b;">
+                <i class="fas fa-exclamation-circle" style="font-size: 1.8rem; color: #94a3b8; margin-bottom: 8px;"></i>
+                <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b;">No active equipment found for this employee</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Issue new gear from the "Equipment Issuance Register" tab first.</div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `<div style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; padding-right: 4px;">`;
+    items.forEach((iss) => {
+        const isExpired = iss.remaining_months === 0 || !iss.is_under_warranty;
+        const statusBadge = isExpired
+            ? `<span class="badge-status badge-neutral" style="font-size: 0.72rem;"><i class="fas fa-clock"></i> ⚪ Validity Expired (${iss.months_used} mos used)</span>`
+            : `<span class="badge-status badge-active" style="font-size: 0.72rem;"><i class="fas fa-shield-alt"></i> 🟢 Under Warranty (${iss.remaining_months} mos remaining)</span>`;
+
+        html += `
+            <div class="desk-item-card" id="card_issue_${iss.issue_id}" onclick="selectDeskItemCard(${iss.issue_id})"
+                 style="border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.2s; background: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                            <input type="radio" name="selectedDeskIssueRadio" id="radio_issue_${iss.issue_id}" value="${iss.issue_id}" style="accent-color: #7c3aed; width: 16px; height: 16px;">
+                            ${iss.item_name}
+                            <span style="font-size: 0.75rem; color: #2563eb; font-family: monospace;">(${iss.item_code})</span>
+                        </div>
+                        <div style="font-size: 0.76rem; color: #64748b; margin-top: 2px;">
+                            Category: <b>${iss.category}</b> &bull; Size / Spec: <b>${iss.size}</b>
+                        </div>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75rem; background: #f8fafc; padding: 8px 10px; border-radius: 8px; border: 1px solid #f1f5f9; margin-top: 6px;">
+                    <div>📅 Issue Date: <b>${iss.issue_date}</b></div>
+                    <div>⏳ Expiry Date: <b>${iss.warranty_expiry_date}</b></div>
+                    <div>⏱️ Usage Time: <b>${iss.months_used} / ${iss.warranty_months} Mos</b> (${iss.days_used}d)</div>
+                    <div>💰 Prorated Fine: <b style="color: ${iss.prorated_fine > 0 ? '#dc2626' : '#16a34a'};">Nu. ${iss.prorated_fine.toFixed(2)}</b></div>
+                </div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function selectDeskItemCard(issueId) {
+    const radio = document.getElementById(`radio_issue_${issueId}`);
+    if (radio) radio.checked = true;
+
+    const itemSelect = document.getElementById('desk_item_select');
+    if (itemSelect) itemSelect.value = issueId;
+
+    document.querySelectorAll('.desk-item-card').forEach(el => {
+        el.style.borderColor = '#e2e8f0';
+        el.style.background = '#ffffff';
+        el.style.boxShadow = 'none';
+    });
+    const selected = document.getElementById(`card_issue_${issueId}`);
+    if (selected) {
+        selected.style.borderColor = '#7c3aed';
+        selected.style.background = '#faf5ff';
+        selected.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.15)';
+    }
+
+    onDeskItemChange();
+}
+
+function onDeskItemChange() {
+    const issueId = document.getElementById('desk_item_select').value;
+    const emptyPrompt = document.getElementById('deskEmptyPrompt');
+    const evalDetails = document.getElementById('deskEvaluationDetails');
+
+    if (!issueId) {
+        emptyPrompt.style.display = 'block';
+        evalDetails.style.display = 'none';
+        currentSelectedItem = null;
+        return;
+    }
+
+    currentSelectedItem = deskWorkerIssues.find(i => String(i.issue_id) === String(issueId));
+    if (!currentSelectedItem) return;
+
+    emptyPrompt.style.display = 'none';
+    evalDetails.style.display = 'block';
+
+    document.getElementById('deskEvalItemName').innerText = `${currentSelectedItem.item_name} (${currentSelectedItem.item_code})`;
+    document.getElementById('deskEvalIssueDate').innerText = currentSelectedItem.issue_date;
+    document.getElementById('deskEvalExpiryDate').innerText = currentSelectedItem.warranty_expiry_date;
+    document.getElementById('deskEvalDaysUsed').innerText = `${currentSelectedItem.months_used} Months (${currentSelectedItem.days_used} Days Used) of ${currentSelectedItem.warranty_months}-Month Life`;
+
+    const badge = document.getElementById('deskEvalWarrantyBadge');
+    if (currentSelectedItem.is_under_warranty && currentSelectedItem.remaining_months > 0) {
+        badge.className = 'badge-status badge-active';
+        badge.innerText = `🟢 Within Warranty (${currentSelectedItem.remaining_months} Months / ${currentSelectedItem.days_remaining} Days Remaining)`;
+    } else {
+        badge.className = 'badge-status badge-neutral';
+        badge.innerText = `⚪ Warranty Expired (${currentSelectedItem.months_used} Months Used)`;
+    }
+
+    // Populate Prorated Formula Box
+    document.getElementById('deskFormulaFullCost').innerText = currentSelectedItem.full_cost.toFixed(2);
+    document.getElementById('deskFormulaTotalLife').innerText = currentSelectedItem.warranty_months;
+    document.getElementById('deskFormulaUsedMonths').innerText = currentSelectedItem.months_used;
+    document.getElementById('deskFormulaRemainingMonths').innerText = currentSelectedItem.remaining_months;
+    
+    document.getElementById('deskFormulaCostSpan').innerText = `Nu. ${currentSelectedItem.full_cost.toFixed(0)}`;
+    document.getElementById('deskFormulaLifeSpan').innerText = `${currentSelectedItem.warranty_months} mos`;
+    document.getElementById('deskFormulaRemSpan').innerText = `${currentSelectedItem.remaining_months} mos`;
+    document.getElementById('deskFormulaMathText').innerText = `Nu. ${currentSelectedItem.prorated_fine.toFixed(2)}`;
+
+    document.getElementById('deskStandardFineSpan').innerText = currentSelectedItem.prorated_fine.toFixed(2);
+    document.getElementById('deskFineOverride').value = currentSelectedItem.prorated_fine.toFixed(2);
+    document.getElementById('desk_new_size').value = currentSelectedItem.size || '';
+
+    evaluateWarrantyDecision();
+}
+
+function evaluateWarrantyDecision() {
+    if (!currentSelectedItem) return;
+
+    const reason = document.getElementById('desk_reason_select').value;
+    const isUnderWarranty = currentSelectedItem.is_under_warranty && currentSelectedItem.remaining_months > 0;
+    const alertBox = document.getElementById('deskPolicyAlert');
+    const alertIcon = document.getElementById('deskAlertIcon');
+    const alertTitle = document.getElementById('deskAlertTitle');
+    const alertMsg = document.getElementById('deskAlertMsg');
+    const fineBox = document.getElementById('deskFineConfigBox');
+
+    // Case 1: Normal Wear & Tear AND Warranty Expired -> FREE REPLACEMENT
+    if (reason === 'WORN_OUT_NORMAL' && !isUnderWarranty) {
+        alertBox.style.background = '#f0fdf4';
+        alertBox.style.borderColor = '#86efac';
+        alertIcon.innerText = '✅';
+        alertTitle.style.color = '#15803d';
+        alertTitle.innerText = 'Eligible for Free Normal Replacement';
+        alertMsg.style.color = '#166534';
+        alertMsg.innerText = `This ${currentSelectedItem.item_name} has completed its standard ${currentSelectedItem.warranty_months}-month lifecycle (${currentSelectedItem.months_used} months used). Standard wear & tear replacement is FREE of cost with NO fine.`;
+
+        fineBox.style.display = 'none';
+        document.getElementById('deskFineOverride').value = '0.00';
+    } else if (reason === 'SIZE_EXCHANGE') {
+        alertBox.style.background = '#eff6ff';
+        alertBox.style.borderColor = '#93c5fd';
+        alertIcon.innerText = '🔄';
+        alertTitle.style.color = '#1d4ed8';
+        alertTitle.innerText = 'Size / Fitment Exchange';
+        alertMsg.style.color = '#1e40af';
+        alertMsg.innerText = 'Direct size exchange in unused/good condition. No fine applies.';
+
+        fineBox.style.display = 'none';
+        document.getElementById('deskFineOverride').value = '0.00';
+    } else {
+        // Case 2: Premature damage, lost by worker, or replaced before expiry
+        alertBox.style.background = '#fef2f2';
+        alertBox.style.borderColor = '#fca5a5';
+        alertIcon.innerText = '⚠️';
+        alertTitle.style.color = '#b91c1c';
+        alertTitle.innerText = 'Premature Replacement Flagged (Prorated Fine Applicable)';
+        alertMsg.style.color = '#991b1b';
+
+        let sub = '';
+        if (reason === 'LOST_BY_WORKER') {
+            sub = 'Item reported LOST by employee.';
+        } else if (isUnderWarranty) {
+            sub = `Worker requested new equipment after ${currentSelectedItem.months_used} months of use (${currentSelectedItem.remaining_months} months remaining on ${currentSelectedItem.warranty_months}-month warranty).`;
+        } else {
+            sub = 'Premature damage / negligence reported.';
+        }
+
+        alertMsg.innerText = `${sub} Company policy applies a prorated fine of Nu. ${currentSelectedItem.prorated_fine.toFixed(2)} based on remaining months.`;
+        fineBox.style.display = 'block';
+        document.getElementById('deskFineOverride').value = currentSelectedItem.prorated_fine.toFixed(2);
+    }
+}
+
+function submitReplacement(e) {
+    e.preventDefault();
+    if (!currentSelectedItem) {
+        alert('Please select an equipment to replace.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmitDeskReplacement');
+    btn.disabled = true;
+    btn.innerText = 'Processing Replacement...';
+
+    const payload = {
+        original_issue_id: currentSelectedItem.issue_id,
+        reason: document.getElementById('desk_reason_select').value,
+        old_item_condition: document.getElementById('desk_old_condition').value,
+        issue_new_item: document.getElementById('desk_issue_new').checked,
+        new_size: document.getElementById('desk_new_size').value,
+        fine_status: parseFloat(document.getElementById('deskFineOverride').value) > 0 ? 'APPROVED_SALARY_DEDUCTION' : 'NO_FINE',
+        fine_override: document.getElementById('deskFineOverride').value,
+        waived_reason: ''
+    };
+
+    fetch('/safety/api/replacement/process/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = '🔄 Process Replacement & Log Record';
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = '🔄 Process Replacement & Log Record';
+        alert('Network error: ' + err);
+    });
+}
+
+// -----------------------------------------------------------------------------
+// AJAX FINE UPDATE / DELETE ACTIONS
+// -----------------------------------------------------------------------------
+function openUpdateFineModal(id, workerName, itemName, amount, status, waiveReason) {
+    document.getElementById('uf_fine_id').value = id;
+    document.getElementById('uf_worker_name').innerText = workerName;
+    document.getElementById('uf_item_name').innerText = itemName;
+    document.getElementById('uf_amount').value = parseFloat(amount || 0).toFixed(2);
+    document.getElementById('uf_status').value = status;
+    document.getElementById('uf_waive_reason').value = waiveReason || '';
+    openModal('modalUpdateFine');
+}
+
+function submitUpdateFine(e) {
+    e.preventDefault();
+    const id = document.getElementById('uf_fine_id').value;
+    const payload = {
+        fine_amount: document.getElementById('uf_amount').value,
+        fine_status: document.getElementById('uf_status').value,
+        waived_reason: document.getElementById('uf_waive_reason').value
+    };
+
+    fetch(`/safety/api/fine/${id}/update-status/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeModal('modalUpdateFine');
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function confirmDeleteFine(id, workerName, itemName) {
+    if (!confirm(`Are you sure you want to delete fine record for ${workerName} - ${itemName}?`)) return;
+
+    fetch(`/safety/api/fine/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+// ── openIssueModal ────────────────────────────────────────────────────────────
+function openIssueModal(preselectedEmpId, preselectedItemId) {
+    // Reset search inputs
+    const empSearch = document.getElementById('issueEmpSearchFilter');
+    const itemSearch = document.getElementById('issueItemSearchFilter');
+    if (empSearch) empSearch.value = '';
+    if (itemSearch) itemSearch.value = '';
+    hideDropdown('issueEmpDropdownList');
+    hideDropdown('issueItemDropdownList');
+
+    const empSel = document.getElementById('issue_emp');
+    const itemSel = document.getElementById('issue_item');
+    if (empSel) empSel.value = preselectedEmpId || '';
+    if (itemSel) itemSel.value = preselectedItemId || '';
+
+    // Sync search input labels if preselected
+    if (preselectedEmpId && empSel) {
+        const opt = empSel.querySelector(`option[value="${preselectedEmpId}"]`);
+        if (opt && empSearch) empSearch.value = opt.getAttribute('data-name') || opt.textContent.trim();
+    }
+    if (preselectedItemId && itemSel) {
+        const opt = itemSel.querySelector(`option[value="${preselectedItemId}"]`);
+        if (opt && itemSearch) itemSearch.value = opt.getAttribute('data-name') || opt.textContent.trim();
+    }
+
+    openModal('modalIssueEquipment');
+}
+
+// ── Dropdown helpers ──────────────────────────────────────────────────────────
+function showDropdown(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'block'; }
+}
+function hideDropdown(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; }
+}
+
+// ── Employee search ───────────────────────────────────────────────────────────
+function onIssueEmpSearch(query) {
+    const ddl = document.getElementById('issueEmpDropdownList');
+    const sel = document.getElementById('issue_emp');
+    if (!ddl || !sel) return;
+
+    const q = (query || '').toLowerCase().trim();
+    const opts = Array.from(sel.options).filter(o => o.value);
+
+    const matches = opts.filter(o => {
+        const name = (o.getAttribute('data-name') || '').toLowerCase();
+        const eid  = (o.getAttribute('data-empid') || '').toLowerCase();
+        const dept = (o.getAttribute('data-dept') || '').toLowerCase();
+        return !q || name.includes(q) || eid.includes(q) || dept.includes(q);
+    });
+
+    ddl.innerHTML = '';
+    if (matches.length === 0) {
+        ddl.innerHTML = '<div class="search-drop-item" style="color:#94a3b8;">No employees found</div>';
+    } else {
+        matches.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'search-drop-item';
+            div.innerHTML = `<strong>${o.getAttribute('data-name') || o.textContent.trim()}</strong><small>ID: ${o.getAttribute('data-empid') || 'N/A'} &bull; ${o.getAttribute('data-dept') || ''}</small>`;
+            div.onclick = () => selectIssueWorker(o.value, o.getAttribute('data-name') || o.textContent.trim());
+            ddl.appendChild(div);
+        });
+    }
+    showDropdown('issueEmpDropdownList');
+}
+
+function selectIssueWorker(val, label) {
+    const sel = document.getElementById('issue_emp');
+    const inp = document.getElementById('issueEmpSearchFilter');
+    if (sel) sel.value = val;
+    if (inp) inp.value = label || '';
+    hideDropdown('issueEmpDropdownList');
+}
+
+function onIssueEmpSelectChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const inp = document.getElementById('issueEmpSearchFilter');
+    if (inp && opt) inp.value = opt.getAttribute('data-name') || opt.textContent.trim();
+}
+
+// ── Equipment search ──────────────────────────────────────────────────────────
+function onIssueItemSearch(query) {
+    const ddl = document.getElementById('issueItemDropdownList');
+    const sel = document.getElementById('issue_item');
+    if (!ddl || !sel) return;
+
+    const q = (query || '').toLowerCase().trim();
+    const opts = Array.from(sel.options).filter(o => o.value);
+
+    const matches = opts.filter(o => {
+        const name = (o.getAttribute('data-name') || '').toLowerCase();
+        const code = (o.getAttribute('data-code') || '').toLowerCase();
+        const cat  = (o.getAttribute('data-cat')  || '').toLowerCase();
+        return !q || name.includes(q) || code.includes(q) || cat.includes(q);
+    });
+
+    ddl.innerHTML = '';
+    if (matches.length === 0) {
+        ddl.innerHTML = '<div class="search-drop-item" style="color:#94a3b8;">No items found</div>';
+    } else {
+        matches.forEach(o => {
+            const stock   = parseInt(o.getAttribute('data-stock') || '0');
+            const unit    = o.getAttribute('data-unit') || '';
+            const warranty= o.getAttribute('data-warranty') || '0';
+            const outOfStock = stock === 0;
+            const div = document.createElement('div');
+            div.className = 'search-drop-item' + (outOfStock ? ' out-of-stock' : '');
+            div.innerHTML = `<strong>${o.getAttribute('data-name') || ''} <span style="font-size:0.75rem;font-weight:600;color:${outOfStock?'#dc2626':'#10b981'}">(${outOfStock ? 'Out of Stock' : 'Stock: ' + stock + ' ' + unit})</span></strong><small>Code: ${o.getAttribute('data-code') || ''} &bull; ${o.getAttribute('data-cat') || ''} &bull; ${warranty}mo Warranty</small>`;
+            if (!outOfStock) {
+                div.onclick = () => selectIssueItem(o.value, o.getAttribute('data-name') || '');
+            } else {
+                div.style.cursor = 'not-allowed';
+                div.style.opacity = '0.55';
+            }
+            ddl.appendChild(div);
+        });
+    }
+    showDropdown('issueItemDropdownList');
+}
+
+function selectIssueItem(val, label) {
+    const sel = document.getElementById('issue_item');
+    const inp = document.getElementById('issueItemSearchFilter');
+    if (sel) sel.value = val;
+    if (inp) inp.value = label || '';
+    hideDropdown('issueItemDropdownList');
+}
+
+function onIssueItemSelectChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const inp = document.getElementById('issueItemSearchFilter');
+    if (inp && opt) inp.value = opt.getAttribute('data-name') || opt.textContent.trim();
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#issueEmpSearchFilter') && !e.target.closest('#issueEmpDropdownList')) {
+        hideDropdown('issueEmpDropdownList');
+    }
+    if (!e.target.closest('#issueItemSearchFilter') && !e.target.closest('#issueItemDropdownList')) {
+        hideDropdown('issueItemDropdownList');
+    }
+});
+
+// ─── Excel Upload & Sync ──────────────────────────────────────────────────────
+function openExcelUploadModal() {
+    const resultDiv = document.getElementById('excelUploadResult');
+    document.getElementById('excelUploadInput').value = '';
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+    document.getElementById('modalExcelUpload').style.display = 'flex';
+}
+
+function submitExcelUpload() {
+    const fileInput = document.getElementById('excelUploadInput');
+    const resultDiv = document.getElementById('excelUploadResult');
+    if (!fileInput.files.length) {
+        alert('Please select a .xlsx file first.');
+        return;
+    }
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = '#f0f9ff';
+    resultDiv.style.color = '#1e40af';
+    resultDiv.style.border = '1px solid #bfdbfe';
+    resultDiv.innerHTML = '⏳ Uploading and syncing... please wait.';
+    fetch('/safety/api/upload-excel/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            resultDiv.style.background = '#f0fdf4';
+            resultDiv.style.color = '#166534';
+            resultDiv.style.border = '1px solid #bbf7d0';
+            resultDiv.innerHTML = '✅ ' + data.msg.replace(/\n/g, '<br>');
+            setTimeout(() => { window.location.reload(); }, 3500);
+        } else {
+            resultDiv.style.background = '#fef2f2';
+            resultDiv.style.color = '#991b1b';
+            resultDiv.style.border = '1px solid #fecaca';
+            resultDiv.innerHTML = '❌ ' + (data.msg || 'Unknown error.');
+        }
+    })
+    .catch(err => {
+        resultDiv.style.background = '#fef2f2';
+        resultDiv.style.color = '#991b1b';
+        resultDiv.style.border = '1px solid #fecaca';
+        resultDiv.innerHTML = '❌ Network error: ' + err;
+    });
+}
+</script>
+{% endblock %}
+

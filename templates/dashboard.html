@@ -1,0 +1,3017 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Hidden inputs for live-poll JS -->
+<input type="hidden" id="dash-latest-dep-id" value="{{ latest_dep_id }}">
+<input type="hidden" id="dash-latest-emp-id" value="{{ latest_emp_id }}">
+<input type="hidden" id="dash-latest-lub-id" value="{{ latest_lub_id }}">
+<input type="hidden" id="dash-total-deps" value="{{ total_deps }}">
+<input type="hidden" id="dash-total-emps" value="{{ total_emps }}">
+<input type="hidden" id="dash-total-lubs" value="{{ total_lubs }}">
+
+<style>
+    /* Custom Export Builder Modal CSS */
+    .adv-exp-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 99999;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .adv-exp-content {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        width: 100%;
+        max-width: 780px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: modalPop 0.25s ease-out;
+    }
+
+    @keyframes modalPop {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .adv-exp-header {
+        padding: 20px 24px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .adv-exp-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .adv-exp-close {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .adv-exp-close:hover {
+        color: #ef4444;
+    }
+
+    .adv-exp-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .adv-module-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .adv-module-header {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .adv-checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .adv-checkbox-grid label {
+        font-size: 0.85rem;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+    }
+
+    .adv-select {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 0.88rem;
+    }
+
+    .adv-exp-footer {
+        padding: 16px 24px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .btn-exp-excel {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-exp-excel:hover {
+        background: #059669;
+    }
+
+    .btn-exp-pdf {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-exp-pdf:hover {
+        background: #dc2626;
+    }
+</style>
+
+<style>
+    /* Reset and base styles */
+    .dashboard-header {
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-color);
+        margin: 0;
+    }
+
+    /* Beautiful Grid */
+    .beautiful-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    /* Beautiful Card — entrance + hover animations */
+    .b-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        opacity: 0;
+        animation: cardEntrance 0.5s ease forwards;
+    }
+
+    @keyframes cardEntrance {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .b-card:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+
+    .b-card:nth-child(2) {
+        animation-delay: 0.10s;
+    }
+
+    .b-card:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+
+    .b-card:nth-child(4) {
+        animation-delay: 0.20s;
+    }
+
+    .b-card:nth-child(5) {
+        animation-delay: 0.25s;
+    }
+
+    .b-card:nth-child(6) {
+        animation-delay: 0.30s;
+    }
+
+    .b-card:nth-child(7) {
+        animation-delay: 0.35s;
+    }
+
+    .b-card:nth-child(8) {
+        animation-delay: 0.40s;
+    }
+
+    .b-card:nth-child(9) {
+        animation-delay: 0.45s;
+    }
+
+    .b-card {
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+    }
+
+    .b-card:hover {
+        transform: translateY(-8px) scale(1.02);
+    }
+
+    /* Icon Micro-Interaction (Scale + Slight Tilt) */
+    .b-icon-wrapper {
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+    }
+    .b-card:hover .b-icon-wrapper {
+        transform: scale(1.18) rotate(7deg);
+    }
+
+    /* Card Value Pulse */
+    .b-card-value {
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .b-card:hover .b-card-value {
+        transform: scale(1.04);
+    }
+
+    /* Shimmer Light Sweep Effect */
+    .b-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+        transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .b-card:hover::before {
+        left: 140%;
+    }
+
+    /* Decorative Circle Expansion */
+    .b-card::after {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    }
+    .b-card:hover::after {
+        transform: scale(1.45);
+        opacity: 0.22;
+    }
+
+    /* Domain-Specific Glowing Shadow Projections on Hover */
+    .b-card-purple:hover {
+        box-shadow: 0 18px 40px -10px rgba(139, 92, 246, 0.45), 0 0 25px rgba(139, 92, 246, 0.25) !important;
+    }
+    .b-card-orange:hover {
+        box-shadow: 0 18px 40px -10px rgba(249, 115, 22, 0.45), 0 0 25px rgba(249, 115, 22, 0.25) !important;
+    }
+    .b-card-green:hover {
+        box-shadow: 0 18px 40px -10px rgba(16, 185, 129, 0.45), 0 0 25px rgba(16, 185, 129, 0.25) !important;
+    }
+    .b-card-blue:hover, .b-card-vehicle-profile:hover {
+        box-shadow: 0 18px 40px -10px rgba(59, 130, 246, 0.45), 0 0 25px rgba(59, 130, 246, 0.25) !important;
+    }
+    .b-card-red:hover, .b-card-breakdown-reg:hover {
+        box-shadow: 0 18px 40px -10px rgba(239, 68, 68, 0.45), 0 0 25px rgba(239, 68, 68, 0.25) !important;
+    }
+    .b-card-teal:hover, .b-card-cyan:hover {
+        box-shadow: 0 18px 40px -10px rgba(20, 184, 166, 0.45), 0 0 25px rgba(20, 184, 166, 0.25) !important;
+    }
+
+    .b-card::after {
+        content: '';
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        opacity: 0.1;
+        z-index: 0;
+    }
+
+    .b-card-purple::after {
+        background: #8b5cf6;
+    }
+
+    .b-card-red::after {
+        background: #ef4444;
+    }
+
+    .b-card-green::after {
+        background: #10b981;
+    }
+
+    .b-card-orange::after {
+        background: #f97316;
+    }
+
+    .b-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 1.5rem;
+        z-index: 1;
+    }
+
+    .b-icon-purple {
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa;
+    }
+
+    .b-icon-red {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+    }
+
+    .b-icon-green {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .b-icon-orange {
+        background: rgba(249, 115, 22, 0.15);
+        color: #fb923c;
+    }
+
+    .b-card-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+        z-index: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .b-card-value {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0.2rem 0;
+        line-height: 1.1;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .b-card-preview {
+        margin-top: 0.8rem;
+        border-top: 1px dashed var(--border);
+        padding-top: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .b-card-preview-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--sidebar-text);
+        gap: 8px;
+    }
+
+    .b-card-preview-row b {
+        color: var(--text-color);
+        font-weight: 800;
+        text-align: right;
+    }
+
+    .b-card-preview-row b.ellip {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Dashboard Card Share Button */
+    .b-card-share-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #475569;
+        z-index: 10;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        backdrop-filter: blur(4px);
+    }
+    .b-card-share-btn:hover {
+        background: #25d366 !important;
+        color: #ffffff !important;
+        border-color: #25d366 !important;
+        transform: scale(1.12);
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+    }
+    [data-theme="dark"] .b-card-share-btn {
+        background: rgba(30, 41, 59, 0.88);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #cbd5e1;
+    }
+    [data-theme="dark"] .b-card-share-btn:hover {
+        background: #25d366 !important;
+        color: #ffffff !important;
+        border-color: #25d366 !important;
+    }
+
+    /* ── Vehicle Profiles Card ── */
+    .b-card-vehicle-profile {
+        background: linear-gradient(180deg, #f0f6ff 0%, #dbeafe 100%);
+    }
+    [data-theme="dark"] .b-card-vehicle-profile {
+        background: linear-gradient(180deg, #1e293b 0%, #172554 100%) !important;
+        border-color: #3b82f6 !important;
+    }
+    [data-theme="dark"] .b-card-vehicle-profile .b-card-title { color: #93c5fd !important; }
+    [data-theme="dark"] .b-card-vehicle-profile .b-card-value { color: #f1f5f9 !important; }
+    [data-theme="dark"] .b-card-vehicle-profile .b-card-preview-row span { color: #94a3b8 !important; }
+    [data-theme="dark"] .b-card-vehicle-profile .b-card-preview-row b { color: #e2e8f0 !important; }
+    /* Inline colored bold values inside the card */
+    [data-theme="dark"] .b-card-vehicle-profile [style*="color: #1d4ed8"] { color: #93c5fd !important; }
+    [data-theme="dark"] .b-card-vehicle-profile [style*="color: #ea580c"] { color: #fb923c !important; }
+    [data-theme="dark"] .b-card-vehicle-profile [style*="color: #dc2626"] { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-vehicle-profile [style*="color: #2563eb"] { color: #93c5fd !important; }
+    [data-theme="dark"] .b-card-vehicle-profile [style*="color: #1e40af"] { color: #93c5fd !important; }
+
+    /* ── Breakdown Register Card ── */
+    .b-card-breakdown-reg {
+        background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+    }
+    [data-theme="dark"] .b-card-breakdown-reg {
+        background: linear-gradient(180deg, #1e293b 0%, #2d1515 100%) !important;
+        border-color: #ef4444 !important;
+    }
+    [data-theme="dark"] .b-card-breakdown-reg .b-card-title { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg .b-card-value { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg .b-card-preview-row span { color: #94a3b8 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg .b-card-preview-row b { color: #e2e8f0 !important; }
+    /* Inline colored bold values inside the breakdown card */
+    [data-theme="dark"] .b-card-breakdown-reg [style*="color: #dc2626"] { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg [style*="color: #b91c1c"] { color: #fca5a5 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg [style*="color: #991b1b"] { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-breakdown-reg [style*="color: #2563eb"] { color: #93c5fd !important; }
+    [data-theme="dark"] .b-card-breakdown-reg small[style*="color: #b91c1c"] { color: #fca5a5 !important; }
+
+    /* ── ALL DASHBOARD CARD COLOR THEMES (PURPLE, ORANGE, GREEN, BLUE, RED, TEAL) ── */
+
+    /* PURPLE CARDS (Lubricants, Mess) */
+    .b-card-purple {
+        background: linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%);
+        border: 2px solid #c084fc;
+    }
+    .b-card-purple .b-card-title { color: #7e22ce; font-weight: 800; }
+    [data-theme="dark"] .b-card-purple {
+        background: linear-gradient(180deg, #1e293b 0%, #2e1065 100%) !important;
+        border-color: #8b5cf6 !important;
+    }
+    [data-theme="dark"] .b-card-purple .b-card-title { color: #c084fc !important; }
+    [data-theme="dark"] .b-card-purple .b-card-value { color: #f3e8ff !important; }
+    [data-theme="dark"] .b-card-purple .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-purple .b-card-preview-row b { color: #e9d5ff !important; }
+
+    /* ORANGE CARDS (Spare Parts, Tyre) */
+    .b-card-orange {
+        background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+    }
+    .b-card-orange .b-card-title { color: #c2410c; font-weight: 800; }
+    [data-theme="dark"] .b-card-orange {
+        background: linear-gradient(180deg, #1e293b 0%, #451a03 100%) !important;
+        border-color: #f97316 !important;
+    }
+    [data-theme="dark"] .b-card-orange .b-card-title { color: #fb923c !important; }
+    [data-theme="dark"] .b-card-orange .b-card-value { color: #ffedd5 !important; }
+    [data-theme="dark"] .b-card-orange .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-orange .b-card-preview-row b { color: #fed7aa !important; }
+
+    /* GREEN CARDS (Deployment, Overtime, Movements, Workers) */
+    .b-card-green {
+        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 2px solid #4ade80;
+    }
+    .b-card-green .b-card-title { color: #15803d; font-weight: 800; }
+    [data-theme="dark"] .b-card-green {
+        background: linear-gradient(180deg, #1e293b 0%, #064e3b 100%) !important;
+        border-color: #10b981 !important;
+    }
+    [data-theme="dark"] .b-card-green .b-card-title { color: #34d399 !important; }
+    [data-theme="dark"] .b-card-green .b-card-value { color: #dcfce7 !important; }
+    [data-theme="dark"] .b-card-green .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-green .b-card-preview-row b { color: #a7f3d0 !important; }
+
+    /* BLUE CARDS (Camp, Shift, Total Vehicles) */
+    .b-card-blue {
+        background: linear-gradient(180deg, #f0f6ff 0%, #dbeafe 100%);
+        border: 2px solid #60a5fa;
+    }
+    .b-card-blue .b-card-title { color: #1d4ed8; font-weight: 800; }
+    [data-theme="dark"] .b-card-blue {
+        background: linear-gradient(180deg, #1e293b 0%, #172554 100%) !important;
+        border-color: #3b82f6 !important;
+    }
+    [data-theme="dark"] .b-card-blue .b-card-title { color: #93c5fd !important; }
+    [data-theme="dark"] .b-card-blue .b-card-value { color: #dbeafe !important; }
+    [data-theme="dark"] .b-card-blue .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-blue .b-card-preview-row b { color: #bfdbfe !important; }
+
+    /* RED CARDS (Document Expiries, Alerts) */
+    .b-card-red {
+        background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+        border: 2px solid #f87171;
+    }
+    .b-card-red .b-card-title { color: #b91c1c; font-weight: 800; }
+    [data-theme="dark"] .b-card-red {
+        background: linear-gradient(180deg, #1e293b 0%, #4c0519 100%) !important;
+        border-color: #ef4444 !important;
+    }
+    [data-theme="dark"] .b-card-red .b-card-title { color: #f87171 !important; }
+    [data-theme="dark"] .b-card-red .b-card-value { color: #ffe4e6 !important; }
+    [data-theme="dark"] .b-card-red .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-red .b-card-preview-row b { color: #fecdd3 !important; }
+
+    /* TEAL & CYAN CARDS */
+    .b-card-teal, .b-card-cyan {
+        background: linear-gradient(180deg, #f0fdfa 0%, #ccfbf1 100%);
+        border: 2px solid #2dd4bf;
+    }
+    .b-card-teal .b-card-title, .b-card-cyan .b-card-title { color: #0f766e; font-weight: 800; }
+    [data-theme="dark"] .b-card-teal, [data-theme="dark"] .b-card-cyan {
+        background: linear-gradient(180deg, #1e293b 0%, #134e4a 100%) !important;
+        border-color: #14b8a6 !important;
+    }
+    [data-theme="dark"] .b-card-teal .b-card-title, [data-theme="dark"] .b-card-cyan .b-card-title { color: #2dd4bf !important; }
+    [data-theme="dark"] .b-card-teal .b-card-value, [data-theme="dark"] .b-card-cyan .b-card-value { color: #ccfbf1 !important; }
+    [data-theme="dark"] .b-card-teal .b-card-preview-row span, [data-theme="dark"] .b-card-cyan .b-card-preview-row span { color: #cbd5e1 !important; }
+    [data-theme="dark"] .b-card-teal .b-card-preview-row b, [data-theme="dark"] .b-card-cyan .b-card-preview-row b { color: #99f6e4 !important; }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .dashboard-main-content {
+        margin-left: 0;
+        transition: margin-left 0.3s;
+    }
+</style>
+
+{% if pending %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h2>Account Verification Complete</h2>
+    <p style="margin-top: 1rem; color: var(--sidebar-text);">Your account is successfully registered! Your access is
+        pending Manager approval.</p>
+</div>
+{% else %}
+
+<script>
+    // Immediate zero-delay tab resolver to prevent flashing the overview tab on reload/actions
+    (function() {
+        var validTabs = ['overview', 'vehicles', 'employees'];
+        var params = new URLSearchParams(window.location.search);
+        var activeTab = params.get('tab') || sessionStorage.getItem('activeDashboardTab') || 'overview';
+        if (!validTabs.includes(activeTab)) {
+            activeTab = 'overview';
+            try { sessionStorage.setItem('activeDashboardTab', 'overview'); } catch(e) {}
+        }
+        if (activeTab && activeTab !== 'overview') {
+            var s = document.createElement('style');
+            s.id = 'tab-preload-style';
+            s.innerHTML = '.tab-content { display: none !important; } #tab-' + activeTab + ' { display: block !important; }';
+            document.head.appendChild(s);
+        }
+    })();
+</script>
+
+<div class="dashboard-main-content">
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview" class="tab-content active">
+        <div class="dashboard-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <h1 class="dashboard-title" style="margin-bottom: 0;">P&M Department Dashboard</h1>
+                {% if user.is_superuser or user.is_staff or user.enable_social_feed_mode %}
+                <div>
+                    <a href="{% url 'dashboard' %}?view_mode=social" class="btn" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; border-radius: 12px; padding: 8px 16px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35); font-size: 0.88rem;">
+                        <span>📸</span> Social Feed Mode
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="beautiful-grid">
+
+            <!-- Camp Management Card -->
+            {% if 'camp' in assigned_modules or 'camp_guard' in assigned_modules or 'camp_hr' in assigned_modules or 'camp_manager' in assigned_modules or 'camp_user' in assigned_modules or 'camp' in user_assigned_modules or user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}
+            <div class="b-card b-card-blue" onclick="window.location.href='{% url 'camp_root_view' %}'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('camp')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-blue" style="background:rgba(2, 132, 199, 0.15); color:#0284c7;">
+                    <i class="fas fa-campground" style="font-size:1.4rem;"></i>
+                </div>
+                <div class="b-card-title">Camp Management</div>
+                <div class="b-card-subtext" style="color: #0284c7; font-size: 0.85rem; font-weight: 700; margin-top: 8px;">
+                    🏕️ Gate Security &amp; HR Hub
+                </div>
+                <div class="b-card-preview" style="margin-top: 10px;">
+                    <div class="b-card-preview-row"><span>Inside Camp</span><b style="color:#16a34a;">{{ stats.camp_inside_count|default:"Live" }}</b></div>
+                    <div class="b-card-preview-row"><span>Access Level</span><b style="color:#0284c7;">{% if "camp_guard" in assigned_modules %}Security Gate Desk &rarr;{% elif "camp_hr" in assigned_modules %}Camp HR Desk &rarr;{% elif "camp_user" in assigned_modules %}Resident Portal &rarr;{% else %}Executive Hub &rarr;{% endif %}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Mess Management Card -->
+            {% if 'mess' in assigned_modules or 'mess_user' in assigned_modules or 'mess_scanner' in assigned_modules or 'mess_manager' in assigned_modules or 'mess' in user_assigned_modules or user.is_superuser or user.system_role == 'MANAGER' %}
+            <div class="b-card b-card-purple" onclick="window.location.href='{% url 'mess_root_view' %}'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('mess')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-purple" style="background:rgba(168, 85, 247, 0.15); color:#a855f7;">
+                    <i class="fas fa-utensils" style="font-size:1.4rem;"></i>
+                </div>
+                <div class="b-card-title">Mess Management</div>
+                <div class="b-card-preview" style="margin-top: 14px;">
+                    <div class="b-card-preview-row"><span>Today Meals</span><b>{{ stats.mess_today_meals|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Access Level</span><b style="color:#a855f7;">{% if "mess_manager" in assigned_modules %}Manager Control &rarr;{% elif "mess_scanner" in assigned_modules %}PDA Scanner &rarr;{% elif "mess_user" in assigned_modules %}User Portal &rarr;{% elif user.is_superuser or user.system_role == "MANAGER" %}Manager Control &rarr;{% elif user.system_role == "TIME_KEEPER" %}PDA Scanner &rarr;{% else %}User Portal &rarr;{% endif %}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Safety Department Card -->
+            {% if 'safety_department' in assigned_modules or 'safety_department' in user_assigned_modules or user.is_superuser or user.system_role == 'MANAGER' %}
+            <div class="b-card b-card-orange" onclick="window.location.href='{% url 'safety_dashboard_view' %}'" style="cursor: pointer;">
+                <div class="b-icon-wrapper b-icon-orange" style="background:rgba(245, 158, 11, 0.15); color:#f59e0b;">
+                    <i class="fas fa-hard-hat" style="font-size:1.4rem;"></i>
+                </div>
+                <div class="b-card-title">Safety Department</div>
+                <div class="b-card-subtext" style="color: #f59e0b; font-size: 0.82rem; font-weight: 700; margin-top: 6px;">
+                    🦺 PPE Store &amp; Replacement Desk
+                </div>
+                <div class="b-card-preview" style="margin-top: 14px;">
+                    <div class="b-card-preview-row"><span>Catalog Gear</span><b>Store Stock &amp; Fines</b></div>
+                    <div class="b-card-preview-row"><span>Warranty Desk</span><b style="color:#d97706;">Smart Check &rarr;</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Overtime & Time Keeper QR Scanner -->
+            {% if 'overtime_management' in assigned_modules or user.is_superuser or user.system_role == 'TIME_KEEPER' %}
+            <div class="b-card b-card-green" onclick="window.location.href='{% if user.system_role == 'TIME_KEEPER' %}{% url 'overtime_scan' %}{% else %}{% url 'overtime_dashboard' %}{% endif %}'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('overtime')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-green" style="background:rgba(16, 185, 129, 0.15); color:#10b981;">
+                    <i class="fas fa-business-time" style="font-size:1.4rem;"></i>
+                </div>
+                <div class="b-card-value"><span data-live="ot_hours">{{ stats.ot_today_hours|default:"0.0" }}</span> hrs</div>
+                <div class="b-card-title">Overtime &amp; QR Scanner</div>
+                <div class="b-card-subtext" style="color: #10b981; font-size: 0.85rem; font-weight: 700; margin-top: 8px;">
+                    ⏱️ {% if user.system_role == 'TIME_KEEPER' %}Open QR Scanner{% else %}PM Overtime Hub{% endif %}
+                </div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Today Workers</span><b>{{ stats.ot_today_workers|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Pending Approval</span><b style="color:#f59e0b;">{{ stats.ot_pending_count|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Deployment -->
+            {% if 'daily_deployment' in assigned_modules %}
+            <div class="b-card b-card-green" onclick="window.location.href='/deployment/'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('daily_deployment')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="deployments">{{ stats.deployments|default:"0" }}</span></div>
+                <div class="b-card-title">Daily Deployment</div>
+                <div class="b-card-subtext"
+                    style="color: var(--primary); font-size: 0.85rem; font-weight: 600; margin-top: 8px;">📅 Today's
+                    Deployments</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Today</span><b data-live-preview="dep_today">{{
+                            card_previews.dep_today|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Latest entry</span><b data-live-preview="dep_latest_date">{{
+                            card_previews.dep_latest_date|date:"d M Y"|default:"—" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Shift Management -->
+            {% if 'shift_management' in assigned_modules %}
+            <div class="b-card b-card-blue" onclick="window.location.href='/shifts/'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('shift_management')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div style="display: flex; gap: 15px; margin-top: 10px; margin-bottom: 8px;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Day</div>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--primary);"><span
+                                data-live="shift_day">{{ stats.shift_day }}</span></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Night</div>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--primary);"><span
+                                data-live="shift_night">{{ stats.shift_night }}</span></div>
+                    </div>
+                </div>
+                <div class="b-card-title" style="margin-bottom: 0;">Shift Management</div>
+            </div>
+            {% endif %}
+
+            <!-- Vehicle Movement Register -->
+            {% if 'vehicle_movement' in assigned_modules %}
+            <div class="b-card b-card-green" onclick="window.location.href='/fleet/movements/'"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('vehicle_movement')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="16 3 21 3 21 8"></polygon>
+                        <line x1="4" y1="20" x2="21" y2="20"></line>
+                        <path d="M21 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="vehicle_movements">{{ stats.vehicle_movements|default:"0"
+                        }}</span></div>
+                <div class="b-card-title">Vehicle Movement Register</div>
+                <div class="b-card-subtext"
+                    style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">Total
+                    trip entries</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Total entries</span><b data-live-preview="movements_total">{{
+                            card_previews.movements_total|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Today</span><b data-live-preview="movements_today">{{
+                            card_previews.movements_today|default:"0" }}</b></div>
+                    {% if card_previews.movements_last %}<div class="b-card-preview-row"><span>Last trip</span><b
+                            class="ellip" data-live-preview="movements_last">{{ card_previews.movements_last }}</b>
+                    </div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tyre Section -->
+            {% if 'tyre_section' in assigned_modules %}
+            <div class="b-card b-card-orange" onclick="window.location.href='/fleet/tyre/'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('tyre_section')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-orange">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <line x1="12" y1="2" x2="12" y2="6"></line>
+                        <line x1="12" y1="18" x2="12" y2="22"></line>
+                        <line x1="2" y1="12" x2="6" y2="12"></line>
+                        <line x1="18" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="tyre_count">{{ stats.tyre_count|default:"0" }}</span></div>
+                <div class="b-card-title">Tyre Section</div>
+                <div class="b-card-subtext"
+                    style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">Tyre
+                    work entries</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>This month</span><b data-live-preview="tyre_month_count">{{
+                            card_previews.tyre_month_count|default:"0" }}</b> entries</div>
+                    <div class="b-card-preview-row"><span>Month cost</span><b>Nu.  <span
+                                data-live-preview="tyre_month_cost">{{
+                                card_previews.tyre_month_cost|floatformat:"0"|default:"0" }}</span></b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Total Employees -->
+            {% if 'total_employees' in assigned_modules %}
+            <div class="b-card b-card-purple" onclick="setWorkerFilter('all'); switchTab('employees');"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('total_employees')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-purple">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="employees">{{ stats.employees }}</span></div>
+                <div class="b-card-title">Total Employees</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Active</span><b data-live-preview="emp_active">{{
+                            card_previews.emp_active|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>On Leave</span><b data-live-preview="emp_leave">{{
+                            card_previews.emp_leave|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Terminated</span><b data-live-preview="emp_term">{{
+                            card_previews.emp_term|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Foreign Workers -->
+            {% if 'total_employees' in assigned_modules %}
+            <div class="b-card b-card-red" onclick="setWorkerFilter('foreign'); switchTab('employees');"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('foreign_workers')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-red">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                        </path>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="foreign">{{ stats.foreign }}</span></div>
+                <div class="b-card-title">Foreign Workers</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Active</span><b data-live-preview="foreign_active">{{
+                            card_previews.foreign_active|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- National Workers -->
+            {% if 'total_employees' in assigned_modules %}
+            <div class="b-card b-card-orange" onclick="setWorkerFilter('national'); switchTab('employees');"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('national_workers')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-orange">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <div class="b-card-value"><span data-live="national">{{ stats.national }}</span></div>
+                <div class="b-card-title">National Workers</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Active</span><b data-live-preview="national_active">{{
+                            card_previews.national_active|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Attendance Management (P&M) -->
+            {% if 'attendance_management' in assigned_modules or user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'TIME_KEEPER' or user.system_role == 'PROJECT_MANAGER' %}
+            <div class="b-card b-card-blue" onclick="window.location.href='{% url "attendance_hub" %}'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('attendance')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-blue" style="background: rgba(37, 99, 235, 0.15); color: #2563eb;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                        <path d="m9 14 2 2 4-4"></path>
+                    </svg>
+                </div>
+                <div class="b-card-title">Attendance (P&M)</div>
+                <div class="b-card-value" style="color: #2563eb; font-size: 1.4rem;">Shift & Register</div>
+                <div class="b-card-subtext" style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">QR Scanner & Muster Roll</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Today Register</span><b style="color: #2563eb;">Open Register &rarr;</b></div>
+                    <div class="b-card-preview-row"><span>Live QR Scanner</span><b style="color: #10b981;">Scan ID &rarr;</b></div>
+                    <div class="b-card-preview-row"><span>Monthly Muster</span><b style="color: #8b5cf6;">31-Day View &rarr;</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vehicles -->
+            {% if 'total_vehicles' in assigned_modules %}
+            <div class="b-card b-card-green" onclick="window.location.href='/fleet/global/'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('total_vehicles')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="3" width="15" height="13"></rect>
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+                        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                    </svg>
+                </div>
+                <div class="b-card-title">Total Vehicles</div>
+                <div class="b-card-value"><span data-live="vehicles">{{ stats.vehicles }}</span></div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Running</span><b data-live-preview="veh_running">{{
+                            card_previews.veh_running|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>In Workshop</span><b data-live-preview="veh_workshop">{{
+                            card_previews.veh_workshop|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Hired fleet</span><b data-live-preview="veh_hired">{{
+                            card_previews.veh_hired|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vehicle Profiles Card -->
+            {% if 'vehicle_profiles' in assigned_modules or 'total_vehicles' in assigned_modules or is_manager or user.is_superuser %}
+            <div class="b-card b-card-blue b-card-vehicle-profile" onclick="window.location.href='/fleet/profiles/'" style="cursor: pointer; border: 2px solid #3b82f6;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('vehicle_profiles')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-blue" style="background: rgba(59, 130, 246, 0.15); color: #2563eb;">
+                    <i class="fa fa-id-card" style="font-size: 1.25rem;"></i>
+                </div>
+                <div class="b-card-title" style="color: #1e40af; font-weight: 800;">Vehicle Profiles</div>
+                <div class="b-card-value"><span>{{ stats.total_fleet|default:534 }}</span></div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>In-House Fleet</span><b style="color: #1d4ed8;">{{ stats.in_house_fleet|default:99 }}</b></div>
+                    <div class="b-card-preview-row"><span>Hired Vehicles</span><b style="color: #ea580c;">{{ stats.hired_fleet|default:435 }}</b></div>
+                    <div class="b-card-preview-row"><span>In Workshop</span><b style="color: #dc2626;">{{ stats.active_bd|default:22 }}</b></div>
+                    <div class="b-card-preview-row"><span style="color: #2563eb; font-weight: 800;">Open 360° Kundali &rarr;</span></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Workshop Breakdown Register & Entry Card -->
+            {% if 'breakdown_register' in assigned_modules or 'breakdown_entry' in assigned_modules or is_manager or user.is_superuser %}
+            <div class="b-card b-card-red b-card-breakdown-reg" onclick="window.location.href='/fleet/breakdowns/'" style="cursor: pointer; border: 2px solid #ef4444;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('breakdown_register')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-red" style="background: rgba(239, 68, 68, 0.18); color: #dc2626;">
+                    <i class="fa fa-wrench" style="font-size: 1.25rem;"></i>
+                </div>
+                <div class="b-card-title" style="color: #991b1b; font-weight: 800;">Breakdown Register</div>
+                <div class="b-card-value" style="color: #dc2626;"><span data-live="active_bd">{{ stats.active_bd|default:"0" }}</span> <small style="font-size: 0.85rem; font-weight: 600; color: #b91c1c;">Active in Workshop</small></div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Under Repair</span><b style="color: #dc2626;">{{ stats.active_bd|default:"0" }} Vehicles</b></div>
+                    <div class="b-card-preview-row"><span>Action</span><b style="color: #2563eb;">Log / Release Entry &rarr;</b></div>
+                    <div class="b-card-preview-row"><span style="color: #dc2626; font-weight: 800;">Open Workshop Hub &rarr;</span></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Lubricants -->
+            {% if 'lubricants' in assigned_modules %}
+            <div class="b-card b-card-purple" onclick="window.location.href='/fleet/lubrication/'"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('lubricants')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-purple">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value">Nu.  <span data-live="lubricants_cost">{{ stats.lubricants_cost|default:"0"
+                        }}</span></div>
+                <div class="b-card-title">Lubricants</div>
+                <div class="b-card-subtext"
+                    style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">This
+                    Month</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Entries this month</span><b
+                            data-live-preview="lub_month_count">{{ card_previews.lub_month_count|default:"0" }}</b>
+                    </div>
+                    {% if card_previews.lub_last %}<div class="b-card-preview-row"><span>Last</span><b class="ellip"
+                            data-live-preview="lub_last">{{ card_previews.lub_last }}</b></div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Spare Parts -->
+            {% if 'spare_parts' in assigned_modules or is_manager %}
+            <div class="b-card b-card-orange" onclick="window.location.href='/fleet/spare-parts/'"
+                style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('spare_parts')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-orange" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value">Nu. <span data-live="spare_parts_val">{{ card_previews.spare_parts_val|default:"0" }}</span></div>
+                <div class="b-card-title">Spare Parts</div>
+                <div class="b-card-subtext" style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">Inventory Value</div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Low Stock Alerts</span><b data-live-preview="sp_low_stock" style="color: #ef4444;">{{ card_previews.sp_low_stock|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Stock IN (Month)</span><b data-live-preview="sp_month_in" style="color: #10b981;">{{ card_previews.sp_month_in|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Stock OUT (Month)</span><b data-live-preview="sp_month_out" style="color: #f59e0b;">{{ card_previews.sp_month_out|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Document Expiries -->
+            {% if 'document_expiries' in assigned_modules %}
+            <div class="b-card b-card-red" onclick="window.location.href='/documents/alerts/'" style="cursor: pointer;">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('document_expiries')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper b-icon-red" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <div class="b-card-title">Document Expiries</div>
+                <div class="b-card-value" style="color: #ef4444;"><span data-live="expired_docs">{{
+                        stats.expired_docs|default:"0" }}</span></div>
+                <div class="b-card-subtext"
+                    style="color: #ef4444; font-size: 0.8rem; font-weight: 600; margin-top: 8px;">Documents Expired
+                </div>
+                <div class="b-card-preview">
+                    <div class="b-card-preview-row"><span>Expired</span><b data-live-preview="docs_expired" style="color: #ef4444;">{{ card_previews.docs_expired|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Critical (30d)</span><b data-live-preview="docs_critical" style="color: #f97316;">{{ card_previews.docs_critical|default:"0" }}</b></div>
+                    <div class="b-card-preview-row"><span>Warning (90d)</span><b data-live-preview="docs_warning" style="color: #eab308;">{{ card_previews.docs_warning|default:"0" }}</b></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Manage Logins -->
+            {% if 'manage_logins' in assigned_modules %}
+            <div class="b-card" onclick="window.location.href='/teams/'"
+                style="cursor: pointer; background: linear-gradient(135deg, rgba(20,184,166,0.08), var(--card-bg)); border-color: rgba(20,184,166,0.25);">
+                <button type="button" class="b-card-share-btn" title="Share Report (PDF &amp; Excel)" onclick="event.stopPropagation(); shareDashboardCard('manage_logins')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
+                <div class="b-icon-wrapper" style="background: rgba(20, 184, 166, 0.15); color: #14b8a6;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value" style="font-size: 2rem;">👥</div>
+                <div class="b-card-title" style="color: #14b8a6;">Manage Logins</div>
+                <div class="b-card-subtext"
+                    style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">Employee
+                    Directory</div>
+            </div>
+            {% endif %}
+
+            <!-- Team Chat -->
+            <div class="b-card" onclick="window.location.href='{% url "chat_room" %}'"
+                style="cursor: pointer; background: linear-gradient(135deg, rgba(99,102,241,0.08), var(--card-bg)); border-color: rgba(99,102,241,0.25);">
+                <div class="b-icon-wrapper" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="b-card-value" style="font-size: 2rem; display: flex; align-items: center; gap: 10px;">
+                    💬
+                    <span id="dash-chat-unread-count"
+                        style="display:none; background:#ef4444; color:white; border-radius:12px; padding:3px 10px; font-size:1rem; font-weight:800;">0</span>
+                </div>
+                <div class="b-card-title" style="color: #6366f1;">Team Chat</div>
+                <div class="b-card-subtext" id="dash-chat-unread-subtext"
+                    style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; margin-top: 8px;">
+                    Real-time Messaging</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- VEHICLES TAB -->
+    <div id="tab-vehicles" class="tab-content">
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Master Fleet List (All Modules)</h3>
+                <div style="display:flex; gap:10px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-outline" onclick="switchTab('overview')">Back to Dashboard</button>
+                    <button class="btn" style="background:#25d366; color:white; border-radius:8px; padding:8px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px; border:none; cursor:pointer;" onclick="shareDashboardCard('total_vehicles')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        <span>Share Fleet</span>
+                    </button>
+                    <select id="veh-ownership-filter"
+                        style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); color: var(--text-color);">
+                        <option value="all">All Vehicles (In-House & Hired)</option>
+                        <option value="inhouse">In-House Only</option>
+                        <option value="hired">Hired Only</option>
+                    </select>
+                    <input type="text" id="veh-search" placeholder="Search vehicle..."
+                        style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); color: var(--text-color); width: 250px;">
+                </div>
+            </div>
+
+            <div style="font-size: 0.9rem; color: var(--sidebar-text); margin-bottom: 1rem; font-weight: 500;">Showing
+                <span id="vehicle-visible-count">{{ master_fleet|length }}</span> vehicles
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr
+                            style="text-align: left; background: var(--bg-color); color: var(--sidebar-text); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <th
+                                style="padding: 12px 16px; border-top-left-radius: 8px; border-bottom-left-radius: 8px;">
+                                Vehicle Info</th>
+                            <th style="padding: 12px 16px;">Department</th>
+                            <th style="padding: 12px 16px;">Make / Model</th>
+                            <th style="padding: 12px 16px;">Ownership</th>
+                            <th style="padding: 12px 16px;">Status</th>
+                            <th style="padding: 12px 16px;">Day Driver</th>
+                            <th
+                                style="padding: 12px 16px; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
+                                Night Driver</th>
+                        </tr>
+                    </thead>
+                    <tbody id="veh-tbody">
+                        {% for item in master_fleet %}
+                        <tr onclick="openKundali({{ item.vehicle_id|default:0 }})" style="cursor: pointer;">
+                            <td style="font-weight: 600;">{{ item.dno }}<br><small
+                                    style="color: var(--text-muted); font-weight: normal;">{{ item.regn }}</small></td>
+                            <td>{{ item.department }}</td>
+                            <td>{{ item.make_model|default:"N/A" }}</td>
+                            <td>{{ item.ownership }}</td>
+                            <td>
+                                {% if item.status == 'Running' %}
+                                <span
+                                    style="background: #dcfce7; color: #16a34a; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">Running</span>
+                                {% elif item.status == 'In Workshop' %}
+                                <span
+                                    style="background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">In
+                                    Workshop</span>
+                                {% elif item.status == 'Idle' %}
+                                <span
+                                    style="background: #fef9c3; color: #ca8a04; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">Idle</span>
+                                {% else %}
+                                <span
+                                    style="background: #f1f5f9; color: #64748b; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">{{
+                                    item.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.day_driver|default:"Unassigned" }}</td>
+                            <td>{{ item.night_driver|default:"Unassigned" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem;">No vehicles found in active fleet
+                                modules.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- EMPLOYEES TAB -->
+    <div id="tab-employees" class="tab-content">
+        <style>
+            .emp-main-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .emp-header-card {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 16px;
+                flex-wrap: wrap;
+                margin-bottom: 4px;
+            }
+            .emp-header-actions {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .emp-search-box {
+                position: relative;
+                min-width: 250px;
+            }
+            .emp-search-box input {
+                padding-left: 36px !important;
+                height: 38px !important;
+                font-size: 0.85rem !important;
+                border-radius: 8px !important;
+            }
+            .emp-search-box i {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--sidebar-text);
+                font-size: 0.85rem;
+            }
+
+            /* Responsive Filter Card */
+            .emp-filters-card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                padding: 16px 20px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            }
+            .emp-filters-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: var(--text-color);
+                margin-bottom: 12px;
+            }
+            .emp-filters-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+                gap: 10px;
+                align-items: center;
+            }
+            .emp-filter-select {
+                padding: 7px 10px !important;
+                height: 38px !important;
+                font-size: 0.82rem !important;
+                border-radius: 8px !important;
+                border: 1px solid var(--border) !important;
+                background: var(--bg-color) !important;
+                color: var(--text-color) !important;
+                font-weight: 500 !important;
+                cursor: pointer;
+            }
+            .emp-filter-select:focus {
+                border-color: var(--primary) !important;
+                outline: none;
+            }
+            .emp-filters-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 12px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border);
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            /* List View */
+            .emp-list-container {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 6px 0;
+            }
+            .emp-list-header {
+                display: grid;
+                grid-template-columns: 2.2fr 1.6fr 1.4fr 1.4fr 1fr;
+                gap: 16px;
+                padding: 10px 24px;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+                color: var(--sidebar-text);
+                font-weight: 700;
+            }
+            .emp-list-row {
+                display: grid;
+                grid-template-columns: 2.2fr 1.6fr 1.4fr 1.4fr 1fr;
+                gap: 16px;
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                padding: 18px 24px;
+                align-items: center;
+                transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.3s ease;
+            }
+            .emp-list-row:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+                border-color: var(--primary-light);
+            }
+
+            /* Grid View */
+            .emp-grid-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                gap: 18px;
+                padding: 6px 0;
+            }
+            .emp-card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+                transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+            }
+            .emp-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+            }
+
+            .data-label {
+                font-size: 0.7rem;
+                color: var(--sidebar-text);
+                text-transform: uppercase;
+                font-weight: 700;
+                margin-bottom: 3px;
+            }
+            .data-value {
+                font-size: 0.85rem;
+                color: var(--text-color);
+                font-weight: 600;
+            }
+
+            /* Mobile & Tablet Responsive Media Queries */
+            @media (max-width: 992px) {
+                .emp-header-card {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .emp-header-actions {
+                    justify-content: flex-start;
+                }
+                .emp-search-box {
+                    flex: 1 1 100%;
+                    min-width: 100%;
+                }
+                .emp-list-header {
+                    display: none !important;
+                }
+                .emp-list-row {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 14px !important;
+                    padding: 18px !important;
+                    align-items: stretch !important;
+                }
+                .emp-list-row > div {
+                    border-bottom: 1px solid var(--border);
+                    padding-bottom: 10px;
+                }
+                .emp-list-row > div:last-child {
+                    border-bottom: none;
+                    padding-bottom: 0;
+                }
+            }
+
+            @media (max-width: 600px) {
+                .emp-filters-grid {
+                    grid-template-columns: 1fr 1fr;
+                }
+                .emp-header-actions {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .emp-header-actions .btn,
+                .emp-header-actions button {
+                    width: 100% !important;
+                    justify-content: center !important;
+                }
+                .emp-grid-container {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+
+        <div class="emp-main-wrapper">
+            <!-- Header Bar -->
+            <div class="emp-header-card">
+                <div>
+                    <h2 id="employee-page-title" style="margin: 0; color: var(--text-color); font-size: 1.45rem; font-weight: 700;">Department Employees</h2>
+                    <p style="margin: 4px 0 0 0; font-size: 0.88rem; color: var(--sidebar-text);">Manage your department's staff, roles, shifts, and documents.</p>
+                </div>
+
+                <div class="emp-header-actions">
+                    <button onclick="setWorkerFilter('all'); switchTab('overview')" class="btn btn-outline"
+                        style="background: var(--card-bg); padding: 8px 14px; font-size: 0.85rem; border-radius: 8px;">
+                        ← Back to Dashboard
+                    </button>
+
+                    <button class="btn" style="background:#25d366; color:white; border-radius:8px; padding:8px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px; border:none; cursor:pointer;" onclick="shareDashboardCard('total_employees')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        <span>Share Employees</span>
+                    </button>
+
+                    <!-- View Toggle -->
+                    <div class="view-toggle"
+                        style="display: flex; background: var(--bg-color); border-radius: 8px; padding: 3px; border: 1px solid var(--border);">
+                        <button class="view-btn active" onclick="setEmpView('list')" id="btn-emp-list" title="List View"
+                            style="padding: 6px 10px; border: none; background: var(--card-bg); color: var(--primary); border-radius: 6px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                        </button>
+                        <button class="view-btn" onclick="setEmpView('grid')" id="btn-emp-grid" title="Card View"
+                            style="padding: 6px 10px; border: none; background: transparent; color: var(--sidebar-text); border-radius: 6px; cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="emp-search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="emp-search" placeholder="Search name, ID, CID, passport, phone..."
+                            class="form-control" onkeyup="filterEmployees()">
+                    </div>
+
+                    <!-- Single Clean Export Builder Button -->
+                    <button class="btn btn-outline" onclick="openEmployeeExportModal()" title="Export Employee Reports & Custom Columns"
+                        style="background: var(--card-bg); color: var(--primary); border: 1px solid var(--primary); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <i class="fas fa-sliders"></i> Export Builder
+                    </button>
+
+                    <!-- Bulk Upload -->
+                    <button class="btn btn-outline"
+                        onclick="document.getElementById('importEmployeeModal').style.display='flex'"
+                        style="background: #0284c7; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <i class="fas fa-upload"></i> Bulk Upload
+                    </button>
+
+                    <!-- Add Employee -->
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('addEmployeeModal').style.display='flex'"
+                        style="padding: 8px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <i class="fas fa-user-plus"></i> Add Employee
+                    </button>
+                </div>
+            </div>
+
+            <!-- Spacious Filter Card -->
+            <div class="emp-filters-card">
+                <div class="emp-filters-header">
+                    <i class="fas fa-filter" style="color: var(--primary);"></i>
+                    <span>Employee Filters</span>
+                </div>
+                
+                <div class="emp-filters-grid">
+                    <!-- Worker Type / Nationality -->
+                    <select id="filter-worker-type" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">🌍 All Workers</option>
+                        <option value="national">🇧🇹 National (Bhutanese)</option>
+                        <option value="foreign">🌐 Foreign Workers</option>
+                    </select>
+                    
+                    <!-- Employment Status -->
+                    <select id="filter-status" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">⚡ All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="on leave">On Leave</option>
+                        <option value="terminated">Terminated</option>
+                    </select>
+                    
+                    <!-- Department -->
+                    <select id="filter-dept" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">🏢 All Departments</option>
+                    </select>
+
+                    <!-- Designation / Role -->
+                    <select id="filter-designation" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">💼 All Designations</option>
+                    </select>
+
+                    <!-- Shift -->
+                    <select id="filter-shift" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">⏰ All Shifts</option>
+                        <option value="general">General</option>
+                        <option value="shift a">Shift A (Morning)</option>
+                        <option value="shift b">Shift B (Evening)</option>
+                        <option value="shift c">Shift C (Night)</option>
+                    </select>
+
+                    <!-- Contractor / Agency -->
+                    <select id="filter-agency" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">🏛️ All Agencies</option>
+                    </select>
+
+                    <!-- Blood Group -->
+                    <select id="filter-blood" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">🩸 Blood Group</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+
+                    <!-- Permit Expiry Status -->
+                    <select id="filter-expiry" class="emp-filter-select" onchange="filterEmployees()">
+                        <option value="all">📅 All Expiries</option>
+                        <option value="expired">⚠️ Expired</option>
+                        <option value="30">⏳ In 30 Days</option>
+                        <option value="60">⏳ In 60 Days</option>
+                        <option value="90">⏳ In 90 Days</option>
+                        <option value="valid">✅ Valid Only</option>
+                    </select>
+                </div>
+
+                <div class="emp-filters-footer">
+                    <button onclick="resetEmpFilters()" class="btn btn-outline"
+                        style="padding: 6px 14px; font-size: 0.82rem; border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;"
+                        title="Reset all filters">
+                        <i class="fas fa-rotate-left"></i> Reset Filters
+                    </button>
+
+                    <div id="filter-results-count"
+                        style="font-size: 0.85rem; font-weight: 600; color: var(--sidebar-text); background: var(--bg-color); padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);">
+                        {{ emp_data|length }} employees
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIST VIEW -->
+            <div id="emp-list-view">
+                <div class="emp-list-header">
+                    <div>Employee Info</div>
+                    <div>Role, Dept & Shift</div>
+                    <div>Contact & Agency</div>
+                    <div>Passport, CID & Permits</div>
+                    <div>Actions</div>
+                </div>
+
+                <div class="emp-list-container">
+                    {% for emp in emp_data %}
+                    <div class="emp-list-row emp-item emp-row-{{ emp.id }}"
+                        data-search="{{ emp.name|lower }} {{ emp.emp_id|lower }} {{ emp.department|lower }} {{ emp.designation|lower }} {{ emp.nationality|lower }} {{ emp.contact_info|lower }} {{ emp.passport_details|lower }} {{ emp.work_permit_no|lower }} {{ emp.contractor_agency|lower }} {{ emp.cid_number|lower }} {{ emp.blood_group|lower }} {{ emp.current_shift|lower }} {{ emp.joining_date|date:'d M Y'|lower }}"
+                        data-status="{{ emp.status|default:'Active'|lower }}"
+                        data-dept="{{ emp.department|default:'' }}"
+                        data-nationality="{{ emp.nationality|default:''|lower }}"
+                        data-designation="{{ emp.designation|default:'' }}"
+                        data-shift="{{ emp.current_shift|default:'General'|lower }}"
+                        data-agency="{{ emp.contractor_agency|default:'Direct' }}"
+                        data-blood="{{ emp.blood_group|default:'' }}"
+                        data-expiry="{{ emp.work_permit_expiry|date:'Y-m-d'|default:'' }}">
+                        <!-- Info -->
+                        <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <div
+                                style="width: 44px; height: 44px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; font-weight: 700; flex-shrink: 0;">
+                                {{ emp.name|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div style="color: var(--text-color); font-weight: 700; font-size: 0.95rem;">{{ emp.name|default:"Unnamed" }}</div>
+                                <div style="font-size: 0.8rem; color: var(--sidebar-text); margin-top: 2px;">ID: <span style="font-weight:700; color:var(--primary);">{{ emp.emp_id|default:"-" }}</span></div>
+                                <div style="font-size: 0.75rem; color: var(--sidebar-text); display: flex; gap: 6px; margin-top: 4px; align-items: center; flex-wrap: wrap;">
+                                    <span>🌍 {{ emp.nationality|default:"-" }}</span>
+                                    {% if emp.blood_group %}
+                                    <span style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:1px 5px; border-radius:4px; font-weight:700; font-size:0.65rem;">🩸 {{ emp.blood_group }}</span>
+                                    {% endif %}
+                                    {% if emp.status == 'Active' %}
+                                    <span style="background:#d1fae5; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:700; font-size:0.65rem; text-transform:uppercase;">Active</span>
+                                    {% elif emp.status == 'On Leave' %}
+                                    <span style="background:#fef3c7; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:700; font-size:0.65rem; text-transform:uppercase;">On Leave</span>
+                                    {% elif emp.status == 'Terminated' %}
+                                    <span style="background:#fee2e2; color:#ef4444; padding:2px 6px; border-radius:4px; font-weight:700; font-size:0.65rem; text-transform:uppercase;">Terminated</span>
+                                    {% else %}
+                                    <span style="background:var(--bg-color); color:var(--text-color); padding:2px 6px; border-radius:4px; font-weight:700; font-size:0.65rem; text-transform:uppercase;">{{ emp.status|default:"Active" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Role, Dept & Shift -->
+                        <div style="line-height: 1.5;">
+                            <div class="data-value" style="font-weight: 700;">{{ emp.designation|default:"-" }}</div>
+                            <div style="font-size: 0.8rem; color: var(--sidebar-text);">Dept: <b style="color:var(--text-color);">{{ emp.department|default:"-" }}</b></div>
+                            <div style="font-size: 0.75rem; color: var(--sidebar-text); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                                <span>⏰ Shift:</span> <span style="background: var(--bg-color); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); font-weight: 600; color: var(--text-color);">{{ emp.current_shift|default:"General" }}</span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--sidebar-text); margin-top: 2px;">
+                                <strong>Joined:</strong> {{ emp.joining_date|date:"d M Y"|default:"Not Set" }}
+                            </div>
+                        </div>
+
+                        <!-- Contact & Agency -->
+                        <div style="line-height: 1.5;">
+                            <div class="data-value" style="display: flex; align-items: center; gap: 4px;">
+                                📞 <a href="tel:{{ emp.contact_info }}" style="color:inherit; text-decoration:none;">{{ emp.contact_info|default:"-" }}</a>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--sidebar-text); margin-top: 4px;">
+                                <strong style="color:var(--text-color);">Agency:</strong><br>
+                                {{ emp.contractor_agency|default:"Direct / None" }}
+                            </div>
+                        </div>
+
+                        <!-- Passport, CID & Permit -->
+                        <div style="line-height: 1.5;">
+                            <div style="font-size: 0.8rem; color: var(--text-color);">
+                                <strong style="color:var(--sidebar-text);">🪪 CID / ID:</strong>
+                                <span style="font-weight: 600;">{{ emp.cid_number|default:emp.passport_details|default:"N/A" }}</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-color); margin-top: 3px;">
+                                <strong style="color:var(--sidebar-text);">WP / Pass:</strong> {{ emp.work_permit_no|default:emp.passport_details|default:"N/A" }}
+                            </div>
+                            {% if emp.work_permit_expiry %}
+                            <div style="font-size: 0.75rem; margin-top: 3px; color: var(--primary);">
+                                <strong>Expiry:</strong> {{ emp.work_permit_expiry|date:"d M Y" }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            {% if emp.document_upload %}
+                            <a href="{{ emp.document_upload.url }}" target="_blank" class="btn btn-outline"
+                                style="padding: 5px 10px; font-size: 0.75rem; color: var(--primary); border-color: var(--primary); height: fit-content; border-radius: 6px;"
+                                title="View {{ emp.document_type|default:'Document' }}">
+                                <span style="display: flex; align-items: center; gap: 4px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                    {{ emp.document_type|default:'Doc' }}
+                                </span>
+                            </a>
+                            {% endif %}
+                            <button class="btn btn-outline"
+                                style="padding: 5px 12px; font-size: 0.75rem; height: fit-content; border-radius: 6px;"
+                                onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'">Edit</button>
+                            <button type="button" class="btn btn-outline"
+                                onclick="deleteEmployeeAjax(event, '{{ emp.id }}', '{{ emp.name|escapejs }}')"
+                                style="padding: 5px 12px; font-size: 0.75rem; border-color: #ef4444; color: #ef4444; background: #fee2e2; height: fit-content; border-radius: 6px;">Delete</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div
+                        style="text-align: center; padding: 40px; color: var(--sidebar-text); background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);">
+                        No employees found in the system.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- GRID VIEW (CARD) -->
+            <div id="emp-grid-view" style="display: none;">
+                <div class="emp-grid-container">
+                    {% for emp in emp_data %}
+                    <div class="emp-card emp-item emp-card-{{ emp.id }}"
+                        data-search="{{ emp.name|lower }} {{ emp.emp_id|lower }} {{ emp.department|lower }} {{ emp.designation|lower }} {{ emp.nationality|lower }} {{ emp.contact_info|lower }} {{ emp.passport_details|lower }} {{ emp.work_permit_no|lower }} {{ emp.contractor_agency|lower }} {{ emp.cid_number|lower }} {{ emp.blood_group|lower }} {{ emp.current_shift|lower }} {{ emp.joining_date|date:'d M Y'|lower }}"
+                        data-status="{{ emp.status|default:'Active'|lower }}"
+                        data-dept="{{ emp.department|default:'' }}"
+                        data-nationality="{{ emp.nationality|default:''|lower }}"
+                        data-designation="{{ emp.designation|default:'' }}"
+                        data-shift="{{ emp.current_shift|default:'General'|lower }}"
+                        data-agency="{{ emp.contractor_agency|default:'Direct' }}"
+                        data-blood="{{ emp.blood_group|default:'' }}"
+                        data-expiry="{{ emp.work_permit_expiry|date:'Y-m-d'|default:'' }}">
+
+                        <div
+                            style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, transparent 100%);">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div
+                                    style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), #818cf8); color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: bold; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);">
+                                    {{ emp.name|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: var(--text-color); font-size: 1.05rem; font-weight: 700;">{{ emp.name|default:"Unnamed" }}</h4>
+                                    <div style="font-size: 0.8rem; color: var(--sidebar-text); margin-top: 2px;">ID: <span style="color: var(--primary); font-weight: 700;">{{ emp.emp_id|default:"-" }}</span></div>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                                {% if emp.status == 'Active' %}
+                                <span style="background:#dcfce7; color:#16a34a; padding:4px 8px; border-radius:20px; font-weight:700; font-size:0.65rem; text-transform:uppercase; border: 1px solid #bbf7d0;">Active</span>
+                                {% elif emp.status == 'On Leave' %}
+                                <span style="background:#fef9c3; color:#ca8a04; padding:4px 8px; border-radius:20px; font-weight:700; font-size:0.65rem; text-transform:uppercase; border: 1px solid #fef08a;">On Leave</span>
+                                {% elif emp.status == 'Terminated' %}
+                                <span style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:20px; font-weight:700; font-size:0.65rem; text-transform:uppercase; border: 1px solid #fecaca;">Terminated</span>
+                                {% else %}
+                                <span style="background:var(--bg-color); color:var(--text-color); padding:4px 8px; border-radius:20px; font-weight:700; font-size:0.65rem; text-transform:uppercase; border: 1px solid var(--border);">{{ emp.status|default:"Active" }}</span>
+                                {% endif %}
+                                {% if emp.blood_group %}
+                                <span style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:2px 6px; border-radius:4px; font-weight:700; font-size:0.65rem;">🩸 {{ emp.blood_group }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div style="padding: 16px; flex-grow: 1; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);">
+                                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-color);">{{ emp.designation|default:"-" }}</span>
+                                <span style="font-size: 0.75rem; color: var(--sidebar-text); background: var(--card-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 600;">{{ emp.department|default:"-" }}</span>
+                            </div>
+
+                            <!-- Info Grid -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">🪪 CID / Nat ID</div>
+                                    <div class="data-value" style="font-weight: 600;">{{ emp.cid_number|default:"-" }}</div>
+                                </div>
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">⏰ Current Shift</div>
+                                    <div class="data-value" style="font-weight: 600;">{{ emp.current_shift|default:"General" }}</div>
+                                </div>
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">🌍 Nationality</div>
+                                    <div class="data-value">{{ emp.nationality|default:"-" }}</div>
+                                </div>
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">📞 Contact</div>
+                                    <div class="data-value"><a href="tel:{{ emp.contact_info }}" style="color:inherit; text-decoration:none;">{{ emp.contact_info|default:"-" }}</a></div>
+                                </div>
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">🏢 Agency</div>
+                                    <div class="data-value">{{ emp.contractor_agency|default:"Direct" }}</div>
+                                </div>
+                                <div>
+                                    <div class="data-label" style="font-size: 0.7rem; color: var(--sidebar-text);">📅 Joined</div>
+                                    <div class="data-value">{{ emp.joining_date|date:"d M Y"|default:"Not Set" }}</div>
+                                </div>
+                            </div>
+
+                            <div
+                                style="background: rgba(79, 70, 229, 0.04); border: 1px dashed rgba(79, 70, 229, 0.3); padding: 10px; border-radius: 8px;">
+                                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--sidebar-text);">Passport No:</span>
+                                        <span style="color: var(--text-color); font-weight: 600;">{{ emp.passport_details|default:"N/A" }}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--sidebar-text);">Work Permit:</span>
+                                        <span style="color: var(--text-color); font-weight: 600;">{{ emp.work_permit_no|default:"N/A" }}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--sidebar-text);">WP Expiry:</span>
+                                        <span style="color: {% if emp.work_permit_expiry %}var(--text-color){% else %}var(--sidebar-text){% endif %}; font-weight: 600;">
+                                            {% if emp.work_permit_expiry %}{{ emp.work_permit_expiry|date:"d M Y" }}{% else %}Not Set{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            style="padding: 12px 16px; background: var(--bg-color); border-top: 1px solid var(--border); display: flex; gap: 8px;">
+                            <button class="btn btn-primary"
+                                style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; border-radius: 6px;"
+                                onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg> Edit Profile
+                            </button>
+                            {% if emp.document_upload %}
+                            <a href="{{ emp.document_upload.url }}" target="_blank" class="btn btn-outline"
+                                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.8rem; border-color: var(--primary); color: var(--primary); border-radius: 6px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg> Doc
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-outline"
+                                onclick="deleteEmployeeAjax(event, '{{ emp.id }}', '{{ emp.name|escapejs }}')"
+                                style="border-color: #ef4444; color: #ef4444; background: #fee2e2; display: flex; align-items: center; justify-content: center; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;"
+                                title="Delete Employee">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--sidebar-text);">No
+                        employees found in the system.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Employees Modal -->
+        <div id="importEmployeeModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+            <div class="card" style="width: 90%; max-width: 450px; border-radius: 20px; background: var(--card-bg);">
+                <div
+                    style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; border-radius: 20px 20px 0 0;">
+                    <h3 style="margin: 0; color: var(--text-color);">Upload Employees Excel</h3>
+                    <button type="button" onclick="document.getElementById('importEmployeeModal').style.display='none'"
+                        style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+                </div>
+                <form action="{% url 'import_employees' %}" method="POST" enctype="multipart/form-data"
+                    style="padding: 2rem;">
+                    {% csrf_token %}
+                    <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                        Excel columns like Name, Emp_ID, Nationality, Designation, Department, etc. will be
+                        automatically read.
+                        <br><br>
+                        <a href="{% url 'download_employee_template' %}"
+                            style="color: var(--primary); text-decoration: none; font-weight: bold;">
+                            <i class="fas fa-download"></i> Download Sample Excel Format
+                        </a>
+                    </p>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <input type="file" name="excel_file" accept=".xlsx, .xls, .csv" required class="form-control"
+                            style="width: 100%; padding: 0.75rem;">
+                    </div>
+                    <button type="submit" class="btn"
+                        style="width:100%; padding:1rem; background: var(--success); color: white; font-weight: bold; border-radius: 8px;">Upload
+                        Data</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Employee Modal -->
+        <div id="addEmployeeModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+            <div class="card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <h3>Add Employee Details</h3>
+                <form action="{% url 'add_employee' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div><label>Name</label><input type="text" name="name" class="form-control" required></div>
+                        <div><label>Employee ID</label><input type="text" name="emp_id" class="form-control" required>
+                        </div>
+                        <div><label>Nationality</label><input type="text" name="nationality" class="form-control"></div>
+                        <div><label>Designation</label><input type="text" name="designation" class="form-control"></div>
+                        <div><label>Department</label><input type="text" name="department" class="form-control"></div>
+                        <div><label>Joining Date</label><input type="date" name="joining_date" class="form-control">
+                        </div>
+                        <div><label>Work Permit Number</label><input type="text" name="work_permit_no"
+                                class="form-control"></div>
+                        <div><label>Valid upto (Expiry)</label><input type="date" name="work_permit_expiry"
+                                class="form-control"></div>
+                        <div><label>Passport/ID Details</label><input type="text" name="passport_details"
+                                class="form-control"></div>
+                        <div><label>Contact Number</label><input type="text" name="contact_info" class="form-control">
+                        </div>
+                        <div><label>Employment Status</label>
+                            <select name="status" class="form-control">
+                                <option value="Active">Active</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Terminated">Terminated</option>
+                            </select>
+                        </div>
+                        <div><label>CID / National ID</label><input type="text" name="cid_number" class="form-control" placeholder="e.g. 10905001234"></div>
+                        <div><label>Blood Group</label>
+                            <select name="blood_group" class="form-control">
+                                <option value="">Select Blood Group</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                        <div><label>Current Shift</label>
+                            <select name="current_shift" class="form-control">
+                                <option value="General">General (09:00 - 17:00)</option>
+                                <option value="Shift A (Morning)">Shift A (Morning 06:00 - 14:00)</option>
+                                <option value="Shift B (Evening)">Shift B (Evening 14:00 - 22:00)</option>
+                                <option value="Shift C (Night)">Shift C (Night 22:00 - 06:00)</option>
+                            </select>
+                        </div>
+                        <div><label>Contractor / Agency</label><input type="text" name="contractor_agency"
+                                class="form-control"></div>
+                        <div style="grid-column: 1/-1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label>Document Type</label>
+                                <select name="document_type" class="form-control">
+                                    <option value="General Document">General Document</option>
+                                    <option value="Passport">Passport</option>
+                                    <option value="Work Permit">Work Permit</option>
+                                    <option value="Medical Certificate">Medical Certificate</option>
+                                    <option value="ID Card">ID Card</option>
+                                    <option value="Contract">Contract</option>
+                                    <option value="Driving License">Driving License</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Document Upload</label>
+                                <input type="file" name="document_upload" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Save Employee</button>
+                        <button type="button" class="btn btn-outline" style="flex:1;"
+                            onclick="closeModalAndPrevent(event, 'addEmployeeModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% for emp in emp_data %}
+        <div id="editEmployeeModal_{{ emp.id }}"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+            <div class="card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <h3>Edit Employee Details</h3>
+                <form action="{% url 'edit_employee_action' emp.id %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div><label>Name</label><input type="text" name="name" class="form-control"
+                                value="{{ emp.name|default:'' }}"></div>
+                        <div><label>Employee ID</label><input type="text" name="emp_id" class="form-control"
+                                value="{{ emp.emp_id|default:'' }}"></div>
+                        <div><label>Nationality</label><input type="text" name="nationality" class="form-control"
+                                value="{{ emp.nationality|default:'' }}"></div>
+                        <div><label>Designation</label><input type="text" name="designation" class="form-control"
+                                value="{{ emp.designation|default:'' }}"></div>
+                        <div><label>Department</label><input type="text" name="department" class="form-control"
+                                value="{{ emp.department|default:'' }}"></div>
+                        <div><label>Joining Date</label><input type="date" name="joining_date" class="form-control"
+                                value="{{ emp.joining_date|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Work Permit Number</label><input type="text" name="work_permit_no"
+                                class="form-control" value="{{ emp.work_permit_no|default:'' }}"></div>
+                        <div><label>Valid upto (Expiry)</label><input type="date" name="work_permit_expiry"
+                                class="form-control" value="{{ emp.work_permit_expiry|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Passport/ID Details</label><input type="text" name="passport_details"
+                                class="form-control" value="{{ emp.passport_details|default:'' }}"></div>
+                        <div><label>Contact Number</label><input type="text" name="contact_info" class="form-control"
+                                value="{{ emp.contact_info|default:'' }}"></div>
+                        <div><label>Employment Status</label>
+                            <select name="status" class="form-control">
+                                <option value="Active" {% if emp.status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="On Leave" {% if emp.status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                                <option value="Terminated" {% if emp.status == 'Terminated' %}selected{% endif %}>Terminated</option>
+                            </select>
+                        </div>
+                        <div><label>CID / National ID</label><input type="text" name="cid_number" class="form-control"
+                                value="{{ emp.cid_number|default:'' }}"></div>
+                        <div><label>Blood Group</label>
+                            <select name="blood_group" class="form-control">
+                                <option value="" {% if not emp.blood_group %}selected{% endif %}>Select Blood Group</option>
+                                <option value="A+" {% if emp.blood_group == 'A+' %}selected{% endif %}>A+</option>
+                                <option value="A-" {% if emp.blood_group == 'A-' %}selected{% endif %}>A-</option>
+                                <option value="B+" {% if emp.blood_group == 'B+' %}selected{% endif %}>B+</option>
+                                <option value="B-" {% if emp.blood_group == 'B-' %}selected{% endif %}>B-</option>
+                                <option value="AB+" {% if emp.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
+                                <option value="AB-" {% if emp.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
+                                <option value="O+" {% if emp.blood_group == 'O+' %}selected{% endif %}>O+</option>
+                                <option value="O-" {% if emp.blood_group == 'O-' %}selected{% endif %}>O-</option>
+                            </select>
+                        </div>
+                        <div><label>Current Shift</label>
+                            <select name="current_shift" class="form-control">
+                                <option value="General" {% if emp.current_shift == 'General' or not emp.current_shift %}selected{% endif %}>General (09:00 - 17:00)</option>
+                                <option value="Shift A (Morning)" {% if emp.current_shift == 'Shift A (Morning)' %}selected{% endif %}>Shift A (Morning 06:00 - 14:00)</option>
+                                <option value="Shift B (Evening)" {% if emp.current_shift == 'Shift B (Evening)' %}selected{% endif %}>Shift B (Evening 14:00 - 22:00)</option>
+                                <option value="Shift C (Night)" {% if emp.current_shift == 'Shift C (Night)' %}selected{% endif %}>Shift C (Night 22:00 - 06:00)</option>
+                            </select>
+                        </div>
+                        <div><label>Contractor / Agency</label><input type="text" name="contractor_agency"
+                                class="form-control" value="{{ emp.contractor_agency|default:'' }}"></div>
+                        <div style="grid-column: 1/-1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label>Document Type</label>
+                                <select name="document_type" class="form-control">
+                                    <option value="General Document" {% if emp.document_type == 'General Document' %}selected{% endif %}>General Document</option>
+                                    <option value="Passport" {% if emp.document_type == 'Passport' %}selected{% endif %}>Passport</option>
+                                    <option value="Work Permit" {% if emp.document_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
+                                    <option value="Medical Certificate" {% if emp.document_type == 'Medical Certificate' %}selected{% endif %}>Medical Certificate</option>
+                                    <option value="ID Card" {% if emp.document_type == 'ID Card' %}selected{% endif %}>ID Card</option>
+                                    <option value="Contract" {% if emp.document_type == 'Contract' %}selected{% endif %}>Contract</option>
+                                    <option value="Driving License" {% if emp.document_type == 'Driving License' %}selected{% endif %}>Driving License</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Document Upload</label>
+                                <input type="file" name="document_upload" class="form-control">
+                                {% if emp.document_upload %}
+                                <small>Current: <a href="{{ emp.document_upload.url }}" target="_blank">View {{ emp.document_type|default:'Document' }}</a></small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Update Employee</button>
+                        <button type="button" class="btn btn-outline" style="flex:1;"
+                            onclick="closeModalAndPrevent(event, 'editEmployeeModal_{{ emp.id }}')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+<!-- Custom Employee Export Builder Modal -->
+<div id="employeeExportModal" class="adv-exp-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 680px; max-height: 90vh; overflow-y: auto; border-radius: 16px; background: var(--card-bg); padding: 0; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);">
+        <div style="padding: 1.25rem 1.5rem; background: var(--bg-color); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-radius: 16px 16px 0 0;">
+            <h3 style="margin: 0; color: var(--text-color); font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Employee Custom Export Builder
+            </h3>
+            <button type="button" onclick="closeEmployeeExportModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        
+        <div style="padding: 1.5rem;">
+            <!-- Report Title -->
+            <div style="margin-bottom: 1.25rem;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-color); display: block; margin-bottom: 6px;">
+                    Report Title / Heading:
+                </label>
+                <input type="text" id="emp-custom-exp-title" class="form-control" value="Employees Directory & Audit Report" style="width: 100%; font-weight: 600;">
+            </div>
+
+            <!-- Filter Controls inside Modal -->
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 1.25rem;">
+                <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; color: var(--text-color);">
+                    <i class="fas fa-filter" style="color:var(--primary);"></i> Filters to Apply:
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.82rem;">
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 600; display: block; margin-bottom: 4px;">Department:</label>
+                        <select id="emp-exp-modal-dept" class="form-control" style="width: 100%;">
+                            <option value="all">All Departments</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 600; display: block; margin-bottom: 4px;">Status:</label>
+                        <select id="emp-exp-modal-status" class="form-control" style="width: 100%;">
+                            <option value="all">All Statuses</option>
+                            <option value="Active">Active Only</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Terminated">Terminated</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 600; display: block; margin-bottom: 4px;">Worker Type:</label>
+                        <select id="emp-exp-modal-worker-type" class="form-control" style="width: 100%;">
+                            <option value="all">All Workers</option>
+                            <option value="national">National (Bhutanese)</option>
+                            <option value="foreign">Foreign Workers</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 600; display: block; margin-bottom: 4px;">Shift:</label>
+                        <select id="emp-exp-modal-shift" class="form-control" style="width: 100%;">
+                            <option value="all">All Shifts</option>
+                            <option value="General">General</option>
+                            <option value="Shift A (Morning)">Shift A (Morning)</option>
+                            <option value="Shift B (Evening)">Shift B (Evening)</option>
+                            <option value="Shift C (Night)">Shift C (Night)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Selection -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-color);">
+                        Select Columns to Include:
+                    </label>
+                    <div style="font-size: 0.75rem; display: flex; gap: 8px;">
+                        <a href="javascript:void(0)" onclick="toggleAllEmpCols(true)" style="color: var(--primary); text-decoration: underline;">Select All</a>
+                        <span>•</span>
+                        <a href="javascript:void(0)" onclick="toggleAllEmpCols(false)" style="color: var(--sidebar-text); text-decoration: underline;">Deselect All</a>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.82rem; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="SL.NO" checked> Sl No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="EMPLOYEE ID" checked> Employee ID</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="NAME" checked> Name</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="CID / NATIONAL ID" checked> CID / National ID</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="DESIGNATION" checked> Designation</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="DEPARTMENT" checked> Department</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="CURRENT SHIFT" checked> Shift</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="BLOOD GROUP" checked> Blood Group</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="NATIONALITY" checked> Nationality</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="CONTACT INFO" checked> Contact Info</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="CONTRACTOR / AGENCY" checked> Agency</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="PASSPORT NO" checked> Passport No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="WORK PERMIT NO" checked> Work Permit No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="PERMIT EXPIRY" checked> Permit Expiry</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="JOINING DATE" checked> Joining Date</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="emp-exp-col" value="STATUS" checked> Status</label>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 1rem 1.5rem; background: var(--bg-color); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 16px 16px;">
+            <button type="button" onclick="closeEmployeeExportModal()" class="btn btn-outline" style="padding: 8px 16px;">Cancel</button>
+            <button type="button" onclick="runEmployeeCustomExport('excel')" style="background: #10b981; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-file-excel"></i> Generate Excel
+            </button>
+            <button type="button" onclick="runEmployeeCustomExport('pdf')" style="background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-file-pdf"></i> Generate PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="advancedExportModal" class="adv-exp-modal">
+    <div class="adv-exp-content" style="max-width: 780px;">
+        <div class="adv-exp-header">
+            <h2><i class="fa-solid fa-sliders" style="color: #2563eb; margin-right:8px;"></i> Custom Export Builder</h2>
+            <span class="adv-exp-close" onclick="closeExportModal()">&times;</span>
+        </div>
+
+        <div class="adv-exp-body">
+            <div
+                style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label
+                    style="font-weight: 700; font-size: 0.95rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> Custom Report Title (Heading):
+                </label>
+                <input type="text" id="export-report-title" class="adv-select"
+                    value="P&M Department Audit & Expiry Report" style="margin-top: 8px; font-weight: 600;">
+            </div>
+
+            <div class="adv-module-card">
+                <div class="adv-module-header">
+                    <input type="checkbox" id="mod-emp-check" onchange="toggleOptions('emp')" checked>
+                    <i class="fa-solid fa-users" style="color: #8b5cf6;"></i> Employees Data
+                </div>
+                <div class="adv-module-options" id="opt-emp" style="display: block;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; font-size: 0.9rem;">Select Columns to Export:</label>
+                        <div class="adv-checkbox-grid"
+                            style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
+                            <label><input type="checkbox" class="emp-col" value="Emp ID" checked> Emp ID</label>
+                            <label><input type="checkbox" class="emp-col" value="Name" checked> Name</label>
+                            <label><input type="checkbox" class="emp-col" value="Nationality" checked>
+                                Nationality</label>
+                            <label><input type="checkbox" class="emp-col" value="Designation" checked>
+                                Designation</label>
+                            <label><input type="checkbox" class="emp-col" value="Department" checked> Department</label>
+                            <label><input type="checkbox" class="emp-col" value="Contact Info" checked> Contact
+                                Info</label>
+                            <label><input type="checkbox" class="emp-col" value="Work Permit No" checked> Work Permit
+                                No</label>
+                            <label><input type="checkbox" class="emp-col" value="Work Permit Expiry" checked> Permit
+                                Expiry</label>
+                            <label><input type="checkbox" class="emp-col" value="Passport Details"> Passport
+                                Details</label>
+                            <label><input type="checkbox" class="emp-col" value="Contractor Agency"> Contractor
+                                Agency</label>
+                            <label><input type="checkbox" class="emp-col" value="Status" checked> Status</label>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-weight: 600; font-size: 0.9rem;">Filter by Worker Type:</label>
+                            <select id="emp-filter-type" class="adv-select">
+                                <option value="all">All Workers</option>
+                                <option value="national">National Workers (Bhutanese)</option>
+                                <option value="foreign">Foreign Workers (Non-Bhutanese)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; font-size: 0.9rem;">Filter by Employment Status:</label>
+                            <select id="emp-filter-status" class="adv-select">
+                                <option value="all">All Statuses</option>
+                                <option value="Active">Active Only</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Terminated">Terminated</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="adv-module-card">
+                <div class="adv-module-header">
+                    <input type="checkbox" id="mod-doc-check" onchange="toggleOptions('doc')" checked>
+                    <i class="fa-solid fa-file-contract" style="color: #ef4444;"></i> Documents & Expiry Alerts
+                </div>
+                <div class="adv-module-options" id="opt-doc" style="display: block;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-weight: 600; font-size: 0.9rem;">Document Category:</label>
+                            <select id="doc-filter-type" class="adv-select">
+                                <option value="all">All Document Categories</option>
+                                <option value="employee">Asset Permits & Documents</option>
+                                <option value="vehicle">Vehicle Registration (RC)</option>
+                                <option value="insurance">Insurance Policies</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; font-size: 0.9rem;">Filter by Expiry Status:</label>
+                            <select id="doc-filter-exp-status" class="adv-select">
+                                <option value="all">All Expiry Statuses</option>
+                                <option value="expired">Expired Only 🔴</option>
+                                <option value="critical">Expiring in 30 Days (Critical) ⚠️</option>
+                                <option value="warning">Expiring in 30-90 Days (Warning) 🟡</option>
+                                <option value="valid">Valid / Active Only 🟢</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="adv-exp-footer">
+            <button class="btn-exp-excel" onclick="runAdvancedExport('excel')"><i class="fa-solid fa-file-excel"></i>
+                Generate Excel</button>
+            <button class="btn-exp-pdf" onclick="runAdvancedExport('pdf')"><i class="fa-solid fa-file-pdf"></i> Generate
+                PDF</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openExportModal() { document.getElementById('advancedExportModal').style.display = 'flex'; }
+    function closeExportModal() { document.getElementById('advancedExportModal').style.display = 'none'; }
+    function toggleOptions(mod) {
+        const el = document.getElementById('mod-' + mod + '-check');
+        if (el) {
+            document.getElementById('opt-' + mod).style.display = el.checked ? 'block' : 'none';
+        }
+    }
+
+    function getSafeCsrfToken() {
+        if (typeof getCookie === 'function') {
+            const token = getCookie('csrftoken');
+            if (token) return token;
+        }
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        return '{{ csrf_token }}';
+    }
+
+    function runAdvancedExport(format) {
+        const payload = {
+            format: format,
+            report_title: document.getElementById('export-report-title')?.value || 'P&M Department Custom Report',
+            modules: {}
+        };
+
+        if (document.getElementById('mod-emp-check')?.checked) {
+            const cols = Array.from(document.querySelectorAll('.emp-col:checked')).map(cb => cb.value);
+            payload.modules.employees = {
+                columns: cols,
+                worker_type: document.getElementById('emp-filter-type')?.value || 'all',
+                status: document.getElementById('emp-filter-status')?.value || 'all'
+            };
+        }
+        if (document.getElementById('mod-doc-check')?.checked) {
+            payload.modules.documents = {
+                type: document.getElementById('doc-filter-type')?.value || 'all',
+                exp_status: document.getElementById('doc-filter-exp-status')?.value || 'all'
+            };
+        }
+
+        if (Object.keys(payload.modules).length === 0) {
+            alert("Please select at least one module to export.");
+            return;
+        }
+
+        if (typeof showToast !== 'undefined') showToast('Building Custom ' + format.toUpperCase() + ' Report...', 'success');
+
+        fetch('/api/export-portal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getSafeCsrfToken()
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(async response => {
+                if (!response.ok) throw new Error('Export failed with status ' + response.status);
+                if (format === 'excel') {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = (payload.report_title.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    const htmlText = await response.text();
+                    const win = window.open('', '_blank');
+                    if (win) {
+                        win.document.write(htmlText);
+                        win.document.close();
+                    } else {
+                        alert('Pop-up blocked! Please allow pop-ups for this site to view the PDF report.');
+                    }
+                }
+                closeExportModal();
+            })
+            .catch(err => {
+                console.error('Export Error:', err);
+                alert('Error generating export: ' + err.message);
+            });
+    }
+</script>
+
+<script>
+    function deleteEmployeeAjax(event, empId, empName) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (!confirm('Are you sure you want to delete ' + (empName || 'this employee') + '?')) {
+            return;
+        }
+
+        const token = getSafeCsrfToken();
+        const rows = document.querySelectorAll('.emp-row-' + empId + ', .emp-card-' + empId);
+        
+        rows.forEach(r => {
+            r.style.transition = 'all 0.35s ease';
+            r.style.opacity = '0.3';
+            r.style.pointerEvents = 'none';
+        });
+
+        fetch('/employee/' + empId + '/delete_action/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': token,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'ajax=1&csrfmiddlewaretoken=' + encodeURIComponent(token)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                rows.forEach(r => {
+                    r.style.opacity = '0';
+                    r.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        r.remove();
+                        filterEmployees();
+                    }, 350);
+                });
+                
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Employee deleted successfully', 'success');
+                } else {
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:600;font-size:0.9rem;box-shadow:0 8px 25px rgba(0,0,0,0.2);z-index:99999;transition:all 0.4s ease;';
+                    toast.textContent = data.message || 'Employee deleted successfully';
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(20px)';
+                        setTimeout(() => toast.remove(), 400);
+                    }, 3000);
+                }
+            } else {
+                alert('Failed to delete employee: ' + (data.message || 'Unknown error'));
+                rows.forEach(r => {
+                    r.style.opacity = '1';
+                    r.style.pointerEvents = 'auto';
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Delete error:', err);
+            alert('Error deleting employee: ' + err.message);
+            rows.forEach(r => {
+                r.style.opacity = '1';
+                r.style.pointerEvents = 'auto';
+            });
+        });
+    }
+
+    function switchTab(tabId) {
+        const validTabs = ['overview', 'vehicles', 'employees'];
+        if (!tabId || !validTabs.includes(tabId)) {
+            tabId = 'overview';
+        }
+
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+
+        let target = document.getElementById('tab-' + tabId);
+        if (!target) {
+            tabId = 'overview';
+            target = document.getElementById('tab-overview');
+        }
+
+        if (target) {
+            target.classList.add('active');
+            target.style.display = 'block';
+        }
+
+        const preloadStyle = document.getElementById('tab-preload-style');
+        if (preloadStyle) preloadStyle.remove();
+
+        document.querySelectorAll('.fs-item').forEach(el => el.classList.remove('active'));
+
+        if (tabId === 'overview') document.getElementById('fs-nav-overview')?.classList.add('active');
+        else if (tabId === 'vehicles') document.getElementById('fs-nav-vehicles')?.classList.add('active');
+        else if (tabId === 'employees') {
+            const filter = document.getElementById('filter-worker-type')?.value || 'all';
+            if (filter === 'foreign') document.getElementById('fs-nav-employees-foreign')?.classList.add('active');
+            else if (filter === 'national') document.getElementById('fs-nav-employees-national')?.classList.add('active');
+            else document.getElementById('fs-nav-employees-all')?.classList.add('active');
+        }
+
+        try { sessionStorage.setItem('activeDashboardTab', tabId); } catch(e) {}
+        try {
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('tab', tabId);
+            window.history.replaceState({}, '', newUrl);
+        } catch(e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        const filterParam = urlParams.get('filter');
+        
+        if (tabParam) {
+            if (tabParam === 'employees' && filterParam) {
+                setWorkerFilter(filterParam);
+            }
+            switchTab(tabParam);
+        } else {
+            const savedTab = sessionStorage.getItem('activeDashboardTab');
+            switchTab(savedTab || 'overview');
+        }
+    });
+
+    function setWorkerFilter(type) {
+        const sel = document.getElementById('filter-worker-type');
+        if (sel) {
+            sel.value = type;
+        }
+        filterEmployees();
+    }
+
+    function setEmpView(viewType) {
+        document.getElementById('btn-emp-list')?.classList.remove('active');
+        document.getElementById('btn-emp-grid')?.classList.remove('active');
+        document.getElementById('btn-emp-' + viewType)?.classList.add('active');
+
+        if (viewType === 'list') {
+            document.getElementById('emp-list-view').style.display = 'block';
+            document.getElementById('emp-grid-view').style.display = 'none';
+        } else {
+            document.getElementById('emp-list-view').style.display = 'none';
+            document.getElementById('emp-grid-view').style.display = 'block';
+        }
+    }
+
+    // Populate Department, Designation, and Agency dropdowns dynamically
+    function populateEmpFilterDropdowns() {
+        const depts = new Set();
+        const desigs = new Set();
+        const agencies = new Set();
+
+        document.querySelectorAll('.emp-item').forEach(item => {
+            const d = item.getAttribute('data-dept');
+            const role = item.getAttribute('data-designation');
+            const ag = item.getAttribute('data-agency');
+
+            if (d && d.trim()) depts.add(d.trim());
+            if (role && role.trim()) desigs.add(role.trim());
+            if (ag && ag.trim() && ag.trim().toLowerCase() !== 'direct' && ag.trim().toLowerCase() !== 'none') agencies.add(ag.trim());
+        });
+
+        const deptSelect = document.getElementById('filter-dept');
+        const modalDeptSelect = document.getElementById('emp-exp-modal-dept');
+        if (deptSelect) {
+            Array.from(depts).sort().forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                deptSelect.appendChild(opt);
+                if (modalDeptSelect) {
+                    const mOpt = document.createElement('option');
+                    mOpt.value = d;
+                    mOpt.textContent = d;
+                    modalDeptSelect.appendChild(mOpt);
+                }
+            });
+        }
+
+        const desigSelect = document.getElementById('filter-designation');
+        if (desigSelect) {
+            Array.from(desigs).sort().forEach(role => {
+                const opt = document.createElement('option');
+                opt.value = role;
+                opt.textContent = role;
+                desigSelect.appendChild(opt);
+            });
+        }
+
+        const agencySelect = document.getElementById('filter-agency');
+        if (agencySelect) {
+            Array.from(agencies).sort().forEach(ag => {
+                const opt = document.createElement('option');
+                opt.value = ag;
+                opt.textContent = ag;
+                agencySelect.appendChild(opt);
+            });
+        }
+    }
+
+    function filterEmployees() {
+        const search = (document.getElementById('emp-search')?.value || '').toLowerCase().trim();
+        const wType = document.getElementById('filter-worker-type')?.value || 'all';
+        const status = (document.getElementById('filter-status')?.value || 'all').toLowerCase();
+        const dept = document.getElementById('filter-dept')?.value || 'all';
+        const desig = document.getElementById('filter-designation')?.value || 'all';
+        const shift = (document.getElementById('filter-shift')?.value || 'all').toLowerCase();
+        const agency = document.getElementById('filter-agency')?.value || 'all';
+        const blood = document.getElementById('filter-blood')?.value || 'all';
+        const expiry = document.getElementById('filter-expiry')?.value || 'all';
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let count = 0;
+        const allItems = document.querySelectorAll('.emp-item');
+        const totalCount = allItems.length / 2; // list view + grid view
+
+        allItems.forEach(item => {
+            const itemSearch = item.getAttribute('data-search') || '';
+            const itemStatus = (item.getAttribute('data-status') || '').toLowerCase();
+            const itemDept = item.getAttribute('data-dept') || '';
+            const itemNat = (item.getAttribute('data-nationality') || '').toLowerCase();
+            const itemDesig = item.getAttribute('data-designation') || '';
+            const itemShift = (item.getAttribute('data-shift') || '').toLowerCase();
+            const itemAgency = item.getAttribute('data-agency') || '';
+            const itemBlood = item.getAttribute('data-blood') || '';
+            const itemExpiryStr = item.getAttribute('data-expiry') || '';
+
+            let match = true;
+
+            // Search text filter
+            if (search && !itemSearch.includes(search)) match = false;
+
+            // Worker type filter
+            if (wType === 'national' && !itemNat.includes('bhutan')) match = false;
+            if (wType === 'foreign' && itemNat.includes('bhutan')) match = false;
+
+            // Status filter
+            if (status !== 'all' && status !== itemStatus) match = false;
+
+            // Department filter
+            if (dept !== 'all' && dept !== itemDept) match = false;
+
+            // Designation filter
+            if (desig !== 'all' && desig !== itemDesig) match = false;
+
+            // Shift filter
+            if (shift !== 'all' && !itemShift.includes(shift)) match = false;
+
+            // Agency filter
+            if (agency !== 'all' && agency !== itemAgency) match = false;
+
+            // Blood group filter
+            if (blood !== 'all' && blood !== itemBlood) match = false;
+
+            // Expiry filter
+            if (expiry !== 'all') {
+                if (!itemExpiryStr) {
+                    if (expiry !== 'all') match = false;
+                } else {
+                    const expDate = new Date(itemExpiryStr);
+                    const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+                    if (expiry === 'expired' && diffDays >= 0) match = false;
+                    else if (expiry === '30' && (diffDays < 0 || diffDays > 30)) match = false;
+                    else if (expiry === '60' && (diffDays < 0 || diffDays > 60)) match = false;
+                    else if (expiry === '90' && (diffDays < 0 || diffDays > 90)) match = false;
+                    else if (expiry === 'valid' && diffDays < 0) match = false;
+                }
+            }
+
+            if (match) {
+                item.style.display = '';
+                count++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        const effectiveCount = Math.floor(count / 2);
+        const countEl = document.getElementById('filter-results-count');
+        if (countEl) {
+            countEl.textContent = effectiveCount + ' / ' + totalCount + ' employees';
+            if (effectiveCount < totalCount) {
+                countEl.style.borderColor = 'var(--primary)';
+                countEl.style.color = 'var(--primary)';
+            } else {
+                countEl.style.borderColor = 'var(--border)';
+                countEl.style.color = 'var(--sidebar-text)';
+            }
+        }
+    }
+
+    function resetEmpFilters() {
+        if (document.getElementById('emp-search')) document.getElementById('emp-search').value = '';
+        if (document.getElementById('filter-worker-type')) document.getElementById('filter-worker-type').value = 'all';
+        if (document.getElementById('filter-status')) document.getElementById('filter-status').value = 'all';
+        if (document.getElementById('filter-dept')) document.getElementById('filter-dept').value = 'all';
+        if (document.getElementById('filter-designation')) document.getElementById('filter-designation').value = 'all';
+        if (document.getElementById('filter-shift')) document.getElementById('filter-shift').value = 'all';
+        if (document.getElementById('filter-agency')) document.getElementById('filter-agency').value = 'all';
+        if (document.getElementById('filter-blood')) document.getElementById('filter-blood').value = 'all';
+        if (document.getElementById('filter-expiry')) document.getElementById('filter-expiry').value = 'all';
+        filterEmployees();
+    }
+
+    // Quick Export Functions
+    function quickExportEmployees(format) {
+        const params = new URLSearchParams();
+        const search = document.getElementById('emp-search')?.value || '';
+        const wType = document.getElementById('filter-worker-type')?.value || 'all';
+        const status = document.getElementById('filter-status')?.value || 'all';
+        const dept = document.getElementById('filter-dept')?.value || 'all';
+        const desig = document.getElementById('filter-designation')?.value || 'all';
+        const shift = document.getElementById('filter-shift')?.value || 'all';
+        const agency = document.getElementById('filter-agency')?.value || 'all';
+        const blood = document.getElementById('filter-blood')?.value || 'all';
+        const expiry = document.getElementById('filter-expiry')?.value || 'all';
+
+        if (search) params.set('q', search);
+        if (wType !== 'all') params.set('worker_type', wType);
+        if (status !== 'all') params.set('status', status);
+        if (dept !== 'all') params.set('department', dept);
+        if (desig !== 'all') params.set('designation', desig);
+        if (shift !== 'all') params.set('shift', shift);
+        if (agency !== 'all') params.set('agency', agency);
+        if (blood !== 'all') params.set('blood_group', blood);
+        if (expiry !== 'all') params.set('expiry', expiry);
+
+        const url = (format === 'excel' ? '/api/employees/export-excel/?' : '/api/employees/export-pdf/?') + params.toString();
+        
+        if (format === 'pdf') {
+            window.open(url, '_blank');
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    // Custom Export Builder Functions
+    function openEmployeeExportModal() {
+        // Sync active filters to modal
+        const curDept = document.getElementById('filter-dept')?.value || 'all';
+        const curStatus = document.getElementById('filter-status')?.value || 'all';
+        const curWType = document.getElementById('filter-worker-type')?.value || 'all';
+        const curShift = document.getElementById('filter-shift')?.value || 'all';
+
+        if (document.getElementById('emp-exp-modal-dept')) document.getElementById('emp-exp-modal-dept').value = curDept;
+        if (document.getElementById('emp-exp-modal-status')) document.getElementById('emp-exp-modal-status').value = curStatus;
+        if (document.getElementById('emp-exp-modal-worker-type')) document.getElementById('emp-exp-modal-worker-type').value = curWType;
+        if (document.getElementById('emp-exp-modal-shift')) document.getElementById('emp-exp-modal-shift').value = curShift;
+
+        document.getElementById('employeeExportModal').style.display = 'flex';
+    }
+
+    function closeEmployeeExportModal() {
+        document.getElementById('employeeExportModal').style.display = 'none';
+    }
+
+    function toggleAllEmpCols(checked) {
+        document.querySelectorAll('.emp-exp-col').forEach(cb => cb.checked = checked);
+    }
+
+    function runEmployeeCustomExport(format) {
+        const title = document.getElementById('emp-custom-exp-title')?.value || 'Employees Directory Report';
+        const dept = document.getElementById('emp-exp-modal-dept')?.value || 'all';
+        const status = document.getElementById('emp-exp-modal-status')?.value || 'all';
+        const workerType = document.getElementById('emp-exp-modal-worker-type')?.value || 'all';
+        const shift = document.getElementById('emp-exp-modal-shift')?.value || 'all';
+        const search = document.getElementById('emp-search')?.value || '';
+
+        const cols = Array.from(document.querySelectorAll('.emp-exp-col:checked')).map(cb => cb.value);
+        if (cols.length === 0) {
+            alert('Please select at least one column to export.');
+            return;
+        }
+
+        const payload = {
+            format: format,
+            report_title: title,
+            department: dept,
+            status: status,
+            worker_type: workerType,
+            shift: shift,
+            search: search,
+            columns: cols
+        };
+
+        fetch('/api/employees/export/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getSafeCsrfToken()
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(async response => {
+            if (!response.ok) throw new Error('Export failed with status ' + response.status);
+            if (format === 'excel') {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (title.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                const htmlText = await response.text();
+                const win = window.open('', '_blank');
+                if (win) {
+                    win.document.write(htmlText);
+                    win.document.close();
+                } else {
+                    alert('Pop-up blocked! Please allow pop-ups to view PDF report.');
+                }
+            }
+            closeEmployeeExportModal();
+        })
+        .catch(err => {
+            console.error('Export Error:', err);
+            alert('Error generating report: ' + err.message);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        populateEmpFilterDropdowns();
+        filterEmployees();
+    });
+
+    document.getElementById('emp-search')?.addEventListener('input', filterEmployees);
+    document.getElementById('filter-worker-type')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-status')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-dept')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-designation')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-shift')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-agency')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-blood')?.addEventListener('change', filterEmployees);
+    document.getElementById('filter-expiry')?.addEventListener('change', filterEmployees);
+
+    function openKundali(vid) {
+        if (vid && vid !== '0') {
+            window.location.href = '/fleet/kundali/' + vid + '/';
+        }
+    }
+
+    function filterVehicles() {
+        const search = (document.getElementById('veh-search')?.value || '').toLowerCase();
+        const own = document.getElementById('veh-ownership-filter')?.value || 'all';
+
+        let count = 0;
+        document.querySelectorAll('#veh-tbody tr').forEach(tr => {
+            if (tr.children.length === 1) return;
+            const text = tr.innerText.toLowerCase();
+            const trOwn = (tr.children[3]?.innerText || '').toLowerCase();
+
+            let match = true;
+            if (search && !text.includes(search)) match = false;
+
+            if (own === 'inhouse' && !trOwn.includes('in-house')) match = false;
+            if (own === 'hired' && !trOwn.includes('hired')) match = false;
+
+            if (match) {
+                tr.style.display = '';
+                count++;
+            } else {
+                tr.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('vehicle-visible-count');
+        if (countEl) countEl.textContent = count;
+    }
+
+    document.getElementById('veh-search')?.addEventListener('input', filterVehicles);
+    document.getElementById('veh-ownership-filter')?.addEventListener('change', filterVehicles);
+
+    function closeModalAndPrevent(event, modalId) {
+        if (event) event.preventDefault();
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'none';
+    }
+
+    (function () {
+        const COUNT_MAP = {
+            'deployments': '[data-live="deployments"]',
+            'employees': '[data-live="employees"]',
+            'national': '[data-live="national"]',
+            'foreign': '[data-live="foreign"]',
+            'vehicles': '[data-live="vehicles"]',
+            'lubricants_cost': '[data-live="lubricants_cost"]',
+            'spare_parts_val': '[data-live="spare_parts_val"]',
+            'expired_docs': '[data-live="expired_docs"]',
+            'shift_day': '[data-live="shift_day"]',
+            'shift_night': '[data-live="shift_night"]',
+            'vehicle_movements': '[data-live="vehicle_movements"]',
+            'tyre_count': '[data-live="tyre_count"]',
+        };
+
+        function flashEl(el) {
+            el.style.transition = 'color 0.4s';
+            el.style.color = '#6366f1';
+            setTimeout(() => el.style.color = '', 1200);
+        }
+
+        function fetchAndUpdate() {
+            fetch('/api/live/dashboard/')
+                .then(r => r.json())
+                .then(data => {
+                    Object.entries(COUNT_MAP).forEach(([key, sel]) => {
+                        if (data[key] !== undefined) {
+                            document.querySelectorAll(sel).forEach(el => {
+                                if (el.textContent != data[key]) {
+                                    el.textContent = data[key];
+                                    flashEl(el);
+                                }
+                            });
+                        }
+                    });
+
+                    if (data.previews) {
+                        Object.entries(data.previews).forEach(([key, val]) => {
+                            document.querySelectorAll(`[data-live-preview="${key}"]`).forEach(el => {
+                                const newVal = String(val ?? '0');
+                                if (el.textContent !== newVal) {
+                                    el.textContent = newVal;
+                                    flashEl(el);
+                                }
+                            });
+                        });
+                    }
+                })
+                .catch(() => { });
+        }
+
+        fetchAndUpdate();
+        setInterval(fetchAndUpdate, 6000);
+    })();
+
+    function checkManagerChatUnread() {
+        fetch('/api/chat/unread/')
+            .then(r => r.json())
+            .then(data => {
+                const total = data.total || 0;
+                const badge = document.getElementById('fs-unread-badge');
+                if (badge) {
+                    if (total > 0) {
+                        badge.textContent = total > 99 ? '99+' : total;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                const cardBadge = document.getElementById('dash-chat-unread-count');
+                if (cardBadge) {
+                    if (total > 0) {
+                        cardBadge.textContent = total > 99 ? '99+' : total;
+                        cardBadge.style.display = 'inline-block';
+                    } else {
+                        cardBadge.style.display = 'none';
+                    }
+                }
+                const subtext = document.getElementById('dash-chat-unread-subtext');
+                if (subtext) {
+                    if (total > 0 && data.last_msg && data.last_msg.sender) {
+                        const sendersText = data.senders_count > 1 ? ` (${data.senders_count} people)` : '';
+                        subtext.innerHTML = `<span style="color:#ef4444; font-weight:700;">New: ${data.last_msg.sender}${sendersText}</span><br><span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; display:inline-block; margin-top:2px;">"${data.last_msg.content}" (${data.last_msg.time})</span>`;
+                    } else {
+                        subtext.innerText = 'Real-time Messaging';
+                    }
+                }
+            })
+            .catch(() => { });
+    }
+    checkManagerChatUnread();
+    setInterval(checkManagerChatUnread, 6000);
+</script>
+
+<!-- Live update banner -->
+<div id="dash-live-banner"
+    style="display:none; position:fixed; bottom:24px; right:24px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; padding:14px 22px; border-radius:14px; box-shadow:0 8px 30px rgba(99,102,241,0.4); z-index:9999; align-items:center; gap:14px; font-weight:600; font-size:0.95rem; animation: slideUp 0.4s ease;">
+    <span>🔔 <span class="dash-banner-count">New data available</span></span>
+    <button onclick="location.reload()"
+        style="background:white; color:#4f46e5; border:none; padding:7px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem;">Reload</button>
+    <button onclick="document.getElementById('dash-live-banner').style.display='none'"
+        style="background:transparent; color:rgba(255,255,255,0.7); border:none; font-size:1.3rem; cursor:pointer; padding:0 4px;">×</button>
+</div>
+<style>
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+</div><!-- end dashboard-main-content -->
+{% endif %}
+{% endblock %}

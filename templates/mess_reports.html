@@ -1,0 +1,883 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mess Management - Detailed Consumption & Reports Hub
+<!-- ============================================================ -->
+<!-- PDF EXPORT & FILTER POPUP MODAL                              -->
+<!-- ============================================================ -->
+<div id="messPdfModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: #ffffff; border-radius: 20px; width: 100%; max-width: 580px; max-height: 92vh; overflow-y: auto; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+        
+        <!-- MODAL HEADER -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.5rem;">📄</span>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">
+                        Export Mess Consumption Report
+                    </h3>
+                </div>
+                <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: #64748b;">
+                    Filter records by facility, date range, meal window, and generate a printable PDF or Excel.
+                </p>
+            </div>
+            <button type="button" onclick="closeMessPdfModal()" style="background: #f1f5f9; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: 800; cursor: pointer; color: #64748b; font-size: 1.1rem;">✕</button>
+        </div>
+
+        <form id="messPdfExportForm" onsubmit="generateMessPdf(event)">
+            
+            <!-- SCOPE / PRESET BUTTONS -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 8px;">
+                    ⚡ Quick Presets (Scope)
+                </label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="preset-btn active" onclick="setPdfPreset('today', this)">Today</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('yesterday', this)">Yesterday</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('week', this)">Last 7 Days</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('month', this)">This Month</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('all', this)" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;">🌐 All Data</button>
+                </div>
+            </div>
+
+            <!-- DATE RANGE (DATE-WISE) -->
+            <div id="pdfDateRangeBox" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                <div>
+                    <label style="font-size: 0.76rem; font-weight: 800; color: #475569; display: block; margin-bottom: 4px;">📅 From Date</label>
+                    <input type="date" id="pdf_from_date" class="form-control" value="{{ today_date|date:'Y-m-d' }}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <label style="font-size: 0.76rem; font-weight: 800; color: #475569; display: block; margin-bottom: 4px;">📅 To Date</label>
+                    <input type="date" id="pdf_to_date" class="form-control" value="{{ today_date|date:'Y-m-d' }}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <!-- MESS LOCATION (MESS-WISE) -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                    🏢 Mess Location (Facility Filter)
+                </label>
+                <select id="pdf_mess_id" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.88rem;">
+                    <option value="ALL">🏢 All Mess Facilities (Consolidated Summary)</option>
+                    {% for m in mess_locations %}
+                    <option value="{{ m.id }}" {% if selected_mess == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }} {% if m.contractor_agency %}({{ m.contractor_agency }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- MEAL WINDOW (LUNCH, BREAKFAST, DINNER WISE) -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                    🍽️ Meal Window (Timing Filter)
+                </label>
+                <select id="pdf_meal_type" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.88rem;">
+                    <option value="ALL">🍽️ All Meals (Breakfast + Lunch + Dinner + Snacks)</option>
+                    <option value="BREAKFAST" {% if selected_meal == 'BREAKFAST' %}selected{% endif %}>🌅 Breakfast Only</option>
+                    <option value="LUNCH" {% if selected_meal == 'LUNCH' %}selected{% endif %}>☀️ Lunch Only</option>
+                    <option value="DINNER" {% if selected_meal == 'DINNER' %}selected{% endif %}>🌙 Dinner Only</option>
+                    <option value="SNACKS" {% if selected_meal == 'SNACKS' %}selected{% endif %}>☕ Evening Tea &amp; Snacks Only</option>
+                </select>
+            </div>
+
+            <!-- STATUS & DEPARTMENT -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                        Status
+                    </label>
+                    <select id="pdf_status" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                        <option value="ALL">All Status</option>
+                        <option value="SUCCESS" selected>🟢 Served / Success Only</option>
+                        <option value="DUPLICATE">🔴 Blocked Duplicates Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                        Department
+                    </label>
+                    <select id="pdf_department" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                        <option value="ALL">All Departments</option>
+                        {% for d in departments %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px; flex-wrap: wrap; gap: 10px;">
+                <button type="button" onclick="downloadPdfExcel()" class="btn" style="background: #10b981; color: white; font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    <span>📥</span> Export Filtered Excel
+                </button>
+                
+                <div style="display: inline-flex; gap: 8px;">
+                    <button type="button" onclick="closeMessPdfModal()" class="btn btn-outline" style="font-weight: 700; border-radius: 10px;">Cancel</button>
+                    <button type="submit" class="btn" style="background: #dc2626; color: white; font-weight: 800; font-size: 0.88rem; padding: 10px 22px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(220,38,38,0.35);">
+                        <span>📄</span> Generate PDF Report
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<style>
+    .preset-btn {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    .preset-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+</style>
+
+<script>
+let currentPdfScope = 'date';
+
+function openMessPdfModal() {
+    document.getElementById('messPdfModal').style.display = 'flex';
+}
+
+function closeMessPdfModal() {
+    document.getElementById('messPdfModal').style.display = 'none';
+}
+
+function setPdfPreset(preset, btn) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const fromInput = document.getElementById('pdf_from_date');
+    const toInput = document.getElementById('pdf_to_date');
+    const dateBox = document.getElementById('pdfDateRangeBox');
+
+    const todayStr = '{{ today_date|date:"Y-m-d" }}';
+    let today = todayStr ? new Date(todayStr + 'T12:00:00') : new Date();
+
+    function formatDate(d) {
+        let year = d.getFullYear();
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    if (preset === 'all') {
+        currentPdfScope = 'all';
+        fromInput.value = '';
+        toInput.value = '';
+        dateBox.style.opacity = '0.5';
+    } else {
+        currentPdfScope = 'date';
+        dateBox.style.opacity = '1';
+
+        if (preset === 'today') {
+            fromInput.value = formatDate(today);
+            toInput.value = formatDate(today);
+        } else if (preset === 'yesterday') {
+            const yest = new Date(today);
+            yest.setDate(yest.getDate() - 1);
+            fromInput.value = formatDate(yest);
+            toInput.value = formatDate(yest);
+        } else if (preset === 'week') {
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 6);
+            fromInput.value = formatDate(weekAgo);
+            toInput.value = formatDate(today);
+        } else if (preset === 'month') {
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            fromInput.value = formatDate(monthStart);
+            toInput.value = formatDate(today);
+        }
+    }
+}
+
+function buildPdfUrl(isExcel = false) {
+    const fromDate = document.getElementById('pdf_from_date').value;
+    const toDate = document.getElementById('pdf_to_date').value;
+    const messId = document.getElementById('pdf_mess_id').value;
+    const mealType = document.getElementById('pdf_meal_type').value;
+    const status = document.getElementById('pdf_status').value;
+    const dept = document.getElementById('pdf_department').value;
+
+    const base = isExcel ? '/mess/export-excel/' : '/mess/export-pdf/';
+    let params = new URLSearchParams();
+
+    if (currentPdfScope === 'all') {
+        params.append('scope', 'all');
+    } else {
+        if (fromDate) params.append('from_date', fromDate);
+        if (toDate) params.append('to_date', toDate);
+    }
+
+    if (messId && messId !== 'ALL') params.append('mess_id', messId);
+    if (mealType && mealType !== 'ALL') params.append('meal_type', mealType);
+    if (status && status !== 'ALL') params.append('status', status);
+    if (dept && dept !== 'ALL') params.append('department', dept);
+
+    return base + '?' + params.toString();
+}
+
+function generateMessPdf(e) {
+    e.preventDefault();
+    const url = buildPdfUrl(false);
+    window.open(url, '_blank');
+}
+
+function downloadPdfExcel() {
+    const url = buildPdfUrl(true);
+    window.location.href = url;
+}
+</script>
+
+{% endblock %}
+
+{% block content %}
+<style>
+    .reports-container { max-width: 1280px; margin: 1.5rem auto; padding: 0 1rem; }
+    .reports-header-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0369a1 100%);
+        color: #ffffff; padding: 1.5rem 2rem; border-radius: 20px; margin-bottom: 1.5rem;
+        box-shadow: 0 12px 30px -5px rgba(15, 23, 42, 0.35);
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+    }
+    
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .kpi-stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-stat-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 4px;
+    }
+    .kpi-total::after { background: #2563eb; }
+    .kpi-workers::after { background: #10b981; }
+    .kpi-bf::after { background: #f59e0b; }
+    .kpi-lunch::after { background: #ea580c; }
+    .kpi-dinner::after { background: #8b5cf6; }
+    .kpi-night::after { background: #06b6d4; }
+    .kpi-blocked::after { background: #ef4444; }
+
+    .mess-breakdown-box {
+        background: white; border-radius: 16px; padding: 16px 20px;
+        border: 1px solid #e2e8f0; margin-bottom: 1.5rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    }
+    
+    .filter-card {
+        background: white; border-radius: 16px; padding: 18px 20px;
+        border: 1px solid #e2e8f0; margin-bottom: 1.5rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    }
+
+    .table-container {
+        background: white; border-radius: 18px; padding: 20px;
+        border: 1px solid #e2e8f0; box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+        overflow-x: auto;
+    }
+
+    .detailed-table {
+        width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;
+    }
+    .detailed-table th {
+        background: #f8fafc; color: #475569; padding: 12px 10px;
+        font-weight: 800; font-size: 0.76rem; text-transform: uppercase;
+        letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .detailed-table td {
+        padding: 12px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+    }
+    .detailed-table tr:hover {
+        background: #f8fafc;
+    }
+</style>
+
+<div class="reports-container">
+
+    <!-- TOP HEADER -->
+    <div class="reports-header-banner">
+        <div>
+            <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; color: #38bdf8;">
+                Executive Canteen Ledger &amp; Consumption Analytics
+            </div>
+            <h1 style="margin: 4px 0 6px 0; font-size: 1.6rem; font-weight: 900;">
+                🍱 Mess Consumption &amp; Meal Audit Ledgers
+            </h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 0.88rem;">
+                Complete record of who ate, when they ate, and in which mess location.
+            </p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="openMessPdfModal()" class="btn" style="background: #dc2626; color: white; font-weight: 800; padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(220,38,38,0.35);">
+                <span>📄</span> Export PDF Report
+            </button>
+            <a href="{% url 'export_mess_excel' %}?from_date={{ from_date }}&to_date={{ to_date }}&search={{ search_query }}&mess_id={{ selected_mess }}&meal_type={{ selected_meal }}&department={{ selected_dept }}&status={{ selected_status }}" class="btn" style="background: #10b981; color: white; font-weight: 800; padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                <span>📥</span> Download Excel (.xlsx)
+            </a>
+            <a href="{% url 'mess_monitor_view' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white; font-weight: 700; padding: 9px 16px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <span>⚙️</span> Manager Monitor
+            </a>
+            <a href="{% url 'mess_user_view' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white; font-weight: 700; padding: 9px 16px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <span>👤</span> Worker Portal
+            </a>
+        </div>
+    </div>
+
+    <!-- MASTER STATS KPI CARDS: HEADCOUNT & CONSUMPTION TIMELINE -->
+    <div class="kpi-grid">
+        <div class="kpi-stat-card kpi-workers">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #059669; text-transform: uppercase;">👥 Diners Served (Unique Workers)</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #065f46; margin: 4px 0;">{{ unique_workers_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Unique Workers Served</span>
+        </div>
+        <div class="kpi-stat-card kpi-total">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #2563eb; text-transform: uppercase;">🍱 Total Meals Served</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #1e3a8a; margin: 4px 0;">{{ total_meals_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Total Meals Punched</span>
+        </div>
+        <div class="kpi-stat-card kpi-bf">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #d97706; text-transform: uppercase;">🌅 Breakfast</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #92400e; margin: 4px 0;">{{ bf_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Morning Meals</span>
+        </div>
+        <div class="kpi-stat-card kpi-lunch">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #ea580c; text-transform: uppercase;">☀️ Lunch</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #9a3412; margin: 4px 0;">{{ lunch_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Afternoon Meals</span>
+        </div>
+        <div class="kpi-stat-card kpi-dinner">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #7c3aed; text-transform: uppercase;">🌙 Dinner</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #5b21b6; margin: 4px 0;">{{ dinner_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Evening Meals</span>
+        </div>
+        <div class="kpi-stat-card kpi-night">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #0891b2; text-transform: uppercase;">🌌 Night Refreshment</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #155e75; margin: 4px 0;">{{ night_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Night Shift Meals</span>
+        </div>
+        <div class="kpi-stat-card kpi-blocked">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #dc2626; text-transform: uppercase;">⛔ Blocked Attempts</span>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #991b1b; margin: 4px 0;">{{ duplicate_blocked_count }}</div>
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Duplicate / Blocked Claims</span>
+        </div>
+    </div>
+
+    <!-- MESS DISTRIBUTION: FACILITY BREAKDOWN -->
+    <div class="mess-breakdown-box">
+        <div style="font-weight: 800; font-size: 0.95rem; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <span>🏢</span> Meals Served by Mess Location (Distribution Breakdown):
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            {% for ms in mess_stats %}
+            <div style="background: #f8fafc; border: 1.5px solid {% if selected_mess == ms.loc.id|stringformat:'s' %}#2563eb{% else %}#e2e8f0{% endif %}; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 800; font-size: 0.92rem; color: #0f172a;">📍 {{ ms.loc.name }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Contractor: <b>{{ ms.contractor }}</b></div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.3rem; font-weight: 900; color: #2563eb;">{{ ms.count }}</div>
+                    <div style="font-size: 0.7rem; font-weight: 700; color: #64748b;">Meals Served</div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="color: #64748b; font-size: 0.85rem;">No mess locations active.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ADVANCED MULTI-FILTER BAR -->
+    <div class="filter-card">
+        <form method="GET" action="{% url 'mess_reports_view' %}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">🔎 Search Worker / ID / Phone / Token</label>
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="e.g. Ramesh, 2843, 9876543210..." class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem; font-weight: 600;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">📅 From Date</label>
+                    <input type="date" name="from_date" value="{{ from_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">📅 To Date</label>
+                    <input type="date" name="to_date" value="{{ to_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">🏢 Mess Location</label>
+                    <select name="mess_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL">All Mess Locations</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}" {% if selected_mess == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">🍽️ Meal Window</label>
+                    <select name="meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL">All Meals (Breakfast/Lunch/Dinner/Night)</option>
+                        <option value="BREAKFAST" {% if selected_meal == 'BREAKFAST' %}selected{% endif %}>Breakfast</option>
+                        <option value="LUNCH" {% if selected_meal == 'LUNCH' %}selected{% endif %}>Lunch</option>
+                        <option value="DINNER" {% if selected_meal == 'DINNER' %}selected{% endif %}>Dinner</option>
+                        <option value="NIGHT_REFRESHMENT" {% if selected_meal == 'NIGHT_REFRESHMENT' %}selected{% endif %}>Night Refreshment</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">📁 Department</label>
+                    <select name="department" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="">All Departments</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+                <a href="{% url 'mess_reports_view' %}" class="btn" style="background: #e2e8f0; color: #475569; font-weight: 700; border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 0.88rem;">
+                    🔄 Reset Filters
+                </a>
+                <button type="submit" class="btn" style="background: #2563eb; color: white; font-weight: 800; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer; font-size: 0.88rem;">
+                    🔍 Apply Search &amp; Filters
+                </button>
+                <a href="{% url 'export_mess_excel' %}?from_date={{ from_date }}&to_date={{ to_date }}&search={{ search_query }}&mess_id={{ selected_mess }}&meal_type={{ selected_meal }}&department={{ selected_dept }}&status={{ selected_status }}" class="btn" style="background: #10b981; color: white; font-weight: 800; border-radius: 8px; padding: 8px 18px; border: none; cursor: pointer; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    📥 Export Excel
+                </a>
+                <button type="button" onclick="window.print()" class="btn" style="background: #475569; color: white; font-weight: 800; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-size: 0.88rem;">
+                    🖨️ Print
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- DETAILED MEAL CONSUMPTION LEDGER TABLE -->
+    <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📋</span> Detailed Meal Consumption Records
+                </h3>
+                <p style="margin: 2px 0 0 0; color: #64748b; font-size: 0.82rem;">
+                    Showing exact timing, worker profile, mess counter, and authorization token
+                </p>
+            </div>
+            <span style="background: #dbeafe; color: #1e40af; font-weight: 800; font-size: 0.82rem; padding: 6px 14px; border-radius: 30px;">
+                Total Records: {{ total_count }}
+            </span>
+        </div>
+
+        <table class="detailed-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>📅 Meal Date &amp; Time</th>
+                    <th>🍽️ Meal Window</th>
+                    <th>🏢 Mess Location</th>
+                    <th>👤 Worker Details</th>
+                    <th>💼 Department &amp; Post</th>
+                    <th>📍 Assigned Mess</th>
+                    <th>🎫 Pass Token</th>
+                    <th>📱 Mode</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="color: #94a3b8; font-weight: 700;">{{ forloop.counter }}</td>
+                    
+                    <!-- CONSUMPTION TIMELINE: EXACT DATE & TIME -->
+                    <td style="white-space: nowrap;">
+                        <div style="font-weight: 800; color: #0f172a; font-size: 0.88rem;">
+                            {{ log.date|date:'d M Y' }}
+                        </div>
+                        <div style="color: #0284c7; font-weight: 700; font-size: 0.78rem; font-family: monospace;">
+                            ⏱️ {{ log.punch_time|date:'h:i:s A' }}
+                        </div>
+                    </td>
+
+                    <!-- MEAL WINDOW: BREAKFAST / LUNCH / DINNER -->
+                    <td>
+                        <span style="font-weight: 800; font-size: 0.78rem; padding: 4px 10px; border-radius: 6px; display: inline-block; {% if log.meal_type == 'BREAKFAST' %}background: #fef3c7; color: #92400e;{% elif log.meal_type == 'LUNCH' %}background: #ffedd5; color: #9a3412;{% elif log.meal_type == 'DINNER' %}background: #ede9fe; color: #5b21b6;{% else %}background: #cffafe; color: #155e75;{% endif %}">
+                            {% if log.meal_type == 'BREAKFAST' %}🌅 Breakfast{% elif log.meal_type == 'LUNCH' %}☀️ Lunch{% elif log.meal_type == 'DINNER' %}🌙 Dinner{% elif log.meal_type == 'SNACKS' %}☕ Evening Snacks{% else %}{{ log.get_meal_type_display }}{% endif %}
+                        </span>
+                    </td>
+
+                    <!-- MESS LOCATION -->
+                    <td>
+                        <div style="font-weight: 800; color: #0d9488; font-size: 0.88rem;">
+                            🏢 {{ log.mess_location.name|default:'Main Canteen' }}
+                        </div>
+                        {% if log.mess_location.contractor_agency %}
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600;">
+                            Caterer: {{ log.mess_location.contractor_agency }}
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- WORKER DETAILS -->
+                    <td>
+                        <div style="font-weight: 800; color: #0f172a; font-size: 0.92rem;">
+                            {{ log.employee.name }}
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                            <span style="color: #2563eb; font-weight: 800; font-size: 0.78rem;">
+                                ID: {{ log.employee.emp_id }}
+                            </span>
+                            {% if log.employee.contact_info %}
+                            <span style="color: #475569; font-weight: 600; font-size: 0.76rem;">
+                                📞 {{ log.employee.contact_info }}
+                            </span>
+                            {% endif %}
+                            {% if log.employee.work_permit_no %}
+                            <span style="color: #059669; font-weight: 700; font-size: 0.74rem;">
+                                🪪 WP: {{ log.employee.work_permit_no }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- DEPARTMENT & DESIGNATION -->
+                    <td>
+                        <div style="font-weight: 700; color: #334155; font-size: 0.82rem;">
+                            {{ log.employee.department|default:'General Site' }}
+                        </div>
+                        <div style="color: #64748b; font-size: 0.75rem; font-weight: 600;">
+                            💼 {{ log.employee.designation|default:'Worker' }}
+                        </div>
+                    </td>
+
+                    <!-- ASSIGNED MESS VS ACTUAL MESS -->
+                    <td>
+                        <div style="font-weight: 700; color: #475569; font-size: 0.8rem;">
+                            {{ log.employee.assigned_mess.name|default:'Unassigned' }}
+                        </div>
+                        {% if log.employee.assigned_mess and log.mess_location and log.employee.assigned_mess.id != log.mess_location.id %}
+                        <span style="background: #fef08a; color: #854d0e; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">
+                            ⚠️ Guest / Transit Entry
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- PASS TOKEN -->
+                    <td>
+                        <code style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; color: #0f172a; border: 1px solid #e2e8f0;">
+                            {{ log.verification_token|default:'-' }}
+                        </code>
+                    </td>
+
+                    <!-- SCAN MODE -->
+                    <td style="white-space: nowrap;">
+                        <span style="font-size: 0.76rem; font-weight: 700; color: #64748b;">
+                            {% if log.entry_mode == 'WALL_QR_CLAIM' %}
+                                📷 Wall QR Scan
+                            {% elif log.entry_mode == 'SCANNER' %}
+                                📱 PDA Scanner
+                            {% else %}
+                                {{ log.entry_mode|default:'SCANNER' }}
+                            {% endif %}
+                        </span>
+                        {% if log.scanned_by %}
+                        <div style="font-size: 0.7rem; color: #94a3b8;">
+                            By: {{ log.scanned_by.get_full_name|default:log.scanned_by.username }}
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- STATUS -->
+                    <td>
+                        {% if log.status == 'SUCCESS' %}
+                            <span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;">
+                                🟢 Served
+                            </span>
+                        {% else %}
+                            <span style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;" title="{{ log.remarks }}">
+                                🔴 Blocked
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 35px; color: #64748b; font-size: 0.95rem; font-weight: 600;">
+                        No meal records found for the selected filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- PDF EXPORT & FILTER POPUP MODAL                              -->
+<!-- ============================================================ -->
+<div id="messPdfModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: #ffffff; border-radius: 20px; width: 100%; max-width: 580px; max-height: 92vh; overflow-y: auto; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+        
+        <!-- MODAL HEADER -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.5rem;">📄</span>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">
+                        Export Mess Consumption Report
+                    </h3>
+                </div>
+                <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: #64748b;">
+                    Filter records by facility, date range, meal window, and generate a printable PDF or Excel.
+                </p>
+            </div>
+            <button type="button" onclick="closeMessPdfModal()" style="background: #f1f5f9; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: 800; cursor: pointer; color: #64748b; font-size: 1.1rem;">✕</button>
+        </div>
+
+        <form id="messPdfExportForm" onsubmit="generateMessPdf(event)">
+            
+            <!-- SCOPE / PRESET BUTTONS -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 8px;">
+                    ⚡ Quick Presets (Scope)
+                </label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="preset-btn active" onclick="setPdfPreset('today', this)">Today</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('yesterday', this)">Yesterday</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('week', this)">Last 7 Days</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('month', this)">This Month</button>
+                    <button type="button" class="preset-btn" onclick="setPdfPreset('all', this)" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;">🌐 All Data</button>
+                </div>
+            </div>
+
+            <!-- DATE RANGE (DATE-WISE) -->
+            <div id="pdfDateRangeBox" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                <div>
+                    <label style="font-size: 0.76rem; font-weight: 800; color: #475569; display: block; margin-bottom: 4px;">📅 From Date</label>
+                    <input type="date" id="pdf_from_date" class="form-control" value="{{ today_date|date:'Y-m-d' }}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <label style="font-size: 0.76rem; font-weight: 800; color: #475569; display: block; margin-bottom: 4px;">📅 To Date</label>
+                    <input type="date" id="pdf_to_date" class="form-control" value="{{ today_date|date:'Y-m-d' }}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <!-- MESS LOCATION (MESS-WISE) -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                    🏢 Mess Location (Facility Filter)
+                </label>
+                <select id="pdf_mess_id" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.88rem;">
+                    <option value="ALL">🏢 All Mess Facilities (Consolidated Summary)</option>
+                    {% for m in mess_locations %}
+                    <option value="{{ m.id }}" {% if selected_mess == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }} {% if m.contractor_agency %}({{ m.contractor_agency }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- MEAL WINDOW (LUNCH, BREAKFAST, DINNER WISE) -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                    🍽️ Meal Window (Timing Filter)
+                </label>
+                <select id="pdf_meal_type" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.88rem;">
+                    <option value="ALL">🍽️ All Meals (Breakfast + Lunch + Dinner + Snacks)</option>
+                    <option value="BREAKFAST" {% if selected_meal == 'BREAKFAST' %}selected{% endif %}>🌅 Breakfast Only</option>
+                    <option value="LUNCH" {% if selected_meal == 'LUNCH' %}selected{% endif %}>☀️ Lunch Only</option>
+                    <option value="DINNER" {% if selected_meal == 'DINNER' %}selected{% endif %}>🌙 Dinner Only</option>
+                    <option value="SNACKS" {% if selected_meal == 'SNACKS' %}selected{% endif %}>☕ Evening Tea &amp; Snacks Only</option>
+                </select>
+            </div>
+
+            <!-- STATUS & DEPARTMENT -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                        Status
+                    </label>
+                    <select id="pdf_status" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                        <option value="ALL">All Status</option>
+                        <option value="SUCCESS" selected>🟢 Served / Success Only</option>
+                        <option value="DUPLICATE">🔴 Blocked Duplicates Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">
+                        Department
+                    </label>
+                    <select id="pdf_department" class="form-control" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                        <option value="ALL">All Departments</option>
+                        {% for d in departments %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px; flex-wrap: wrap; gap: 10px;">
+                <button type="button" onclick="downloadPdfExcel()" class="btn" style="background: #10b981; color: white; font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    <span>📥</span> Export Filtered Excel
+                </button>
+                
+                <div style="display: inline-flex; gap: 8px;">
+                    <button type="button" onclick="closeMessPdfModal()" class="btn btn-outline" style="font-weight: 700; border-radius: 10px;">Cancel</button>
+                    <button type="submit" class="btn" style="background: #dc2626; color: white; font-weight: 800; font-size: 0.88rem; padding: 10px 22px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(220,38,38,0.35);">
+                        <span>📄</span> Generate PDF Report
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<style>
+    .preset-btn {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    .preset-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+</style>
+
+<script>
+let currentPdfScope = 'date';
+
+function openMessPdfModal() {
+    document.getElementById('messPdfModal').style.display = 'flex';
+}
+
+function closeMessPdfModal() {
+    document.getElementById('messPdfModal').style.display = 'none';
+}
+
+function setPdfPreset(preset, btn) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const fromInput = document.getElementById('pdf_from_date');
+    const toInput = document.getElementById('pdf_to_date');
+    const dateBox = document.getElementById('pdfDateRangeBox');
+
+    const todayStr = '{{ today_date|date:"Y-m-d" }}';
+    let today = todayStr ? new Date(todayStr + 'T12:00:00') : new Date();
+
+    function formatDate(d) {
+        let year = d.getFullYear();
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    if (preset === 'all') {
+        currentPdfScope = 'all';
+        fromInput.value = '';
+        toInput.value = '';
+        dateBox.style.opacity = '0.5';
+    } else {
+        currentPdfScope = 'date';
+        dateBox.style.opacity = '1';
+
+        if (preset === 'today') {
+            fromInput.value = formatDate(today);
+            toInput.value = formatDate(today);
+        } else if (preset === 'yesterday') {
+            const yest = new Date(today);
+            yest.setDate(yest.getDate() - 1);
+            fromInput.value = formatDate(yest);
+            toInput.value = formatDate(yest);
+        } else if (preset === 'week') {
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 6);
+            fromInput.value = formatDate(weekAgo);
+            toInput.value = formatDate(today);
+        } else if (preset === 'month') {
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            fromInput.value = formatDate(monthStart);
+            toInput.value = formatDate(today);
+        }
+    }
+}
+
+function buildPdfUrl(isExcel = false) {
+    const fromDate = document.getElementById('pdf_from_date').value;
+    const toDate = document.getElementById('pdf_to_date').value;
+    const messId = document.getElementById('pdf_mess_id').value;
+    const mealType = document.getElementById('pdf_meal_type').value;
+    const status = document.getElementById('pdf_status').value;
+    const dept = document.getElementById('pdf_department').value;
+
+    const base = isExcel ? '/mess/export-excel/' : '/mess/export-pdf/';
+    let params = new URLSearchParams();
+
+    if (currentPdfScope === 'all') {
+        params.append('scope', 'all');
+    } else {
+        if (fromDate) params.append('from_date', fromDate);
+        if (toDate) params.append('to_date', toDate);
+    }
+
+    if (messId && messId !== 'ALL') params.append('mess_id', messId);
+    if (mealType && mealType !== 'ALL') params.append('meal_type', mealType);
+    if (status && status !== 'ALL') params.append('status', status);
+    if (dept && dept !== 'ALL') params.append('department', dept);
+
+    return base + '?' + params.toString();
+}
+
+function generateMessPdf(e) {
+    e.preventDefault();
+    const url = buildPdfUrl(false);
+    window.open(url, '_blank');
+}
+
+function downloadPdfExcel() {
+    const url = buildPdfUrl(true);
+    window.location.href = url;
+}
+</script>
+
+{% endblock %}

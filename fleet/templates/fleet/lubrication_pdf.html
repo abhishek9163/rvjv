@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lubricants Consumed - PDF Export</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+        .header-container { position: relative; text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .header-logo { position: absolute; right: 0; top: -6px; width: 74px; height: auto; }
+        .project-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .report-title { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .meta-info { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; font-weight: 600; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 0.85rem; }
+        th, td { border: 1px solid #000; padding: 8px 10px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .bold { font-weight: bold; }
+        
+        /* Signatures Grid */
+        .signatures-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            border: 2px solid #000;
+            background: #f8f9fa;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+            box-sizing: border-box;
+        }
+        .signature-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .signature-line {
+            width: 80%;
+            border-top: 1px dashed #000;
+            margin-bottom: 5px;
+        }
+        
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print" style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; border:1px solid #cbd5e1;">
+    <span style="font-weight:600; color:#334155; font-size:0.9rem;">&#128424; Print Preview Mode. Press Print to save as PDF.</span>
+    <div>
+        <button onclick="window.close()" style="padding:8px 16px; background:#64748b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-right:10px;">Close Window</button>
+        <button onclick="window.print()" style="padding:8px 20px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:800;">Print Report</button>
+    </div>
+</div>
+
+<div class="header-container">
+    {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="RIGSAR - VAJRA" class="header-logo">{% endif %}
+    <div class="project-name">Proposed International Airport Project in Gelephu</div>
+    <div class="report-title">DEBIT NOTE FOR LUBRICANTS CONSUMED</div>
+</div>
+
+<div class="meta-info">
+    <div>Date of Export: {{ today|date:"d M Y" }}</div>
+    <div>Vendor: {{ vendor_label|default:"All Vendors" }}</div>
+    <div>Filtered Range: {% if start_date %}{{ start_date }}{% else %}All Time{% endif %} {% if end_date %}to {{ end_date }}{% endif %}</div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 5%;">SL NO</th>
+            <th style="width: 10%;">DATE</th>
+            <th style="width: 12%;">LOCATION</th>
+            <th style="width: 18%;">WO NO</th>
+            <th style="width: 12%;">REG NO</th>
+            <th>PARTICULARS</th>
+            <th style="width: 8%;">QTY</th>
+            <th style="width: 8%;">RATE</th>
+            <th style="width: 10%;">AMOUNT</th>
+            <th style="width: 10%;">MAN POWER</th>
+            <th style="width: 12%;">TOTAL AMOUNT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td style="font-family: monospace; font-size: 0.8rem;">{{ log.work_order_no|default:"-" }}</td>
+            <td class="text-center bold">{{ log.vehicle.regn }}</td>
+            <td>{{ log.oil_type }}</td>
+            <td class="text-center">{{ log.qty }}{{ log.unit }}</td>
+            <td class="text-right">Nu. {{ log.rate }}</td>
+            <td class="text-right">Nu. {{ log.amount }}</td>
+            <td class="text-right">{% if log.manpower_cost %}Nu. {{ log.manpower_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right bold" style="color: #000;">Nu. {{ log.total_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="11" class="text-center" style="padding: 20px;">No records match your filters.</td>
+        </tr>
+        {% endfor %}
+        <tr style="background-color: #f9f9f9;">
+            <td colspan="9"></td>
+            <td class="text-right bold" style="font-size: 0.9rem;">GRAND TOTAL:</td>
+            <td class="text-right bold" style="font-size: 0.95rem;">Nu. {{ total_amount_sum }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Signatures Section -->
+<div class="signatures-container">
+    <div class="signature-box">
+        <div class="signature-label">PREPARED BY</div>
+        <div class="signature-line"></div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-label">P&M MANAGER</div>
+        <div class="signature-line"></div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-label">PROJECT MANAGER</div>
+        <div class="signature-line"></div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-label">PROJECT DIRECTOR</div>
+        <div class="signature-line"></div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-label">ACCEPTED BY SUB-CONTRACTOR</div>
+        <div class="signature-line"></div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    // Auto-trigger print dialog after a brief delay
+    setTimeout(() => {
+        window.print();
+    }, 500);
+});
+</script>
+</body>
+</html>

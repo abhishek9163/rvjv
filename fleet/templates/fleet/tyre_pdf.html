@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tyre Register Debit Note - PDF Export</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+        .header-container { position: relative; text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .header-logo { position: absolute; right: 0; top: -6px; width: 74px; height: auto; }
+        .project-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+        .report-title { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .vendor-name { margin-top: 4px; font-size: 0.85rem; font-weight: 700; color: #333; }
+        .meta-info { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 0.8rem; }
+        th, td { border: 1px solid #000; padding: 6px 7px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 0.7rem; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .bold { font-weight: bold; }
+        .signatures-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 50px; page-break-inside: avoid; }
+        .signature-box { border: 2px solid #000; background: #f8f9fa; height: 120px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 10px 5px; box-sizing: border-box; }
+        .signature-label { font-size: 0.72rem; font-weight: 800; text-align: center; text-transform: uppercase; }
+        .signature-line { width: 80%; border-top: 1px dashed #000; margin-bottom: 5px; }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print" style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; border:1px solid #cbd5e1;">
+    <span style="font-weight:600; color:#334155; font-size:0.9rem;">&#128424; Print Preview Mode. Press Print to save as PDF.</span>
+    <div>
+        <button onclick="window.close()" style="padding:8px 16px; background:#64748b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-right:10px;">Close Window</button>
+        <button onclick="window.print()" style="padding:8px 20px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:800;">Print Report</button>
+    </div>
+</div>
+
+<div class="header-container">
+    {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="RIGSAR - VAJRA" class="header-logo">{% endif %}
+    <div class="project-name">Proposed International Airport Project in Gelephu</div>
+    {% if entry_type == 'ISSUE' %}
+        <div class="report-title">DEBIT NOTE FOR ISSUED TYRES</div>
+    {% elif entry_type == 'PUNCTURE' %}
+        <div class="report-title">DEBIT NOTE FOR TYRE PUNCTURE</div>
+    {% else %}
+        <div class="report-title">DEBIT NOTE FOR TYRE REGISTER</div>
+    {% endif %}
+    {% if vendor_label %}<div class="vendor-name">{{ vendor_label }}</div>{% endif %}
+</div>
+
+<div class="meta-info">
+    <div>Date of Export: {{ today|date:"d M Y" }}</div>
+    <div>Filtered Range: {% if start_date %}{{ start_date }}{% else %}All Time{% endif %} {% if end_date %}to {{ end_date }}{% endif %}</div>
+</div>
+
+{% if entry_type == 'ISSUE' %}
+<!-- ISSUED TYRES TABLE -->
+<table>
+    <thead>
+        <tr>
+            <th style="width: 5%;">SR.NO</th>
+            <th style="width: 9%;">DATE</th>
+            <th style="width: 10%;">LOCATION</th>
+            <th style="width: 13%;">WO NO</th>
+            <th style="width: 11%;">REG NO</th>
+            <th style="width: 14%;">TYRE NUMBER</th>
+            <th style="width: 11%;">BRAND / COMPANY</th>
+            <th style="width: 9%;">SIZE OF TYRE</th>
+            <th style="width: 7%;">PLY NO</th>
+            <th style="width: 11%;">DRIVER NAME</th>
+            <th style="width: 10%;">TOTAL AMOUNT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td style="font-family: monospace; font-size: 0.75rem;">{{ log.work_order_no|default:"-" }}</td>
+            <td class="text-center bold">{{ log.vehicle.regn }}</td>
+            <td class="text-center bold" style="color:#059669;">{{ log.tyre_number|default:"-" }}</td>
+            <td>{{ log.company|default:"-" }}</td>
+            <td class="text-center">{{ log.size_of_tyre|default:"-" }}</td>
+            <td class="text-center">{{ log.ply_number|default:"-" }}</td>
+            <td>{{ log.driver_name|default:"-" }}</td>
+            <td class="text-right bold">{{ log.total_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11" class="text-center" style="padding: 20px;">No issued tyre records match your filters.</td></tr>
+        {% endfor %}
+        <tr style="background-color: #f9f9f9;">
+            <td colspan="6"></td>
+            <td colspan="4" class="text-right bold" style="font-size: 0.9rem;">TOTAL AMOUNT</td>
+            <td class="text-right bold" style="font-size: 0.95rem;">{{ total_amount_sum }}</td>
+        </tr>
+    </tbody>
+</table>
+
+{% elif entry_type == 'PUNCTURE' %}
+<!-- PUNCTURE REPAIRS TABLE -->
+<table>
+    <thead>
+        <tr>
+            <th style="width: 4%;">SR.NO</th>
+            <th style="width: 7%;">DATE</th>
+            <th style="width: 8%;">LOCATION</th>
+            <th style="width: 10%;">WO NO</th>
+            <th style="width: 9%;">REG NO</th>
+            <th style="width: 6%;">PUNCTURES</th>
+            <th style="width: 6%;">BIG PATCHES</th>
+            <th style="width: 6%;">SMALL PATCHES</th>
+            <th style="width: 6%;">NOZZLES</th>
+            <th style="width: 8%;">VALVE PIN NO</th>
+            <th style="width: 7%;">MATERIAL COST</th>
+            <th style="width: 6%;">BIG COST</th>
+            <th style="width: 6%;">SMALL COST</th>
+            <th style="width: 6%;">FITTING COST</th>
+            <th style="width: 7%;">TOTAL AMOUNT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td style="font-family: monospace; font-size: 0.75rem;">{{ log.work_order_no|default:"-" }}</td>
+            <td class="text-center bold">{{ log.vehicle.regn }}</td>
+            <td class="text-center">{{ log.punctures }}</td>
+            <td class="text-center">{{ log.big_patches }}</td>
+            <td class="text-center">{{ log.small_patches }}</td>
+            <td class="text-center">{{ log.nozzles }}</td>
+            <td class="text-center">{{ log.valve_pin_number|default:"-" }}</td>
+            <td class="text-right">{% if log.material_cost %}{{ log.material_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.big_patches_cost %}{{ log.big_patches_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.small_patches_cost %}{{ log.small_patches_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.opening_fitting_cost %}{{ log.opening_fitting_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right bold">{{ log.total_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="15" class="text-center" style="padding: 20px;">No puncture repair records match your filters.</td></tr>
+        {% endfor %}
+        <tr style="background-color: #f9f9f9;">
+            <td colspan="10"></td>
+            <td colspan="4" class="text-right bold" style="font-size: 0.9rem;">TOTAL AMOUNT</td>
+            <td class="text-right bold" style="font-size: 0.95rem;">{{ total_amount_sum }}</td>
+        </tr>
+    </tbody>
+</table>
+
+{% else %}
+<!-- COMBINED TABLE -->
+<table>
+    <thead>
+        <tr>
+            <th style="width: 4%;">SR.NO</th>
+            <th style="width: 7%;">DATE</th>
+            <th style="width: 8%;">TYPE</th>
+            <th style="width: 8%;">LOCATION</th>
+            <th style="width: 11%;">WO NO</th>
+            <th style="width: 9%;">REG NO</th>
+            <th style="width: 13%;">TYRE NO / PUNCTURES</th>
+            <th style="width: 13%;">BRAND / PATCHES</th>
+            <th style="width: 11%;">SIZE &amp; PLY / NOZZLES</th>
+            <th style="width: 10%;">DRIVER / VALVE PIN</th>
+            <th style="width: 8%;">TOTAL AMOUNT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td class="text-center">
+                {% if log.entry_type == 'ISSUE' %}
+                    <span style="color:#059669; font-weight:bold;">Issued</span>
+                {% else %}
+                    <span style="color:#d97706; font-weight:bold;">Puncture</span>
+                {% endif %}
+            </td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td style="font-family: monospace; font-size: 0.75rem;">{{ log.work_order_no|default:"-" }}</td>
+            <td class="text-center bold">{{ log.vehicle.regn }}</td>
+            <td class="text-center">
+                {% if log.entry_type == 'ISSUE' %}
+                    <strong style="color:#059669;">{{ log.tyre_number|default:"-" }}</strong>
+                {% else %}
+                    Punctures: <strong>{{ log.punctures }}</strong>
+                {% endif %}
+            </td>
+            <td>
+                {% if log.entry_type == 'ISSUE' %}
+                    <strong>{{ log.company|default:"-" }}</strong>
+                {% else %}
+                    Big: {{ log.big_patches }} | Small: {{ log.small_patches }}
+                {% endif %}
+            </td>
+            <td>
+                {% if log.entry_type == 'ISSUE' %}
+                    Size: {{ log.size_of_tyre|default:"-" }} | Ply: {{ log.ply_number|default:"-" }}
+                {% else %}
+                    Nozzles: {{ log.nozzles }}
+                {% endif %}
+            </td>
+            <td>
+                {% if log.entry_type == 'ISSUE' %}
+                    {{ log.driver_name|default:"-" }}
+                {% else %}
+                    {{ log.valve_pin_number|default:"-" }}
+                {% endif %}
+            </td>
+            <td class="text-right bold">{{ log.total_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11" class="text-center" style="padding: 20px;">No records match your filters.</td></tr>
+        {% endfor %}
+        <tr style="background-color: #f9f9f9;">
+            <td colspan="6"></td>
+            <td colspan="4" class="text-right bold" style="font-size: 0.9rem;">TOTAL AMOUNT</td>
+            <td class="text-right bold" style="font-size: 0.95rem;">{{ total_amount_sum }}</td>
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+
+<div class="signatures-container">
+    <div class="signature-box"><div class="signature-label">PREPARED BY</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">P&M MANAGER</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">PROJECT MANAGER</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">PROJECT DIRECTOR</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">ACCEPTED BY SUB-CONTRACTOR</div><div class="signature-line"></div></div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { window.print(); }, 500);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>{{ section.name }}</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        {% for field in section.fields.all %}
+            
+            {% if field.field_type == 'HEADING' %}
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">{{ field.name }}</h3>
+                
+            {% elif field.field_type == 'DESCRIPTION' %}
+                <p style="margin-bottom: 1.5rem; color: var(--sidebar-text); line-height: 1.6;">{{ field.name }}</p>
+                
+            {% else %}
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="font-weight: 500;">
+                        {{ field.name }} 
+                        {% if field.is_required %}<span style="color:var(--error);">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.field_type == 'TEXTAREA' %}
+                        <textarea name="field_{{ field.id }}" class="form-control" rows="4" {% if field.is_required %}required{% endif %}></textarea>
+                        
+                    {% elif field.field_type == 'DROPDOWN' %}
+                        <select name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                            <option value="">-- Select Option --</option>
+                            {% for opt in field.option_list %}
+                                <option value="{{ opt }}">{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                    {% elif field.field_type == 'RADIO' %}
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                            {% for opt in field.option_list %}
+                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                <input type="radio" name="field_{{ field.id }}" value="{{ opt }}" {% if field.is_required %}required{% endif %}> 
+                                {{ opt }}
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                    {% elif field.field_type == 'CHECKBOX' %}
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                            {% for opt in field.option_list %}
+                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                <input type="checkbox" name="field_{{ field.id }}[]" value="{{ opt }}"> 
+                                {{ opt }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                        
+                    {% elif field.field_type == 'FILE' %}
+                        <input type="file" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% elif field.field_type == 'DATE' %}
+                        <input type="date" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% elif field.field_type == 'TIME' %}
+                        <input type="time" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% elif field.field_type == 'NUMBER' %}
+                        <input type="number" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                        
+                    {% else %}
+                        <input type="text" name="field_{{ field.id }}" class="form-control" {% if field.is_required %}required{% endif %}>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+        {% empty %}
+        <p style="text-align:center; padding: 2rem; color:var(--sidebar-text);">No fields have been defined for this module yet.</p>
+        {% endfor %}
+        
+        {% if section.fields.count > 0 %}
+        <hr style="border-top: 1px solid var(--border); margin: 2rem 0;">
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">Submit Data</button>
+        {% endif %}
+    </form>
+</div>
+{{ entry.data|json_script:"entry-data-json" }}
+<script>
+    const entryData = JSON.parse(document.getElementById('entry-data-json').textContent);
+    document.addEventListener("DOMContentLoaded", function() {
+        {% for field in section.fields.all %}
+            {% if field.field_type != 'HEADING' and field.field_type != 'DESCRIPTION' and field.field_type != 'FILE' %}
+                if (entryData["{{ field.name|escapejs }}"] !== undefined) {
+                    let val = entryData["{{ field.name|escapejs }}"];
+                    let elements = document.getElementsByName("field_{{ field.id }}");
+                    if (elements.length > 0) {
+                        let type = elements[0].type;
+                        if (type === 'radio') {
+                            for(let i=0; i<elements.length; i++){
+                                if(elements[i].value === val) elements[i].checked = true;
+                            }
+                        } else if (type === 'checkbox') {
+                            // If it's a checkbox group, val might be a string or array.
+                            // Currently, our backend stores checkbox values as lists? Or last value?
+                            // For simplicity, just check matching value.
+                            for(let i=0; i<elements.length; i++){
+                                if(val.includes(elements[i].value)) elements[i].checked = true;
+                            }
+                        } else {
+                            elements[0].value = val;
+                        }
+                    }
+                }
+            {% endif %}
+        {% endfor %}
+    });
+</script>
+
+{% endblock %}

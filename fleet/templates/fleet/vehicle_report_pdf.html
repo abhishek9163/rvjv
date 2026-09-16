@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vehicle Complete Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+        .header-container { position: relative; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 18px; }
+        .header-logo { position: absolute; right: 0; top: -6px; width: 74px; height: auto; }
+        .project-name { font-size: 1.05rem; font-weight: bold; }
+        .report-title { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; margin-top: 4px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin-bottom: 20px; font-size: 0.9rem; }
+        .info-grid div b { display: inline-block; min-width: 190px; }
+        h2 { font-size: 1rem; text-transform: uppercase; background: #eef2ff; border-left: 5px solid #2563eb; padding: 7px 12px; margin: 26px 0 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-bottom: 8px; }
+        th, td { border: 1px solid #000; padding: 5px 7px; }
+        th { background: #f2f2f2; text-align: center; text-transform: uppercase; font-size: 0.68rem; }
+        .text-right { text-align: right; } .text-center { text-align: center; } .bold { font-weight: bold; }
+        .total-row td { background: #f9f9f9; font-weight: bold; }
+        .signatures-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 46px; page-break-inside: avoid; }
+        .signature-box { border: 2px solid #000; background: #f8f9fa; height: 110px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 10px 5px; box-sizing: border-box; }
+        .signature-label { font-size: 0.7rem; font-weight: 800; text-align: center; text-transform: uppercase; }
+        .signature-line { width: 80%; border-top: 1px dashed #000; margin-bottom: 5px; }
+        @media print { body { padding: 0; } .no-print { display: none; } tr { page-break-inside: avoid; } }
+    </style>
+</head>
+<body>
+
+<div class="no-print" style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; border:1px solid #cbd5e1;">
+    <span style="font-weight:600; color:#334155; font-size:0.9rem;">&#128424; Print Preview Mode. Press Print to save as PDF.</span>
+    <div>
+        <button onclick="window.close()" style="padding:8px 16px; background:#64748b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-right:10px;">Close Window</button>
+        <button onclick="window.print()" style="padding:8px 20px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:800;">Print Report</button>
+    </div>
+</div>
+
+<div class="header-container">
+    {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="RIGSAR - VAJRA" class="header-logo">{% endif %}
+    <div class="project-name">Proposed International Airport Project in Gelephu</div>
+    <div class="report-title">Vehicle Complete Report</div>
+</div>
+
+<div class="info-grid">
+    <div><b>Registration / Equipment No:</b> {{ vehicle.regn }}</div>
+    <div><b>Equipment Type:</b> {{ hired.equipment_type|default:vehicle.model_name|default:"-" }}</div>
+    <div><b>Owner / Vendor:</b> {{ hired.owner_name|default:"-" }}</div>
+    <div><b>Hire Agreement Ref:</b> {{ hired.agreement_ref|default:"-" }}</div>
+    <div><b>Contract Status:</b> {{ hired.contract_status|default:"-" }}</div>
+    <div><b>Period:</b> {% if start_date %}{{ start_date }}{% else %}All Time{% endif %} {% if end_date %}to {{ end_date }}{% endif %}</div>
+</div>
+
+{% if inc_lubricants %}
+<h2>Lubricants Consumed ({{ lub|length }} entries — Total: {{ lub_total }})</h2>
+<table>
+    <thead><tr><th>SL</th><th>DATE</th><th>LOCATION</th><th>WO NO</th><th>VENDOR</th><th>PARTICULARS</th><th>QTY</th><th>AMOUNT</th><th>MAN POWER</th><th>TOTAL</th></tr></thead>
+    <tbody>
+        {% for log in lub %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td>{{ log.work_order_no|default:"-" }}</td>
+            <td>{{ log.vendor|default:"-" }}</td>
+            <td>{{ log.oil_type }}</td>
+            <td class="text-center">{{ log.qty }}{{ log.unit }}</td>
+            <td class="text-right">Nu. {{ log.amount }}</td>
+            <td class="text-right">{% if log.manpower_cost %}{{ log.manpower_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right bold">{{ log.total_amount }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="10" class="text-center" style="padding:14px;">No lubricant entries in this period.</td></tr>
+        {% endfor %}
+        <tr class="total-row"><td colspan="9" class="text-right">GRAND TOTAL</td><td class="text-right">{{ lub_total }}</td></tr>
+    </tbody>
+</table>
+{% endif %}
+
+{% if inc_tyres %}
+<h2>Tyre Puncture Work ({{ tyre|length }} entries — Total: {{ tyre_total }})</h2>
+<table>
+    <thead><tr><th>SR</th><th>DATE</th><th>LOCATION</th><th>WO NO</th><th>VENDOR</th><th>Puncture</th><th>Big P</th><th>Small P</th><th>Nozzle</th><th>Material</th><th>Big</th><th>Small</th><th>Opening</th><th>TOTAL</th></tr></thead>
+    <tbody>
+        {% for log in tyre %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td>{{ log.location|default:"-" }}</td>
+            <td>{{ log.work_order_no|default:"-" }}</td>
+            <td>{{ log.vendor|default:"-" }}</td>
+            <td class="text-center">{{ log.punctures }}</td>
+            <td class="text-center">{{ log.big_patches }}</td>
+            <td class="text-center">{{ log.small_patches }}</td>
+            <td class="text-center">{{ log.nozzles }}</td>
+            <td class="text-right">{% if log.material_cost %}{{ log.material_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.big_patches_cost %}{{ log.big_patches_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.small_patches_cost %}{{ log.small_patches_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.opening_fitting_cost %}{{ log.opening_fitting_cost }}{% else %}-{% endif %}</td>
+            <td class="text-right bold">{{ log.total_amount }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="14" class="text-center" style="padding:14px;">No tyre entries in this period.</td></tr>
+        {% endfor %}
+        <tr class="total-row"><td colspan="13" class="text-right">GRAND TOTAL</td><td class="text-right">{{ tyre_total }}</td></tr>
+    </tbody>
+</table>
+{% endif %}
+
+{% if inc_repairs %}
+<h2>Repairs & Breakdowns ({{ repairs|length }} entries)</h2>
+<table>
+    <thead><tr><th>SL</th><th>IN DATE</th><th>OUT DATE</th><th>MECHANIC</th><th>BREAKDOWN DETAILS</th><th>REPAIR DETAILS</th><th>MANPOWER COST</th><th>STATUS</th></tr></thead>
+    <tbody>
+        {% for log in repairs %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.in_date|date:"d.m.y" }}</td>
+            <td class="text-center">{% if log.out_date %}{{ log.out_date|date:"d.m.y" }}{% else %}Active / In Workshop{% endif %}</td>
+            <td>{{ log.mechanic_name|default:"-" }}</td>
+            <td>{{ log.breakdown_details }}</td>
+            <td>{{ log.repair_details|default:"-" }}</td>
+            <td class="text-right">{% if log.manpower_cost %}Nu. {{ log.manpower_cost }}{% else %}-{% endif %}</td>
+            <td class="text-center bold">{% if log.out_date %}Completed{% else %}Active{% endif %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="8" class="text-center" style="padding:14px;">No repair logs in this period.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if inc_spares %}
+<h2>Spare Parts Consumed ({{ spares|length }} entries)</h2>
+<table>
+    <thead><tr><th>SL</th><th>DATE</th><th>TYPE</th><th>PART NAME</th><th>PART NUMBER</th><th>QTY</th><th>RATE</th><th>MANPOWER</th><th>TOTAL</th><th>APPROVED</th></tr></thead>
+    <tbody>
+        {% for log in spares %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td class="text-center">{{ log.transaction_type }}</td>
+            <td>{{ log.part.part_name|default:log.custom_part_name|default:"-" }}</td>
+            <td>{{ log.part.part_number|default:"-" }}</td>
+            <td class="text-center">{{ log.quantity }}</td>
+            <td class="text-right">Nu. {{ log.rate|default:"0.00" }}</td>
+            <td class="text-right">Nu. {{ log.manpower_cost|default:"0.00" }}</td>
+            <td class="text-right bold">Nu. {{ log.total_amount }}</td>
+            <td class="text-center bold">{% if log.is_approved %}Yes{% else %}Pending{% endif %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="10" class="text-center" style="padding:14px;">No spare parts consumed in this period.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if inc_movements %}
+<h2>Vehicle Movements ({{ movements|length }} entries)</h2>
+<table>
+    <thead><tr><th>SL</th><th>DATE</th><th>SHIFT</th><th>DRIVER</th><th>FROM SITE</th><th>TO SITE</th><th>REMARKS</th><th>SUPERVISOR</th></tr></thead>
+    <tbody>
+        {% for log in movements %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.movement_date|date:"d.m.y" }}</td>
+            <td class="text-center">{{ log.shift }}</td>
+            <td>{{ log.driver.name|default:"-" }}</td>
+            <td>{{ log.from_location|default:"-" }}</td>
+            <td>{{ log.to_location|default:"-" }}</td>
+            <td>{{ log.remarks|default:"-" }}</td>
+            <td>{{ log.entered_by.full_name|default:"-" }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="8" class="text-center" style="padding:14px;">No movements in this period.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Site Allocations & Deployments ({{ deployments|length }} entries)</h2>
+<table>
+    <thead><tr><th>SL</th><th>DATE</th><th>ZONE 1&2 D/N</th><th>ZONE 3&4 D/N</th><th>BORROW AREA D/N</th><th>CULVERT D/N</th><th>BATCHING D/N</th><th>CRUSHING D/N</th></tr></thead>
+    <tbody>
+        {% for log in deployments %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ log.date|date:"d.m.y" }}</td>
+            <td class="text-center">{{ log.zone_1_2_day }}/{{ log.zone_1_2_night }}</td>
+            <td class="text-center">{{ log.zone_3_4_day }}/{{ log.zone_3_4_night }}</td>
+            <td class="text-center">{{ log.borrow_area_day }}/{{ log.borrow_area_night }}</td>
+            <td class="text-center">{{ log.culvert_area_day }}/{{ log.culvert_area_night }}</td>
+            <td class="text-center">{{ log.batching_plant_day }}/{{ log.batching_plant_night }}</td>
+            <td class="text-center">{{ log.crushing_plant_day }}/{{ log.crushing_plant_night }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="8" class="text-center" style="padding:14px;">No site deployments in this period.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<div class="signatures-container">
+    <div class="signature-box"><div class="signature-label">PREPARED BY</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">P&M MANAGER</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">PROJECT MANAGER</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">PROJECT DIRECTOR</div><div class="signature-line"></div></div>
+    <div class="signature-box"><div class="signature-label">ACCEPTED BY SUB-CONTRACTOR</div><div class="signature-line"></div></div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { window.print(); }, 500); });
+</script>
+</body>
+</html>

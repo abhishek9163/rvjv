@@ -1,0 +1,1105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #0f172a;">👥 Manage Logins &amp; User Directory</h2>
+        <p style="margin: 3px 0 0; color: var(--sidebar-text); font-size: 0.85rem;">
+            System Staff &amp; Role Assignments &bull; Mess Workers, Food Passes &amp; Live Approval Controls
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button type="button" class="btn" onclick="openCreateWorkerModal()" style="background: #9333ea; color: white; font-weight: 700; border-radius: 8px; padding: 8px 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <span>🍱</span> Add Mess Worker
+        </button>
+        <button type="button" class="btn btn-primary" onclick="openCreateUserModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <span>👔</span> Add Staff Login
+        </button>
+        <a href="{% url 'dashboard' %}?tab=overview" class="btn btn-outline" style="font-weight: 600;">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- DUAL TAB NAVIGATION: SYSTEM STAFF VS MESS WORKERS -->
+<style>
+    .login-tabs-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border, #e2e8f0);
+        padding-bottom: 4px;
+        flex-wrap: wrap;
+    }
+    .login-tab-btn {
+        padding: 10px 22px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        border-radius: 12px 12px 0 0;
+        border: 2px solid transparent;
+        border-bottom: none;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .login-tab-btn.active {
+        background: #ffffff;
+        color: #2563eb;
+        border-color: var(--border, #e2e8f0);
+        border-bottom: 3px solid #2563eb;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+    }
+    .login-tab-badge {
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+    .badge-staff { background: #eff6ff; color: #1d4ed8; }
+    .badge-mess { background: #faf5ff; color: #7e22ce; }
+</style>
+
+<div class="login-tabs-container">
+    <button class="login-tab-btn {% if active_tab == 'staff' %}active{% endif %}" onclick="switchLoginTab('staff')" id="tabBtnStaff">
+        <span>👔 System Staff Logins</span>
+        <span class="login-tab-badge badge-staff">{{ system_staff|length }}</span>
+    </button>
+    <button class="login-tab-btn {% if active_tab == 'mess' %}active{% endif %}" onclick="switchLoginTab('mess')" id="tabBtnMess">
+        <span>🍱 Mess Workers &amp; Diners</span>
+        <span class="login-tab-badge badge-mess">{{ mess_workers|length }}</span>
+    </button>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: SYSTEM STAFF & MANAGEMENT LOGINS                   -->
+<!-- ============================================================ -->
+<div id="sectionStaff" style="display: {% if active_tab == 'staff' %}block{% else %}none{% endif %};">
+    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <input type="text" id="employeeSearch" class="form-control" placeholder="🔍 Search staff by name, email, or phone..." style="flex: 2; min-width: 220px; padding: 0.75rem; border-radius: 8px;">
+        
+        <select id="postFilter" class="form-control" style="flex: 1; min-width: 180px; padding: 0.75rem; border-radius: 8px;">
+            <option value="ALL">All Departments/Posts</option>
+            {% for post in posts %}
+            <option value="{{ post.name }}">{{ post.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="grid-container" id="employeeGrid">
+        {% for emp in system_staff %}
+        <div class="card employee-card" data-post="{{ emp.post.name|default:'Not Assigned' }}" style="border-top: 4px solid {% if emp.system_role == 'PENDING' %}var(--error){% else %}var(--success){% endif %}; transition: transform 0.2s; cursor: pointer;" onclick="window.location='{% url 'employee_profile' emp.id %}'">
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: var(--border); flex-shrink: 0;">
+                    {% if emp.profile_picture %}
+                    <img src="{{ emp.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; background: var(--primary);">
+                        {{ emp.full_name|default:emp.username|make_list|first|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem;" class="emp-name">{{ emp.full_name|default:emp.username }}</h3>
+                    <span class="badge" style="background-color: {% if emp.system_role == 'PENDING' %}var(--error){% else %}var(--success){% endif %}; margin-top: 0.25rem; display: inline-block; font-size: 0.75rem;">
+                        {{ emp.get_system_role_display }}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--sidebar-text);">
+                <div class="emp-email"><strong>Username / Email:</strong> {{ emp.email|default:emp.username }}</div>
+                <div class="emp-phone"><strong>Phone:</strong> {{ emp.phone_number|default:"N/A" }}</div>
+                <div class="emp-post"><strong>Post:</strong> {{ emp.post.name|default:"Not Assigned" }}</div>
+                <div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">
+                    {% if 'breakdown_register' in emp.assigned_modules or 'breakdown_entry' in emp.assigned_modules or emp.system_role == 'MANAGER' %}
+                    <span style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.7rem; font-weight: 700; border-radius: 6px; padding: 2px 6px;">
+                        🔧 Breakdown Entry
+                    </span>
+                    {% endif %}
+                    {% if 'vehicle_profiles' in emp.assigned_modules or emp.system_role == 'MANAGER' %}
+                    <span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 0.7rem; font-weight: 700; border-radius: 6px; padding: 2px 6px;">
+                        🚗 Vehicle Directory
+                    </span>
+                    {% endif %}
+                    {% if 'mess_manager' in emp.assigned_modules or emp.system_role == 'MANAGER' %}
+                    <span style="background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; font-size: 0.7rem; font-weight: 700; border-radius: 6px; padding: 2px 6px;">
+                        🍱 Mess Manager
+                    </span>
+                    {% endif %}
+                    {% if 'mess_scanner' in emp.assigned_modules %}
+                    <span style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 0.7rem; font-weight: 700; border-radius: 6px; padding: 2px 6px;">
+                        📷 Mess Scanner
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 0.8rem; color: var(--sidebar-text);">Joined: {{ emp.date_joined|date:"M d, Y" }}</span>
+                <div style="display: inline-flex; gap: 6px; align-items: center;">
+                    <button type="button" onclick="switchUserCategory({{ emp.id }}, 'mess', '{{ emp.full_name|default:emp.username|escapejs }}'); event.stopPropagation();" class="btn" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700; color: #7e22ce; background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Move account to Mess Section">
+                        <span>🍱</span> Mess
+                    </button>
+                    <a href="{% url 'edit_employee_role' emp.id %}" class="btn btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.82rem; font-weight: 700;" onclick="event.stopPropagation();">
+                        <i class="fas fa-user-gear"></i> Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 3rem;" class="card">
+            <p style="color: var(--sidebar-text);">No system staff accounts found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: MESS WORKERS & DINERS DIRECTORY                   -->
+<!-- ============================================================ -->
+<div id="sectionMess" style="display: {% if active_tab == 'mess' %}block{% else %}none{% endif %};">
+    
+    <!-- INFORMATIONAL NOTICE -->
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem;">🍱</span>
+            <span style="font-size: 0.88rem; color: #166534; font-weight: 700;">
+                Isolated Mess Worker &amp; Diner Accounts: All registered mess users are organized here separately. You can edit any personal detail, reset 4-digit PINs, or reset today's meal approvals so workers can re-scan their passes.
+            </span>
+        </div>
+        <span style="background: #16a34a; color: white; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.78rem;">
+            📅 Today: {{ today_date|date:"D, d M Y" }}
+        </span>
+    </div>
+
+    <!-- FILTER CONTROLS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem;">
+        <input type="text" id="messWorkerSearch" class="form-control" placeholder="🔍 Search by Name, Employee ID, Phone, Permit..." style="padding: 0.75rem; border-radius: 8px;" onkeyup="filterMessWorkers()">
+        
+        <select id="messLocationFilter" class="form-control" style="padding: 0.75rem; border-radius: 8px;" onchange="filterMessWorkers()">
+            <option value="ALL">All Mess Locations</option>
+            {% for m in mess_locations %}
+            <option value="{{ m.name }}">{{ m.name }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="messMealStatusFilter" class="form-control" style="padding: 0.75rem; border-radius: 8px;" onchange="filterMessWorkers()">
+            <option value="ALL">All Today Status</option>
+            <option value="EATEN">🟢 Claimed Meal Today</option>
+            <option value="NOT_EATEN">⏳ Not Claimed Today</option>
+        </select>
+
+        <select id="messActiveStatusFilter" class="form-control" style="padding: 0.75rem; border-radius: 8px;" onchange="filterMessWorkers()">
+            <option value="ALL">All Account Status</option>
+            <option value="ACTIVE">🟢 Active Only</option>
+            <option value="DISABLED">🔴 Disabled Only</option>
+        </select>
+    </div>
+
+    <!-- WORKERS DIRECTORY TABLE -->
+    <div class="card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border, #e2e8f0); box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;" id="messWorkersTable">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 800;">
+                        <th style="padding: 12px 14px;">Worker &amp; Identity</th>
+                        <th style="padding: 12px 14px;">Contact &amp; Permit</th>
+                        <th style="padding: 12px 14px;">Assigned Mess</th>
+                        <th style="padding: 12px 14px;">Dept &amp; Shift</th>
+                        <th style="padding: 12px 14px;">Today's Meal Approvals</th>
+                        <th style="padding: 12px 14px;">Status</th>
+                        <th style="padding: 12px 14px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="messWorkersTbody">
+                    {% for w in mess_workers %}
+                    <tr class="mess-worker-row" 
+                        data-name="{{ w.full_name|default:w.username|lower }}"
+                        data-empid="{{ w.cached_emp.emp_id|default:w.username|lower }}"
+                        data-phone="{{ w.phone_number|default:w.cached_emp.contact_info|default:''|lower }}"
+                        data-permit="{{ w.cached_emp.work_permit_no|default:''|lower }}"
+                        data-mess="{{ w.cached_emp.assigned_mess.name|default:'Main Canteen' }}"
+                        data-eaten="{% if w.has_eaten_today %}EATEN{% else %}NOT_EATEN{% endif %}"
+                        data-active="{% if w.is_active %}ACTIVE{% else %}DISABLED{% endif %}"
+                        style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+                        
+                        <!-- 1. WORKER & IDENTITY -->
+                        <td style="padding: 12px 14px; white-space: nowrap;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.05rem;">
+                                    {{ w.full_name|default:w.username|make_list|first|upper }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: #0f172a; font-size: 0.94rem;">
+                                        {{ w.full_name|default:w.cached_emp.name|default:w.username }}
+                                    </div>
+                                    <div style="font-size: 0.78rem; color: #64748b; font-family: monospace;">
+                                        ID: <b>{{ w.cached_emp.emp_id|default:w.username }}</b>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 2. CONTACT & PERMIT -->
+                        <td style="padding: 12px 14px;">
+                            <div style="font-weight: 700; color: #1e293b;">
+                                📞 {{ w.phone_number|default:w.cached_emp.contact_info|default:"No Phone" }}
+                            </div>
+                            <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">
+                                Permit: <b>{{ w.cached_emp.work_permit_no|default:"Not Provided" }}</b>
+                            </div>
+                        </td>
+
+                        <!-- 3. ASSIGNED MESS -->
+                        <td style="padding: 12px 14px;">
+                            <span style="background: #eff6ff; color: #1d4ed8; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px;">
+                                🏢 {{ w.cached_emp.assigned_mess.name|default:"Main Canteen" }}
+                            </span>
+                        </td>
+
+                        <!-- 4. DEPT & SHIFT -->
+                        <td style="padding: 12px 14px;">
+                            <div style="color: #334155; font-weight: 600;">
+                                {{ w.cached_emp.department|default:"Site Operations" }}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #6366f1; font-weight: 700;">
+                                ⏱️ {{ w.cached_emp.get_current_shift_display|default:w.cached_emp.current_shift|default:"Day Shift" }}
+                            </div>
+                        </td>
+
+                        <!-- 5. TODAY'S MEAL APPROVALS -->
+                        <td style="padding: 12px 14px;">
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                {% if w.breakfast_log %}
+                                <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;" title="Breakfast Approved ({{ w.breakfast_log.verification_token }})">
+                                    🌅 Breakfast: {{ w.breakfast_log.verification_token }}
+                                </span>
+                                {% endif %}
+                                
+                                {% if w.lunch_log %}
+                                <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;" title="Lunch Approved ({{ w.lunch_log.verification_token }})">
+                                    ☀️ Lunch: {{ w.lunch_log.verification_token }}
+                                </span>
+                                {% endif %}
+
+                                {% if w.dinner_log %}
+                                <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;" title="Dinner Approved ({{ w.dinner_log.verification_token }})">
+                                    🌙 Dinner: {{ w.dinner_log.verification_token }}
+                                </span>
+                                {% endif %}
+
+                                {% if not w.breakfast_log and not w.lunch_log and not w.dinner_log %}
+                                <span style="background: #f1f5f9; color: #64748b; font-size: 0.72rem; font-weight: 600; padding: 2px 6px; border-radius: 6px;">
+                                    ⏳ No Passes Claimed Today
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- 6. ACCOUNT STATUS -->
+                        <td style="padding: 12px 14px;">
+                            {% if w.is_active %}
+                            <span style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">
+                                🟢 Active
+                            </span>
+                            {% else %}
+                            <span style="background: #fee2e2; color: #b91c1c; font-weight: 800; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">
+                                🔴 Disabled
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 7. ACTIONS -->
+                        <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">
+                            <div style="display: inline-flex; gap: 6px; align-items: center;">
+                                <!-- Meal Approval Control Button -->
+                                <button onclick="openMealApprovalModal({{ w.id }})" class="btn" style="background: #2563eb; color: white; padding: 5px 10px; font-size: 0.78rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Reset or Manage Meal Passes">
+                                    <span>🍽️</span> Approvals
+                                </button>
+                                
+                                <!-- Edit Worker Details Button -->
+                                <button onclick="openEditWorkerModal({{ w.id }})" class="btn" style="background: #7e22ce; color: white; padding: 5px 10px; font-size: 0.78rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Edit Name, ID, Phone, Permit, Mess, PIN">
+                                    <span>✏️</span> Edit
+                                </button>
+
+                                <!-- Move to Office Staff Button -->
+                                <button type="button" onclick="switchUserCategory({{ w.id }}, 'staff', '{{ w.full_name|default:w.username|escapejs }}')" class="btn" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; font-size: 0.78rem; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Move to System & Office Staff Section">
+                                    <span>👔</span> Office
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem; color: #64748b;">
+                            No mess worker accounts registered yet. Use "+ Add Mess Worker" or invite workers to sign up via Mess Login.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL 1: LIVE MEAL PASS & APPROVAL CONTROL MODAL             -->
+<!-- ============================================================ -->
+<div id="mealApprovalModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: #ffffff; border-radius: 20px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.4rem;">🍽️</span>
+                    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #0f172a;">
+                        Worker Meal Pass &amp; Approval Control
+                    </h3>
+                </div>
+                <div style="font-size: 0.84rem; color: #64748b; margin-top: 3px;" id="modalWorkerSubheading">
+                    Loading worker meal records...
+                </div>
+            </div>
+            <button type="button" onclick="closeMealApprovalModal()" style="background: #f1f5f9; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: 800; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <input type="hidden" id="approvalCurrentUserId" value="">
+
+        <!-- Notice -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.82rem; color: #1e40af; line-height: 1.4;">
+            💡 <b>Reset Approval:</b> If a worker accidentally scanned the QR code or was marked by mistake, click <b>"Reset Approval"</b> below. This voids the pass and immediately allows the worker to re-scan their camera at the wall QR poster!
+        </div>
+
+        <!-- Meals Container -->
+        <div id="modalMealsContainer" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;">
+            <!-- Rendered dynamically by JS -->
+        </div>
+
+        <!-- Bottom Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 14px; flex-wrap: wrap; gap: 10px;">
+            <button type="button" onclick="triggerResetApproval('ALL')" class="btn" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.82rem; font-weight: 800; padding: 8px 14px; border-radius: 8px; cursor: pointer;">
+                ⚠️ Reset ALL Today's Meals
+            </button>
+            <button type="button" onclick="closeMealApprovalModal()" class="btn btn-outline" style="font-weight: 700;">
+                Close Window
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL 2: FULL WORKER DETAILS EDITOR MODAL                    -->
+<!-- ============================================================ -->
+<div id="editWorkerModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: #ffffff; border-radius: 20px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <span>✏️</span> Edit Mess Worker Details
+            </h3>
+            <button type="button" onclick="closeEditWorkerModal()" style="background: #f1f5f9; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: 800; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="editWorkerForm" onsubmit="submitWorkerEditForm(event)">
+            <input type="hidden" id="ew_user_id" name="user_id">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Full Name *</label>
+                    <input type="text" id="ew_name" class="form-control" required style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Employee ID / Badge *</label>
+                    <input type="text" id="ew_empid" class="form-control" required style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                    <small style="font-size: 0.7rem; color: #64748b;">Used as Login Username</small>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Mobile / Phone Number</label>
+                    <input type="text" id="ew_phone" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Work Permit Number</label>
+                    <input type="text" id="ew_permit" class="form-control" placeholder="e.g. WP-9941" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Assigned Mess Location</label>
+                    <select id="ew_mess" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 700;">
+                        {% for m in mess_locations %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Shift</label>
+                    <select id="ew_shift" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                        <option value="Day Shift">Day Shift (06:00 - 18:00)</option>
+                        <option value="Night Shift">Night Shift (18:00 - 06:00)</option>
+                        <option value="General Shift">General Shift (08:00 - 17:00)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Department</label>
+                    <input type="text" id="ew_dept" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 4px;">Designation / Trade</label>
+                    <input type="text" id="ew_desig" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <!-- Account Section / Category & Role -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="font-size: 0.78rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">Account Section</label>
+                        <select id="ew_category" class="form-control" onchange="toggleCategoryRolePicker()" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 700;">
+                            <option value="mess">🍱 Mess Worker / Diner</option>
+                            <option value="staff">👔 System &amp; Office Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="ew_role_group" style="display: none;">
+                        <label style="font-size: 0.78rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">Office System Role</label>
+                        <select id="ew_system_role" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 700;">
+                            <option value="DEO">Data Entry Operator (DEO)</option>
+                            <option value="TIME_KEEPER">Timekeeper</option>
+                            <option value="PROJECT_MANAGER">Project Manager</option>
+                            <option value="MANAGER">Manager / Admin</option>
+                            <option value="EMPLOYEE">Employee / Staff</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PIN & Account Status -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center;">
+                    <div class="form-group">
+                        <label style="font-size: 0.78rem; font-weight: 800; color: #b45309; display: block; margin-bottom: 4px;">
+                            🔑 Reset 4-Digit PIN / Password
+                        </label>
+                        <input type="text" id="ew_pin" class="form-control" placeholder="Leave blank to keep unchanged" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                        <small style="font-size: 0.68rem; color: #64748b;">Enter new 4-digit PIN to overwrite</small>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 800; color: #334155; display: block; margin-bottom: 8px;">Login Account Status</label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 0.88rem; color: #0f172a;">
+                            <input type="checkbox" id="ew_active" style="width: 18px; height: 18px; accent-color: #16a34a;">
+                            <span>Account Enabled &amp; Active</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="editWorkerErrorMsg" style="color: #ef4444; font-size: 0.82rem; font-weight: 700; margin-bottom: 10px; display: none;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" onclick="closeEditWorkerModal()" class="btn btn-outline">Cancel</button>
+                <button type="submit" id="btnSaveWorkerDetails" class="btn" style="background: #7e22ce; color: white; font-weight: 800; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer;">
+                    💾 Save Changes
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL 3: CREATE NEW MESS WORKER ACCOUNT MODAL                -->
+<!-- ============================================================ -->
+<div id="createWorkerModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: #ffffff; border-radius: 20px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <span>🍱</span> Register New Mess Worker Account
+            </h3>
+            <button type="button" onclick="closeCreateWorkerModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_mess_worker">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Full Name *</label>
+                    <input type="text" name="worker_name" class="form-control" placeholder="e.g. Ramesh Kumar" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Employee ID / Badge *</label>
+                    <input type="text" name="worker_emp_id" class="form-control" placeholder="e.g. 1045 or EMP-1045" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Phone / Mobile</label>
+                    <input type="text" name="worker_phone" class="form-control" placeholder="e.g. 9876543210" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Work Permit No</label>
+                    <input type="text" name="worker_permit" class="form-control" placeholder="e.g. WP-4401" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #334155;">Assigned Mess</label>
+                    <select name="assigned_mess_id" class="form-control" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+                        {% for m in mess_locations %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.78rem; font-weight: 800; color: #b45309;">Initial 4-Digit PIN *</label>
+                    <input type="password" name="worker_pin" class="form-control" placeholder="••••" required minlength="4" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <button type="button" class="btn btn-outline" onclick="closeCreateWorkerModal()">Cancel</button>
+                <button type="submit" class="btn" style="background: #9333ea; color: white; font-weight: 800; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer;">
+                    Create Worker Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL 4: CREATE NEW SYSTEM STAFF LOGIN MODAL                 -->
+<!-- ============================================================ -->
+<div id="createUserModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-color);"><i class="fas fa-user-plus" style="color: var(--primary);"></i> Create New Staff Login</h3>
+            <button type="button" onclick="closeCreateUserModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--sidebar-text);">&times;</button>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_user">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700;">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Karma Tshering" required>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700;">Phone Number</label>
+                    <input type="text" name="phone_number" class="form-control" placeholder="e.g. +91 9876543210">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700;">Email / Username</label>
+                    <input type="text" name="email" class="form-control" placeholder="user@company.com or username" required>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #ef4444;"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700;">System Role</label>
+                    <select name="system_role" class="form-control" style="font-weight: 700;">
+                        <option value="DEO">DEO (Data Entry Operator)</option>
+                        <option value="TIME_KEEPER">Time Keeper (QR Scanner)</option>
+                        <option value="PROJECT_MANAGER">Project Manager (PM)</option>
+                        <option value="MANAGER">Manager (Full Access)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.75rem; font-weight: 700;">Company Post</label>
+                    <select name="post" class="form-control">
+                        <option value="">-- None --</option>
+                        {% for post in posts %}
+                        <option value="{{ post.id }}">{{ post.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="font-size: 0.75rem; font-weight: 700;">Initial Module Access</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.78rem; max-height: 140px; overflow-y: auto;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="daily_deployment" checked> Daily Deployment
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="vehicle_movement" checked> Vehicle Movement
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="breakdown_register" checked style="accent-color: #dc2626;"> <strong>Breakdown Entry</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="vehicle_profiles" checked style="accent-color: #2563eb;"> <strong>Vehicle Profiles</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="mess_manager"> Mess Manager
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="mess_scanner"> Mess Scanner
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="spare_parts"> Spare Parts
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="tyre_section"> Tyre Section
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" name="modules" value="safety_department" style="accent-color: #f59e0b;"> <strong>🦺 Safety Department</strong>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px;">
+                <button type="button" class="btn btn-outline" onclick="closeCreateUserModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 700;">Create Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Tab Switching: Staff vs Mess
+function switchLoginTab(tab) {
+    const secStaff = document.getElementById('sectionStaff');
+    const secMess = document.getElementById('sectionMess');
+    const btnStaff = document.getElementById('tabBtnStaff');
+    const btnMess = document.getElementById('tabBtnMess');
+
+    if (tab === 'mess') {
+        secStaff.style.display = 'none';
+        secMess.style.display = 'block';
+        btnStaff.classList.remove('active');
+        btnMess.classList.add('active');
+        try { history.replaceState(null, '', '?tab=mess'); } catch(e) {}
+    } else {
+        secStaff.style.display = 'block';
+        secMess.style.display = 'none';
+        btnStaff.classList.add('active');
+        btnMess.classList.remove('active');
+        try { history.replaceState(null, '', '?tab=staff'); } catch(e) {}
+    }
+}
+
+// Modal Toggle Functions
+function openCreateUserModal() {
+    document.getElementById('createUserModal').style.display = 'flex';
+}
+function closeCreateUserModal() {
+    document.getElementById('createUserModal').style.display = 'none';
+}
+
+function openCreateWorkerModal() {
+    document.getElementById('createWorkerModal').style.display = 'flex';
+}
+function closeCreateWorkerModal() {
+    document.getElementById('createWorkerModal').style.display = 'none';
+}
+
+// Filter for System Staff
+function filterEmployees() {
+    let searchText = document.getElementById('employeeSearch').value.toLowerCase();
+    let postFilter = document.getElementById('postFilter').value;
+    let cards = document.querySelectorAll('.employee-card');
+    
+    cards.forEach(card => {
+        let name = card.querySelector('.emp-name').innerText.toLowerCase();
+        let email = card.querySelector('.emp-email').innerText.toLowerCase();
+        let phone = card.querySelector('.emp-phone').innerText.toLowerCase();
+        let post = card.getAttribute('data-post');
+        
+        let matchesSearch = name.includes(searchText) || email.includes(searchText) || phone.includes(searchText);
+        let matchesPost = (postFilter === 'ALL') || (post === postFilter);
+        
+        card.style.display = (matchesSearch && matchesPost) ? '' : 'none';
+    });
+}
+document.getElementById('employeeSearch').addEventListener('keyup', filterEmployees);
+document.getElementById('postFilter').addEventListener('change', filterEmployees);
+
+// Filter for Mess Workers
+function filterMessWorkers() {
+    let search = (document.getElementById('messWorkerSearch').value || '').toLowerCase().trim();
+    let messVal = document.getElementById('messLocationFilter').value;
+    let mealVal = document.getElementById('messMealStatusFilter').value;
+    let activeVal = document.getElementById('messActiveStatusFilter').value;
+
+    let rows = document.querySelectorAll('.mess-worker-row');
+    rows.forEach(row => {
+        let name = row.getAttribute('data-name') || '';
+        let empid = row.getAttribute('data-empid') || '';
+        let phone = row.getAttribute('data-phone') || '';
+        let permit = row.getAttribute('data-permit') || '';
+        let mess = row.getAttribute('data-mess') || '';
+        let eaten = row.getAttribute('data-eaten') || '';
+        let active = row.getAttribute('data-active') || '';
+
+        let matchesSearch = !search || name.includes(search) || empid.includes(search) || phone.includes(search) || permit.includes(search);
+        let matchesMess = (messVal === 'ALL') || (mess === messVal);
+        let matchesMeal = (mealVal === 'ALL') || (eaten === mealVal);
+        let matchesActive = (activeVal === 'ALL') || (active === activeVal);
+
+        row.style.display = (matchesSearch && matchesMess && matchesMeal && matchesActive) ? '' : 'none';
+    });
+}
+
+// -------------------------------------------------------------
+// LIVE MEAL PASS & APPROVAL CONTROL
+// -------------------------------------------------------------
+let activeWorkerModalData = null;
+
+function openMealApprovalModal(userId) {
+    document.getElementById('approvalCurrentUserId').value = userId;
+    document.getElementById('mealApprovalModal').style.display = 'flex';
+    document.getElementById('modalWorkerSubheading').innerText = 'Fetching live meal approval logs...';
+    document.getElementById('modalMealsContainer').innerHTML = '<div style="text-align:center; padding: 20px; color:#64748b;">Loading records...</div>';
+
+    fetch('/api/teams/mess-worker/meal-status/' + userId + '/')
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            activeWorkerModalData = data;
+            renderMealApprovalCards(data);
+        } else {
+            alert('Error loading meal records: ' + data.msg);
+            closeMealApprovalModal();
+        }
+    })
+    .catch(err => {
+        alert('Failed to connect to server: ' + err);
+        closeMealApprovalModal();
+    });
+}
+
+function closeMealApprovalModal() {
+    document.getElementById('mealApprovalModal').style.display = 'none';
+}
+
+function renderMealApprovalCards(data) {
+    const w = data.worker;
+    document.getElementById('modalWorkerSubheading').innerHTML = `
+        Worker: <b>${w.name}</b> (ID: <b>${w.emp_id}</b>) &bull; Assigned Mess: <b>${w.assigned_mess_name}</b> &bull; Date: <b>${data.today_date}</b>
+    `;
+
+    const mealsMeta = [
+        { key: 'BREAKFAST', title: '🌅 Breakfast', window: '06:00 AM - 08:00 AM', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+        { key: 'LUNCH', title: '☀️ Lunch', window: '01:00 PM - 02:00 PM', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+        { key: 'DINNER', title: '🌙 Dinner', window: '08:00 PM - 09:00 PM', color: '#7e22ce', bg: '#faf5ff', border: '#e9d5ff' },
+    ];
+
+    let html = '';
+    mealsMeta.forEach(m => {
+        const info = data.meals[m.key] || { approved: false };
+        const isApproved = info.approved;
+
+        html += `
+        <div style="background: ${m.bg}; border: 1.5px solid ${m.border}; border-radius: 14px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div>
+                    <span style="font-weight: 800; font-size: 1rem; color: ${m.color};">${m.title}</span>
+                    <span style="font-size: 0.75rem; color: #64748b; margin-left: 6px; font-weight: 600;">(${m.window})</span>
+                </div>
+                ${isApproved ? `
+                    <span style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.78rem; padding: 3px 10px; border-radius: 20px; border: 1px solid #86efac;">
+                        🟢 Approved / Served
+                    </span>
+                ` : `
+                    <span style="background: #f1f5f9; color: #64748b; font-weight: 700; font-size: 0.78rem; padding: 3px 10px; border-radius: 20px;">
+                        ⏳ Not Scanned / No Pass
+                    </span>
+                `}
+            </div>
+
+            ${isApproved ? `
+                <div style="background: #ffffff; border-radius: 10px; padding: 10px; border: 1px solid #e2e8f0; font-size: 0.84rem; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>Token: <b style="color: #0284c7; font-family: monospace;">${info.token}</b></span>
+                        <span>Issued: <b>${info.time}</b></span>
+                    </div>
+                    <div style="color: #475569;">
+                        Facility: <b>${info.mess_name}</b> ${info.remarks ? `<span style="font-size:0.75rem; color:#64748b;">(${info.remarks})</span>` : ''}
+                    </div>
+                </div>
+
+                <!-- ACTIONS IF APPROVED -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <button onclick="triggerResetApproval('${m.key}')" class="btn" style="background: #ef4444; color: white; font-weight: 800; font-size: 0.8rem; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        🔄 Reset Approval (Allow Re-Scan)
+                    </button>
+
+                    <div style="display: inline-flex; gap: 4px; align-items: center; margin-left: auto;">
+                        <select id="changeMessSelect_${m.key}" style="padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.78rem; font-weight: 700;">
+                            ${data.mess_locations.map(loc => `<option value="${loc.id}" ${loc.id === info.mess_id ? 'selected' : ''}>${loc.name}</option>`).join('')}
+                        </select>
+                        <button onclick="triggerChangeMess('${m.key}')" class="btn" style="background: #2563eb; color: white; font-size: 0.78rem; font-weight: 700; padding: 5px 10px; border-radius: 6px; border: none; cursor: pointer;">
+                            Change Mess
+                        </button>
+                    </div>
+                </div>
+            ` : `
+                <!-- ACTIONS IF NOT APPROVED -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 0.8rem; color: #64748b;">Worker has not scanned for this meal today.</span>
+                    <div style="display: inline-flex; gap: 6px; align-items: center;">
+                        <select id="grantMessSelect_${m.key}" style="padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.78rem; font-weight: 700;">
+                            ${data.mess_locations.map(loc => `<option value="${loc.id}" ${loc.id === w.assigned_mess_id ? 'selected' : ''}>${loc.name}</option>`).join('')}
+                        </select>
+                        <button onclick="triggerGrantApproval('${m.key}')" class="btn" style="background: #16a34a; color: white; font-size: 0.8rem; font-weight: 800; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer;">
+                            🟢 Grant Manual Approval
+                        </button>
+                    </div>
+                </div>
+            `}
+        </div>
+        `;
+    });
+
+    document.getElementById('modalMealsContainer').innerHTML = html;
+}
+
+function triggerResetApproval(mealKey) {
+    const userId = document.getElementById('approvalCurrentUserId').value;
+    const confirmMsg = mealKey === 'ALL' 
+        ? "Are you sure you want to RESET ALL meal passes for today? The worker will be able to re-scan for any meal." 
+        : `Are you sure you want to RESET the ${mealKey} approval? This allows the worker to immediately re-scan their camera at the wall QR code.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    fetch('/api/teams/mess-worker/meal-approval/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            action: 'RESET',
+            meal_type: mealKey
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            // Refresh modal data
+            openMealApprovalModal(userId);
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Failed to execute reset: ' + err));
+}
+
+function triggerGrantApproval(mealKey) {
+    const userId = document.getElementById('approvalCurrentUserId').value;
+    const selectEl = document.getElementById('grantMessSelect_' + mealKey);
+    const messId = selectEl ? selectEl.value : null;
+
+    fetch('/api/teams/mess-worker/meal-approval/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            action: 'GRANT',
+            meal_type: mealKey,
+            mess_id: messId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            openMealApprovalModal(userId);
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Failed to grant pass: ' + err));
+}
+
+function triggerChangeMess(mealKey) {
+    const userId = document.getElementById('approvalCurrentUserId').value;
+    const selectEl = document.getElementById('changeMessSelect_' + mealKey);
+    const messId = selectEl ? selectEl.value : null;
+
+    fetch('/api/teams/mess-worker/meal-approval/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            action: 'CHANGE_MESS',
+            meal_type: mealKey,
+            mess_id: messId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            openMealApprovalModal(userId);
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Failed to change mess: ' + err));
+}
+
+// -------------------------------------------------------------
+// SWITCH USER CATEGORY (1-Click Move: Staff <-> Mess)
+// -------------------------------------------------------------
+function switchUserCategory(userId, target, name) {
+    const targetLabel = target === 'staff' ? 'System & Office Staff' : 'Mess Workers & Diners';
+    if (!confirm(`Move "${name}" to ${targetLabel}?`)) return;
+
+    fetch('/api/teams/user/switch-category/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: userId, target: target })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.msg);
+        }
+    })
+    .catch(err => alert('Failed to switch section: ' + err));
+}
+
+function toggleCategoryRolePicker() {
+    const cat = document.getElementById('ew_category').value;
+    const roleGrp = document.getElementById('ew_role_group');
+    if (roleGrp) {
+        roleGrp.style.display = (cat === 'staff') ? 'block' : 'none';
+    }
+}
+
+// -------------------------------------------------------------
+// EDIT WORKER DETAILS MODAL & AJAX SUBMIT
+// -------------------------------------------------------------
+function openEditWorkerModal(userId) {
+    document.getElementById('ew_user_id').value = userId;
+    document.getElementById('editWorkerErrorMsg').style.display = 'none';
+    document.getElementById('ew_pin').value = '';
+
+    fetch('/api/teams/mess-worker/meal-status/' + userId + '/')
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            const w = data.worker;
+            document.getElementById('ew_name').value = w.name || '';
+            document.getElementById('ew_empid').value = w.emp_id || '';
+            document.getElementById('ew_phone').value = w.phone || '';
+            document.getElementById('ew_permit').value = w.permit_no || '';
+            document.getElementById('ew_dept').value = w.department || '';
+            document.getElementById('ew_desig').value = w.designation || '';
+            document.getElementById('ew_shift').value = w.shift || 'Day Shift';
+            document.getElementById('ew_active').checked = !!w.is_active;
+
+            if (w.account_category) {
+                document.getElementById('ew_category').value = w.account_category;
+            } else {
+                document.getElementById('ew_category').value = 'mess';
+            }
+
+            if (w.system_role && w.system_role !== 'USER') {
+                document.getElementById('ew_system_role').value = w.system_role;
+            } else {
+                document.getElementById('ew_system_role').value = 'DEO';
+            }
+            toggleCategoryRolePicker();
+
+            if (w.assigned_mess_id) {
+                document.getElementById('ew_mess').value = w.assigned_mess_id;
+            }
+
+            document.getElementById('editWorkerModal').style.display = 'flex';
+        } else {
+            alert('Error loading worker details: ' + data.msg);
+        }
+    })
+    .catch(err => alert('Failed to connect to server: ' + err));
+}
+
+function closeEditWorkerModal() {
+    document.getElementById('editWorkerModal').style.display = 'none';
+}
+
+function submitWorkerEditForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSaveWorkerDetails');
+    btn.disabled = true;
+    btn.innerText = 'Saving...';
+
+    const payload = {
+        user_id: document.getElementById('ew_user_id').value,
+        name: document.getElementById('ew_name').value,
+        emp_id: document.getElementById('ew_empid').value,
+        phone_number: document.getElementById('ew_phone').value,
+        work_permit_no: document.getElementById('ew_permit').value,
+        assigned_mess_id: document.getElementById('ew_mess').value,
+        current_shift: document.getElementById('ew_shift').value,
+        department: document.getElementById('ew_dept').value,
+        designation: document.getElementById('ew_desig').value,
+        account_category: document.getElementById('ew_category').value,
+        system_role: document.getElementById('ew_system_role').value,
+        is_active: document.getElementById('ew_active').checked,
+        new_pin: document.getElementById('ew_pin').value
+    };
+
+    fetch('/api/teams/mess-worker/save/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = '💾 Save Changes';
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            closeEditWorkerModal();
+            window.location.reload();
+        } else {
+            const errEl = document.getElementById('editWorkerErrorMsg');
+            errEl.style.display = 'block';
+            errEl.innerText = data.msg;
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = '💾 Save Changes';
+        alert('Network error: ' + err);
+    });
+}
+</script>
+{% endblock %}

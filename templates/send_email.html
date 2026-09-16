@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Send Email to Employees</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+{% if messages %}
+<div style="margin-bottom: 2rem;">
+    {% for message in messages %}
+    <div style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; {% if message.tags == 'success' %}background-color: var(--success); color: white;{% else %}background-color: var(--error); color: white;{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="email_type" value="{{ email_type }}">
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500;">Email Type</label>
+            <div style="padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 6px; margin-top: 0.5rem; font-weight: 600; color: var(--primary);">
+                {% if email_type == 'festival' %}
+                🎉 Birthday / Festival Alert
+                {% else %}
+                📧 Custom Email Message
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500;">Select Recipients (Hold Ctrl/Cmd to select multiple)</label>
+            <select name="recipients" class="form-control" multiple style="height: 150px; margin-top: 0.5rem;" required>
+                <option value="all">-- All Employees --</option>
+                {% for emp in employees %}
+                    {% if emp.email %}
+                    <option value="{{ emp.email }}">{{ emp.full_name|default:emp.username }} ({{ emp.email }})</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <small style="color: var(--sidebar-text); display: block; margin-top: 0.5rem;">Only employees with valid email addresses are shown.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500;">Email Subject</label>
+            <input type="text" name="subject" class="form-control" style="margin-top: 0.5rem;" required 
+                   value="{% if email_type == 'festival' %}Happy Birthday / Happy Festival from P&M!{% endif %}">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label style="font-weight: 500;">Email Body</label>
+            <textarea name="message" class="form-control" rows="8" style="margin-top: 0.5rem;" required>{% if email_type == 'festival' %}Dear Team,
+
+Wishing you a very Happy Birthday / Festival! 
+May this special day bring you joy, health, and success.
+
+Best Regards,
+Manager
+P&M Department{% endif %}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+            <span>Send Email Now</span>
+        </button>
+    </form>
+</div>
+{% endblock %}

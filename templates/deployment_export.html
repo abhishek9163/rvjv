@@ -1,0 +1,431 @@
+{% extends 'base.html' %}
+{% block title %}Daily Deployment & Captain Allocation Export Hub - P&M Portal{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --primary: #1E3A8A;
+    --primary-light: #3B82F6;
+    --primary-subtle: #EFF6FF;
+    --accent: #F59E0B;
+    --success: #10B981;
+    --success-subtle: #ECFDF5;
+    --error: #EF4444;
+    --card-bg: #FFFFFF;
+    --border: #E5E7EB;
+    --text-color: #1F2937;
+    --text-secondary: #6B7280;
+    --bg-subtle: #F9FAFB;
+  }
+
+  .export-hub-container {
+    padding: 1.25rem;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  .page-header-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .btn {
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: #1e40af; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { background: #059669; }
+  .btn-secondary { background: var(--bg-subtle); color: var(--text-color); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #e5e7eb; }
+
+  .filter-panel-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .form-group label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+
+  .form-control {
+    padding: 0.55rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.88rem;
+    background: var(--bg-subtle);
+    outline: none;
+  }
+  .form-control:focus {
+    border-color: var(--primary-light);
+    background: white;
+  }
+
+  .preset-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .preset-pill {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .preset-pill:hover {
+    background: var(--primary-subtle);
+    color: var(--primary);
+    border-color: var(--primary-light);
+  }
+
+  .table-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    text-align: left;
+    min-width: 1100px;
+  }
+
+  .data-table th {
+    background: #1E3A8A;
+    color: white;
+    padding: 0.75rem 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-color);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .data-table tr:hover { background: #F8FAFC; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .badge-day { background: #FEF3C7; color: #92400E; }
+  .badge-night { background: #E0E7FF; color: #3730A3; }
+  .badge-zone { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+  .badge-cat { background: #F3F4F6; color: #374151; font-weight: bold; }
+</style>
+
+<div class="export-hub-container">
+  
+  <!-- Header -->
+  <div class="page-header-box">
+    <div>
+      <a href="{% url 'deployment' %}" class="btn btn-secondary" style="margin-bottom: 0.5rem; font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+        ← Back to Daily Deployment
+      </a>
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--text-color); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+        <span>📤</span> Daily Deployment & Allocation Export Hub
+      </h1>
+      <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.88rem;">
+        Generate and export customized Excel and PDF registers with comprehensive site filters (GIAP Gelephu)
+      </p>
+    </div>
+
+    <!-- Direct Export Buttons -->
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <button class="btn btn-success" onclick="downloadExport('excel')" style="font-size: 0.95rem; padding: 0.65rem 1.25rem;">
+        <span>📊</span> Download Excel (.xlsx)
+      </button>
+      <button class="btn btn-primary" onclick="downloadExport('pdf')" style="font-size: 0.95rem; padding: 0.65rem 1.25rem;">
+        <span>📄</span> Download / Print PDF (.pdf)
+      </button>
+      <button class="btn" onclick="shareDeploymentExport()" style="font-size: 0.95rem; padding: 0.65rem 1.25rem; background: #25D366; color: white;">
+        <span>💬</span> Share Report (WhatsApp / Email)
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Filter Control Panel -->
+  <div class="filter-panel-card">
+    <h3 style="margin: 0 0 1rem 0; font-size: 1.05rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem;">
+      <span>⚙️</span> Customize Export Filters
+    </h3>
+
+    <form method="GET" id="exportFilterForm" action="{% url 'deployment_export_page' %}">
+      <div class="filter-grid">
+        
+        <!-- Category / Department -->
+        <div class="form-group">
+          <label>Department / Machinery</label>
+          <select name="category" id="fCategory" class="form-control" onchange="submitFilter()">
+            <option value="All" {% if category == 'All' %}selected{% endif %}>⭐ All Departments</option>
+            <option value="Scania" {% if category == 'Scania' %}selected{% endif %}>🚛 Scania / Dumpers</option>
+            <option value="Excavator" {% if category == 'Excavator' %}selected{% endif %}>🚜 Excavators</option>
+            <option value="Grader" {% if category == 'Grader' %}selected{% endif %}>🛣️ Motor Graders</option>
+            <option value="Compactor" {% if category == 'Compactor' %}selected{% endif %}>🏗️ Compactors / Rollers</option>
+            <option value="Other" {% if category == 'Other' %}selected{% endif %}>🚚 Other Machinery</option>
+          </select>
+        </div>
+
+        <!-- Shift -->
+        <div class="form-group">
+          <label>Shift</label>
+          <select name="shift" id="fShift" class="form-control" onchange="submitFilter()">
+            <option value="All" {% if shift == 'All' %}selected{% endif %}>All Shifts</option>
+            <option value="Day" {% if shift == 'Day' %}selected{% endif %}>☀️ Day Shift</option>
+            <option value="Night" {% if shift == 'Night' %}selected{% endif %}>🌙 Night Shift</option>
+          </select>
+        </div>
+
+        <!-- Location / Zone -->
+        <div class="form-group">
+          <label>Assigned Location / Zone</label>
+          <select name="zone" id="fZone" class="form-control" onchange="submitFilter()">
+            <option value="All" {% if zone == 'All' %}selected{% endif %}>All Locations / Zones</option>
+            <option value="Zone 1 & 2" {% if zone == 'Zone 1 & 2' %}selected{% endif %}>Zone 1 & 2</option>
+            <option value="Zone 3 & 4" {% if zone == 'Zone 3 & 4' %}selected{% endif %}>Zone 3 & 4</option>
+            <option value="Borrow Area" {% if zone == 'Borrow Area' %}selected{% endif %}>Borrow Area</option>
+            <option value="Culvert Area" {% if zone == 'Culvert Area' %}selected{% endif %}>Culvert Area</option>
+            <option value="Batching Plant" {% if zone == 'Batching Plant' %}selected{% endif %}>Batching Plant</option>
+            <option value="Crushing Plant" {% if zone == 'Crushing Plant' %}selected{% endif %}>Crushing Plant</option>
+            <option value="Road Maintenance" {% if zone == 'Road Maintenance' %}selected{% endif %}>Road Maintenance</option>
+            <option value="Other Location" {% if zone == 'Other Location' %}selected{% endif %}>Other Location</option>
+          </select>
+        </div>
+
+        <!-- Date Range From -->
+        <div class="form-group">
+          <label>Date From</label>
+          <input type="date" name="date_from" id="fDateFrom" class="form-control" value="{{ date_from }}" onchange="submitFilter()">
+        </div>
+
+        <!-- Date Range To -->
+        <div class="form-group">
+          <label>Date To</label>
+          <input type="date" name="date_to" id="fDateTo" class="form-control" value="{{ date_to }}" onchange="submitFilter()">
+        </div>
+
+        <!-- Search Query -->
+        <div class="form-group" style="grid-column: span 1;">
+          <label>Search Keyword</label>
+          <input type="text" name="q" id="fQuery" class="form-control" placeholder="Search Vehicle, Driver, Emp ID, WO..." value="{{ q }}">
+        </div>
+
+      </div>
+
+      <!-- Quick Preset Pills -->
+      <div class="preset-pills">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">⚡ Quick Presets:</span>
+        <span class="preset-pill" onclick="applyPreset('today_day')">Today (☀️ Day)</span>
+        <span class="preset-pill" onclick="applyPreset('today_night')">Today (🌙 Night)</span>
+        <span class="preset-pill" onclick="applyPreset('scania')">🚛 All Scania</span>
+        <span class="preset-pill" onclick="applyPreset('excavator')">🚜 All Excavators</span>
+        <span class="preset-pill" onclick="applyPreset('all')">🔄 Reset All</span>
+        
+        <button type="submit" class="btn btn-secondary" style="margin-left: auto; padding: 0.35rem 0.75rem;">
+          🔍 Apply Filter
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Live Records Preview Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-color);">
+      📋 Matching Allocation Records Preview 
+      <span class="badge" style="background: var(--primary-subtle); color: var(--primary); font-size: 0.85rem; margin-left: 0.4rem;">
+        {{ total_count }} Records
+      </span>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+      Currency: <strong>Nu. (Bhutanese Ngultrum)</strong>
+    </div>
+  </div>
+
+  <!-- Preview Table -->
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date & Shift</th>
+          <th>Department</th>
+          <th>Vehicle Reg No</th>
+          <th>Driver / Operator</th>
+          <th>Emp ID</th>
+          <th>Contact No</th>
+          <th>Assigned Location / Zone</th>
+          <th>WO No</th>
+          <th>Vendor / Owner</th>
+          <th>Remarks</th>
+          <th>Entered By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in allocations %}
+        <tr>
+          <td style="color: var(--text-secondary); font-weight: bold;">{{ forloop.counter }}</td>
+          <td>
+            <div style="font-weight: 600;">{{ a.date|date:"d M Y" }}</div>
+            {% if a.shift == 'Day' %}
+              <span class="badge badge-day">☀️ Day</span>
+            {% else %}
+              <span class="badge badge-night">🌙 Night</span>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-cat">{{ a.category }}</span></td>
+          <td>
+            <div style="font-weight: 700; color: var(--primary);">{{ a.vehicle_regn }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">{% if a.vehicle and a.vehicle.model_name %}{{ a.vehicle.model_name }}{% endif %}</div>
+          </td>
+          <td><div style="font-weight: 600;">{{ a.driver_name }}</div></td>
+          <td><span style="font-family: monospace; font-size: 0.8rem; font-weight: 600; color: #475569;">{% if a.driver_emp_id %}{{ a.driver_emp_id }}{% elif a.driver and a.driver.emp_id %}{{ a.driver.emp_id }}{% else %}-{% endif %}</span></td>
+          <td><div style="font-size: 0.8rem; color: var(--text-secondary);">{% if a.driver_contact %}{{ a.driver_contact }}{% elif a.driver and a.driver.contact_info %}{{ a.driver.contact_info }}{% else %}-{% endif %}</div></td>
+          <td><span class="badge badge-zone">📍 {{ a.location_zone }}</span></td>
+          <td><span style="font-family: monospace; font-size: 0.85rem; font-weight: 600;">{{ a.work_order_no|default:"-" }}</span></td>
+          <td><div style="font-size: 0.85rem; color: #475569;">{{ a.vendor|default:"-" }}</div></td>
+          <td><div style="font-size: 0.8rem; color: var(--text-secondary);">{{ a.remarks|default:"-" }}</div></td>
+          <td>
+            <span class="badge" style="background: #F1F5F9; color: #1E293B; border: 1px solid #CBD5E1; font-weight: 600; font-size: 0.78rem;">
+              👤 {% if a.entered_by %}{{ a.entered_by.full_name|default:a.entered_by.username }}{% else %}System{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            <div style="font-weight: 600; font-size: 1.1rem;">No Records Match Selected Filters</div>
+            <p style="margin: 0.25rem 0 0 0;">Adjust the filters above to view and export records.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  function submitFilter() {
+    document.getElementById('exportFilterForm').submit();
+  }
+
+  function applyPreset(preset) {
+    const todayStr = "{{ today|date:'Y-m-d' }}";
+    if (preset === 'today_day') {
+      document.getElementById('fDateFrom').value = todayStr;
+      document.getElementById('fDateTo').value = todayStr;
+      document.getElementById('fShift').value = 'Day';
+      document.getElementById('fCategory').value = 'All';
+    } else if (preset === 'today_night') {
+      document.getElementById('fDateFrom').value = todayStr;
+      document.getElementById('fDateTo').value = todayStr;
+      document.getElementById('fShift').value = 'Night';
+      document.getElementById('fCategory').value = 'All';
+    } else if (preset === 'scania') {
+      document.getElementById('fCategory').value = 'Scania';
+    } else if (preset === 'excavator') {
+      document.getElementById('fCategory').value = 'Excavator';
+    } else if (preset === 'all') {
+      document.getElementById('fCategory').value = 'All';
+      document.getElementById('fShift').value = 'All';
+      document.getElementById('fZone').value = 'All';
+      document.getElementById('fDateFrom').value = '';
+      document.getElementById('fDateTo').value = '';
+      document.getElementById('fQuery').value = '';
+    }
+    submitFilter();
+  }
+
+  function downloadExport(fmt) {
+    const cat = document.getElementById('fCategory').value;
+    const shift = document.getElementById('fShift').value;
+    const zone = document.getElementById('fZone').value;
+    const dateFrom = document.getElementById('fDateFrom').value;
+    const dateTo = document.getElementById('fDateTo').value;
+    const q = document.getElementById('fQuery').value;
+
+    const endpoint = (fmt === 'pdf') ? "/deployment/export-allocation-pdf/" : "/deployment/export-allocation-excel/";
+    const params = `?category=${encodeURIComponent(cat)}&shift=${encodeURIComponent(shift)}&zone=${encodeURIComponent(zone)}&date_from=${dateFrom}&date_to=${dateTo}&q=${encodeURIComponent(q)}`;
+    
+    window.open(endpoint + params, '_blank');
+  }
+
+  function shareDeploymentExport() {
+    const cat = document.getElementById('fCategory').value;
+    const shift = document.getElementById('fShift').value;
+    const zone = document.getElementById('fZone').value;
+    const dateFrom = document.getElementById('fDateFrom').value;
+    const dateTo = document.getElementById('fDateTo').value;
+    const q = document.getElementById('fQuery').value;
+
+    const params = `?category=${encodeURIComponent(cat)}&shift=${encodeURIComponent(shift)}&zone=${encodeURIComponent(zone)}&date_from=${dateFrom}&date_to=${dateTo}&q=${encodeURIComponent(q)}`;
+    const excelUrl = "/deployment/export-allocation-excel/" + params;
+    const pdfUrl = "/deployment/export-allocation-pdf/" + params;
+
+    let sub = `Category: ${cat} • Shift: ${shift}`;
+    if (dateFrom || dateTo) sub += ` • ${dateFrom || 'Start'} to ${dateTo || 'End'}`;
+
+    openReportShareModal({
+      title: "Daily Deployment & Allocation Register",
+      subtitle: sub,
+      excelUrl: excelUrl,
+      pdfUrl: pdfUrl,
+      defaultFormat: 'excel'
+    });
+  }
+</script>
+{% endblock %}

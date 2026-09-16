@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin: 3rem auto;">
+    <div class="card" style="padding: 2.5rem; text-align: center; border-top: 6px solid {% if notification.notification_type == 'ERROR' %}var(--error){% else %}var(--primary){% endif %};">
+        
+        <div style="font-size: 3rem; margin-bottom: 1rem;">
+            {% if notification.notification_type == 'ERROR' %}🚨{% else %}⚠️{% endif %}
+        </div>
+        
+        <h2 style="margin-top: 0; color: var(--text-color); font-weight: 700;">{{ notification.title }}</h2>
+        <p style="font-size: 1.1rem; color: var(--sidebar-text); line-height: 1.6; margin-bottom: 2rem;">{{ notification.message }}</p>
+        
+        <div style="display: flex; justify-content: center; gap: 15px;">
+            <a href="{% url 'dashboard' %}" class="btn" style="background: var(--bg-subtle); color: var(--text-color); border: 1px solid var(--border);">Back to Dashboard</a>
+            
+            {% if notification.link %}
+            <a href="{{ notification.link }}" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-weight: 600;">View Documents & Alerts</a>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 2rem; font-size: 0.85rem; color: var(--sidebar-text); opacity: 0.7;">
+            Notification received on {{ notification.created_at|date:"d M Y, h:i A" }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

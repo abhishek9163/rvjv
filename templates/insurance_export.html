@@ -1,0 +1,653 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Insurance Export Hub | P&M Portal{% endblock %}
+
+{% block content %}
+<style>
+    .export-hub-container {
+        padding: 12px 0 95px;
+        max-width: 1550px;
+        margin: 0 auto;
+    }
+
+    .export-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .export-title h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .export-title p {
+        margin: 4px 0 0;
+        color: var(--sidebar-text);
+        font-size: 0.88rem;
+    }
+
+    /* Filter Panel Card */
+    .filter-panel-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .form-group label {
+        font-size: 0.74rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--sidebar-text);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .form-control {
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.88rem;
+        font-weight: 600;
+        outline: none;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Preset Date Range Pills */
+    .preset-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+    }
+    .preset-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .preset-pill:hover, .preset-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Live Aggregate Stat Bar */
+    .stat-pill-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .stat-pill-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-pill-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .stat-pill-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .stat-pill-val {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1.1;
+    }
+    .stat-pill-lbl {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-top: 3px;
+    }
+
+    /* Action Download Bar */
+    .download-action-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    }
+
+    /* Preview Table Card */
+    .preview-table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+    }
+    .custom-table th {
+        background: var(--bg-color);
+        color: var(--sidebar-text);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 14px;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+    }
+    .custom-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+        vertical-align: middle;
+    }
+    .custom-table tr:hover td {
+        background: rgba(59, 130, 246, 0.03);
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .status-Valid { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .status-Warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .status-Critical { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .status-Expired { background: #fecdd3; color: #881337; border: 1px solid #fda4af; }
+
+    .cat-badge {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        display: inline-block;
+    }
+    .cat-pool { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); }
+    .cat-equipment { background: rgba(139, 92, 246, 0.12); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.25); }
+    .cat-tanker { background: rgba(6, 182, 212, 0.12); color: #0891b2; border: 1px solid rgba(6, 182, 212, 0.25); }
+</style>
+
+<div class="export-hub-container">
+    <!-- Header -->
+    <div class="export-header">
+        <div class="export-title">
+            <h2>
+                <i class="fas fa-file-invoice-dollar" style="color:var(--primary);"></i>
+                Insurance Export &amp; Reporting Hub
+            </h2>
+            <p>P&amp;M Department • Generate official Excel registers &amp; PDF reports with advance multi-tier filters and date ranges</p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="{% url 'document_alerts' %}?tab=insurance" class="btn btn-outline" style="font-size:0.85rem; font-weight:700;">
+                <i class="fas fa-arrow-left"></i> Back to Alerts
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline" style="font-size:0.85rem; font-weight:700;">
+                <i class="fas fa-house"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Advance Filter Panel Card -->
+    <div class="filter-panel-card">
+        <form method="GET" action="{% url 'insurance_export_hub' %}" id="insuranceExportFilterForm">
+            <div class="filter-grid">
+                <div class="form-group" style="grid-column: span 1.5;">
+                    <label><i class="fas fa-magnifying-glass"></i> Live Search</label>
+                    <input type="text" name="q" id="filterSearch" value="{{ q }}" placeholder="Reg No, Driver, Vehicle Type, Site, Supplier, Policy..." class="form-control" oninput="updateExportUrls()">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-layer-group"></i> Category</label>
+                    <select name="category" id="filterCategory" class="form-control" onchange="updateExportUrls()">
+                        <option value="All" {% if category == 'All' or not category %}selected{% endif %}>All Categories</option>
+                        <option value="Pool Vehicle" {% if category == 'Pool Vehicle' %}selected{% endif %}>🚗 Pool Vehicle</option>
+                        <option value="Equipment" {% if category == 'Equipment' %}selected{% endif %}>🚜 Equipment / Machinery</option>
+                        <option value="Tanker" {% if category == 'Tanker' %}selected{% endif %}>🚚 Tanker</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-clock-rotate-left"></i> Expiry Status</label>
+                    <select name="status" id="filterStatus" class="form-control" onchange="updateExportUrls()">
+                        <option value="All" {% if status == 'All' or not status %}selected{% endif %}>All Statuses</option>
+                        <option value="Good" {% if status == 'Good' %}selected{% endif %}>🟢 Valid (&gt;90 Days)</option>
+                        <option value="Warning" {% if status == 'Warning' %}selected{% endif %}>🟡 Warning (30-90 Days)</option>
+                        <option value="Critical" {% if status == 'Critical' %}selected{% endif %}>🔴 Critical (&lt;30 Days)</option>
+                        <option value="Expired" {% if status == 'Expired' %}selected{% endif %}>⚫ Expired</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-location-dot"></i> Work Site / Location</label>
+                    <select name="site" id="filterSite" class="form-control" onchange="updateExportUrls()">
+                        <option value="All" {% if site == 'All' or not site %}selected{% endif %}>All Work Sites</option>
+                        {% for s in sites %}
+                        <option value="{{ s }}" {% if site == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-day"></i> Expiry From</label>
+                    <input type="date" name="date_from" id="filterDateFrom" value="{{ date_from }}" class="form-control" onchange="updateExportUrls()">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-day"></i> Expiry To</label>
+                    <input type="date" name="date_to" id="filterDateTo" value="{{ date_to }}" class="form-control" onchange="updateExportUrls()">
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:row; gap:6px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1; padding:9px 14px; justify-content:center; font-size:0.85rem; font-weight:700;">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <a href="{% url 'insurance_export_hub' %}" class="btn btn-outline" style="padding:9px 12px;" title="Reset All Filters">
+                        <i class="fas fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Date Range & Status Presets -->
+            <div class="preset-pills">
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--sidebar-text); margin-right:4px;">Quick Presets:</span>
+                <button type="button" class="preset-pill" onclick="applyPreset('all')">All Policies</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('critical')">⚠️ Critical (&lt;30d)</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('warning')">🟡 Warning (30-90d)</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('valid')">🟢 Valid (&gt;90d)</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('expired')">🔴 Expired</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('this_month')">This Month</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('next_month')">Next Month</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('year_2026')">Year 2026</button>
+                <button type="button" class="preset-pill" onclick="applyPreset('year_2027')">Year 2027</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Aggregate KPI Stat Bar -->
+    <div class="stat-pill-bar">
+        <div class="stat-pill-item" onclick="applyPreset('all')">
+            <div class="stat-pill-icon" style="background:rgba(59, 130, 246, 0.12); color:#2563eb;">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val">{{ stats.total }}</div>
+                <div class="stat-pill-lbl">Total Filtered</div>
+            </div>
+        </div>
+        <div class="stat-pill-item" onclick="applyPreset('valid')">
+            <div class="stat-pill-icon" style="background:#dcfce7; color:#16a34a;">
+                <i class="fas fa-circle-check"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val" style="color:#16a34a;">{{ stats.valid }}</div>
+                <div class="stat-pill-lbl">Valid (&gt;90d)</div>
+            </div>
+        </div>
+        <div class="stat-pill-item" onclick="applyPreset('warning')">
+            <div class="stat-pill-icon" style="background:#fef3c7; color:#d97706;">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val" style="color:#d97706;">{{ stats.warning }}</div>
+                <div class="stat-pill-lbl">Warning (30-90d)</div>
+            </div>
+        </div>
+        <div class="stat-pill-item" onclick="applyPreset('critical')">
+            <div class="stat-pill-icon" style="background:#fee2e2; color:#dc2626;">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val" style="color:#dc2626;">{{ stats.critical }}</div>
+                <div class="stat-pill-lbl">Critical (&lt;30d)</div>
+            </div>
+        </div>
+        <div class="stat-pill-item" onclick="applyPreset('expired')">
+            <div class="stat-pill-icon" style="background:#fecdd3; color:#e11d48;">
+                <i class="fas fa-circle-xmark"></i>
+            </div>
+            <div>
+                <div class="stat-pill-val" style="color:#e11d48;">{{ stats.expired }}</div>
+                <div class="stat-pill-lbl">Expired</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signatories & Report Title Setup Panel -->
+    <div class="filter-panel-card" style="margin-bottom:20px; background:linear-gradient(to right, var(--card-bg), var(--bg-color));">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong style="font-size:0.9rem; color:var(--text-color); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-file-signature" style="color:var(--primary);"></i> Report Customization &amp; Signatory Authorities
+            </strong>
+            <span style="font-size:0.75rem; color:var(--sidebar-text); font-weight:700;">Reflected dynamically on official PDF &amp; Print exports</span>
+        </div>
+        <div class="filter-grid" style="margin-bottom:0; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="form-group" style="grid-column: span 1.5;">
+                <label>Report Header Title</label>
+                <input type="text" id="customReportTitle" value="Vehicle &amp; Equipment Insurance Register" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Prepared By (Fleet / P&amp;M)</label>
+                <input type="text" id="customPrepName" value="Sonam Penjor" placeholder="Name" class="form-control" style="margin-bottom:4px;" oninput="updateExportUrls()">
+                <input type="text" id="customPrepDesig" value="Fleet Supervisor" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Verified By (Mechanical)</label>
+                <input type="text" id="customVerName" value="Kinley Wangdi" placeholder="Name" class="form-control" style="margin-bottom:4px;" oninput="updateExportUrls()">
+                <input type="text" id="customVerDesig" value="Mechanical Engineer" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+            <div class="form-group">
+                <label>Approved By (Management)</label>
+                <input type="text" id="customApprName" value="Karma Tshering" placeholder="Name" class="form-control" style="margin-bottom:4px;" oninput="updateExportUrls()">
+                <input type="text" id="customApprDesig" value="Project Manager" placeholder="Designation" class="form-control" oninput="updateExportUrls()">
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Formats Bar -->
+    <div class="download-action-bar">
+        <div>
+            <span style="font-size:0.95rem; font-weight:800; color:var(--text-color); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-cloud-arrow-down" style="color:var(--primary);"></i> Choose Export Format
+            </span>
+            <div style="font-size:0.78rem; color:var(--sidebar-text); margin-top:3px;">Generates official Rigsar-Vajra JV formatted documents with active filters</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" onclick="shareInsuranceHub()" class="btn" style="background:#25d366; color:white; font-size:0.85rem; font-weight:700; padding:10px 18px; border-radius:10px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);">
+                <i class="fas fa-share-nodes"></i> Share Report (WhatsApp)
+            </button>
+            <a id="btnExportExcel" href="{% url 'export_insurance_excel' %}?category={{ category }}&status={{ status }}&site={{ site }}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}" class="btn" style="background:#10b981; color:white; font-size:0.85rem; font-weight:700; padding:10px 18px; border-radius:10px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);">
+                <i class="fas fa-file-excel"></i> Export Excel (.xlsx)
+            </a>
+            <a id="btnExportPdf" href="{% url 'export_insurance_pdf' %}?category={{ category }}&status={{ status }}&site={{ site }}&q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}" target="_blank" class="btn btn-outline" style="font-size:0.85rem; font-weight:700; color:#ef4444; border-color:#ef4444; padding:10px 18px; border-radius:10px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);">
+                <i class="fas fa-file-pdf"></i> Official PDF Report (.pdf)
+            </a>
+            <button type="button" onclick="window.print()" class="btn btn-outline" style="font-size:0.85rem; font-weight:700; padding:10px 16px; border-radius:10px;">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Preview Table -->
+    <div class="preview-table-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--text-color); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-table-list" style="color:var(--primary);"></i> Preview Insurance Registry
+            </h3>
+            <span style="font-size:0.82rem; color:var(--sidebar-text); font-weight:700;">Total Matching Records: <strong style="color:var(--text-color); font-size:0.95rem;">{{ insurance_list|length }}</strong></span>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px; text-align:center;">#</th>
+                        <th>Category</th>
+                        <th>Reg / Asset No</th>
+                        <th>Vehicle / Machine Type</th>
+                        <th>Driver / Operator</th>
+                        <th>Work Site</th>
+                        <th>Insurance Co &amp; Policy</th>
+                        <th>Expiry Date</th>
+                        <th style="text-align:center;">Days Left &amp; Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in insurance_list %}
+                    <tr>
+                        <td style="text-align:center; font-weight:700; color:var(--sidebar-text);">{{ forloop.counter }}</td>
+                        <td>
+                            {% if item.doc.category == 'Equipment' %}
+                                <span class="cat-badge cat-equipment">🚜 Equipment</span>
+                            {% elif item.doc.category == 'Tanker' %}
+                                <span class="cat-badge cat-tanker">🚚 Tanker</span>
+                            {% else %}
+                                <span class="cat-badge cat-pool">🚗 Pool Vehicle</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong style="color:var(--text-color); font-size:0.92rem;">{{ item.doc.registration_no }}</strong>
+                        </td>
+                        <td>
+                            <div style="font-weight:600;">{{ item.doc.vehicle_type|default:"-" }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight:600;">{{ item.doc.driver_operator|default:"Unassigned" }}</div>
+                            {% if item.doc.contact_no %}
+                            <small style="color:var(--sidebar-text);"><i class="fas fa-phone" style="font-size:0.65rem;"></i> {{ item.doc.contact_no }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-weight:600; color:var(--text-color);">{{ item.doc.work_site|default:"Head Office / Site" }}</span>
+                        </td>
+                        
+                        <td>
+                            <div style="font-weight:600;">{{ item.doc.insurance_provider|default:"Royal Insurance" }}</div>
+                            <small style="color:var(--sidebar-text); font-family:monospace;">{{ item.doc.policy_no|default:"-" }}</small>
+                        </td>
+                        <td>
+                            {% if item.doc.expiry_date %}
+                                <div style="font-weight:700;">{{ item.doc.expiry_date|date:"d-M-Y" }}</div>
+                            {% else %}
+                                <span style="color:var(--sidebar-text);">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            <span class="status-badge status-{{ item.status }}">
+                                {% if item.status == 'Good' %}
+                                    <i class="fas fa-circle-check"></i> Valid ({{ item.days_left }}d)
+                                {% elif item.status == 'Warning' %}
+                                    <i class="fas fa-triangle-exclamation"></i> {{ item.days_left }} Days Left
+                                {% elif item.status == 'Critical' %}
+                                    <i class="fas fa-bell"></i> {{ item.days_left }} Days Left
+                                {% else %}
+                                    <i class="fas fa-circle-xmark"></i> Expired
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align:center; padding:50px 20px;">
+                            <div style="font-size:2.5rem; margin-bottom:10px;">🔍</div>
+                            <h4 style="margin:0; color:var(--text-color);">No Insurance Records Match Your Filter Criteria</h4>
+                            <p style="margin:6px 0 16px; color:var(--sidebar-text); font-size:0.85rem;">Try clearing or adjusting your search queries or date ranges</p>
+                            <a href="{% url 'insurance_export_hub' %}" class="btn btn-primary" style="font-size:0.85rem; font-weight:700;">Reset All Filters</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateExportUrls() {
+        const q = document.getElementById('filterSearch') ? document.getElementById('filterSearch').value : '';
+        const cat = document.getElementById('filterCategory') ? document.getElementById('filterCategory').value : 'All';
+        const st = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : 'All';
+        const site = document.getElementById('filterSite') ? document.getElementById('filterSite').value : 'All';
+        const dFrom = document.getElementById('filterDateFrom') ? document.getElementById('filterDateFrom').value : '';
+        const dTo = document.getElementById('filterDateTo') ? document.getElementById('filterDateTo').value : '';
+
+        const title = document.getElementById('customReportTitle') ? document.getElementById('customReportTitle').value : '';
+        const prepName = document.getElementById('customPrepName') ? document.getElementById('customPrepName').value : '';
+        const prepDesig = document.getElementById('customPrepDesig') ? document.getElementById('customPrepDesig').value : '';
+        const verName = document.getElementById('customVerName') ? document.getElementById('customVerName').value : '';
+        const verDesig = document.getElementById('customVerDesig') ? document.getElementById('customVerDesig').value : '';
+        const apprName = document.getElementById('customApprName') ? document.getElementById('customApprName').value : '';
+        const apprDesig = document.getElementById('customApprDesig') ? document.getElementById('customApprDesig').value : '';
+
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (cat && cat !== 'All') params.set('category', cat);
+        if (st && st !== 'All') params.set('status', st);
+        if (site && site !== 'All') params.set('site', site);
+        if (dFrom) params.set('date_from', dFrom);
+        if (dTo) params.set('date_to', dTo);
+
+        if (title) params.set('report_title', title);
+        if (prepName) params.set('prepared_by_name', prepName);
+        if (prepDesig) params.set('prepared_by_desig', prepDesig);
+        if (verName) params.set('verified_by_name', verName);
+        if (verDesig) params.set('verified_by_desig', verDesig);
+        if (apprName) params.set('approved_by_name', apprName);
+        if (apprDesig) params.set('approved_by_desig', apprDesig);
+
+        const qs = params.toString();
+        const baseExcel = "{% url 'export_insurance_excel' %}";
+        const basePdf = "{% url 'export_insurance_pdf' %}";
+
+        const excelBtn = document.getElementById('btnExportExcel');
+        const pdfBtn = document.getElementById('btnExportPdf');
+
+        if (excelBtn) excelBtn.href = qs ? `${baseExcel}?${qs}` : baseExcel;
+        if (pdfBtn) pdfBtn.href = qs ? `${basePdf}?${qs}` : basePdf;
+    }
+
+    function shareInsuranceHub() {
+        updateExportUrls();
+        const excelBtn = document.getElementById('btnExportExcel');
+        const pdfBtn = document.getElementById('btnExportPdf');
+        const titleInput = document.getElementById('customReportTitle');
+        if (typeof openReportShareModal === 'function') {
+            openReportShareModal({
+                title: (titleInput && titleInput.value) ? titleInput.value : 'Vehicle & Equipment Insurance Register',
+                subtitle: 'P&M Department • GIAP Gelephu Site',
+                excelUrl: excelBtn ? excelBtn.getAttribute('href') : '',
+                pdfUrl: pdfBtn ? pdfBtn.getAttribute('href') : '',
+                defaultFormat: 'pdf'
+            });
+        }
+    }
+
+    function applyPreset(preset) {
+        const form = document.getElementById('insuranceExportFilterForm');
+        const today = new Date();
+        const dFrom = document.getElementById('filterDateFrom');
+        const dTo = document.getElementById('filterDateTo');
+        const st = document.getElementById('filterStatus');
+
+        function formatDate(d) {
+            return d.toISOString().split('T')[0];
+        }
+
+        if (preset === 'all') {
+            if (st) st.value = 'All';
+            if (dFrom) dFrom.value = '';
+            if (dTo) dTo.value = '';
+        } else if (preset === 'critical') {
+            if (st) st.value = 'Critical';
+            if (dFrom) dFrom.value = '';
+            if (dTo) dTo.value = '';
+        } else if (preset === 'warning') {
+            if (st) st.value = 'Warning';
+            if (dFrom) dFrom.value = '';
+            if (dTo) dTo.value = '';
+        } else if (preset === 'valid') {
+            if (st) st.value = 'Good';
+            if (dFrom) dFrom.value = '';
+            if (dTo) dTo.value = '';
+        } else if (preset === 'expired') {
+            if (st) st.value = 'Expired';
+            if (dFrom) dFrom.value = '';
+            if (dTo) dTo.value = '';
+        } else if (preset === 'this_month') {
+            if (st) st.value = 'All';
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            if (dFrom) dFrom.value = formatDate(first);
+            if (dTo) dTo.value = formatDate(last);
+        } else if (preset === 'next_month') {
+            if (st) st.value = 'All';
+            const first = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            const last = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+            if (dFrom) dFrom.value = formatDate(first);
+            if (dTo) dTo.value = formatDate(last);
+        } else if (preset === 'year_2026') {
+            if (st) st.value = 'All';
+            if (dFrom) dFrom.value = '2026-01-01';
+            if (dTo) dTo.value = '2026-12-31';
+        } else if (preset === 'year_2027') {
+            if (st) st.value = 'All';
+            if (dFrom) dFrom.value = '2027-01-01';
+            if (dTo) dTo.value = '2027-12-31';
+        }
+
+        updateExportUrls();
+        if (form) form.submit();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateExportUrls();
+    });
+</script>
+{% endblock %}

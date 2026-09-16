@@ -1,0 +1,8 @@
+venv/
+*.pyc
+__pycache__/
+*.log
+scratch/
+scratch_comp/
+*.xlsx
+.env

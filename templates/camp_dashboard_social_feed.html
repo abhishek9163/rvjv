@@ -1,0 +1,852 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Camp Activity Feed - Instagram Mode{% endblock %}
+
+{% block content %}
+<style>
+    .feed-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+    
+    /* Stories Header */
+    .stories-bar {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding: 14px;
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+        scrollbar-width: thin;
+    }
+    .story-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 80px;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s;
+    }
+    .story-item:hover {
+        transform: translateY(-2px);
+    }
+    .story-avatar-ring {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        padding: 3px;
+        background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 6px;
+    }
+    .story-avatar-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2px solid #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+    .story-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #475569;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .story-count {
+        font-size: 0.72rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* Layout grid */
+    .feed-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 24px;
+    }
+
+    @media (max-width: 992px) {
+        .feed-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Feed Post Card */
+    .feed-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.03);
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+    }
+    .feed-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+    .feed-card-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .author-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        box-shadow: 0 3px 10px rgba(99, 102, 241, 0.2);
+    }
+    .author-details h4 {
+        margin: 0;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .author-details p {
+        margin: 2px 0 0 0;
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+
+    /* Badge */
+    .badge-in {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.82rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-out {
+        background: #ffedd5;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.82rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Feed Post Media / Main Highlight Box */
+    .feed-card-body {
+        padding: 20px;
+        background: #fafafa;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .activity-hero {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 18px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: inset 0 2px 6px rgba(0,0,0,0.01);
+    }
+    .activity-hero-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        flex-shrink: 0;
+    }
+    .hero-in { background: #e0f2fe; color: #0284c7; }
+    .hero-out { background: #fef3c7; color: #d97706; }
+
+    .activity-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .meta-box {
+        background: #ffffff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 0.82rem;
+    }
+    .meta-box label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+    }
+    .meta-box span {
+        font-weight: 700;
+        color: #334155;
+    }
+
+    /* Post Footer & Engagement */
+    .feed-card-footer {
+        padding: 14px 20px;
+    }
+    .actions-bar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 10px;
+    }
+    .btn-feed-action {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 1.25rem;
+        color: #64748b;
+        transition: transform 0.15s, color 0.15s;
+        padding: 4px;
+    }
+    .btn-feed-action:hover {
+        transform: scale(1.15);
+        color: #0f172a;
+    }
+    .btn-feed-action.liked {
+        color: #e11d48;
+    }
+    .engagement-stats {
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 12px;
+    }
+
+    /* Comments Section */
+    .comments-wrapper {
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 12px;
+        margin-top: 8px;
+    }
+    .comments-list {
+        max-height: 220px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-right: 4px;
+    }
+    .comment-bubble {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+    .comment-author {
+        font-weight: 700;
+        color: #0f172a;
+        margin-right: 6px;
+    }
+    .comment-text {
+        color: #334155;
+    }
+    .comment-time {
+        font-size: 0.72rem;
+        color: #94a3b8;
+        float: right;
+    }
+    .comment-input-box {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .comment-input-box input {
+        flex: 1;
+        border: 1px solid #cbd5e1;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .comment-input-box input:focus {
+        border-color: #6366f1;
+    }
+    .btn-post-comment {
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-post-comment:hover {
+        background: #4f46e5;
+    }
+
+    /* Filter Strip */
+    .filter-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        padding: 14px 18px;
+        margin-bottom: 24px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* Sidebar cards */
+    .side-widget {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        padding: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.02);
+    }
+    .side-widget h3 {
+        margin: 0 0 14px 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Dark theme support */
+    [data-theme="dark"] .stories-bar,
+    [data-theme="dark"] .feed-card,
+    [data-theme="dark"] .filter-card,
+    [data-theme="dark"] .side-widget,
+    [data-theme="dark"] .activity-hero,
+    [data-theme="dark"] .meta-box {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .feed-card-body {
+        background: #0f172a !important;
+        border-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    [data-theme="dark"] .story-avatar-inner {
+        background: #1e293b !important;
+        border-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .story-label,
+    [data-theme="dark"] .author-details p,
+    [data-theme="dark"] .meta-box label {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .author-details h4,
+    [data-theme="dark"] .meta-box span,
+    [data-theme="dark"] .engagement-stats {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .comment-bubble {
+        background: #0f172a !important;
+        color: #e2e8f0 !important;
+    }
+    [data-theme="dark"] .comment-author {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .comment-text {
+        color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] .comment-input-box input {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+</style>
+
+<div class="feed-container">
+
+    <!-- Top Banner & Feed Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 10px;">
+                <span>📸</span> Camp Activity Feed
+                <span style="font-size: 0.72rem; background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">
+                    Social Mode
+                </span>
+            </h1>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.88rem;">
+                Instagram/Facebook style live timeline for Gate Movements, Likes & Comments
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            {% if has_social_feed_perm or request.user.enable_social_feed_mode %}
+            <a href="?view_mode=cards" class="btn" style="background: #1e293b; color: white; border-radius: 12px; font-weight: 700; padding: 8px 16px; font-size: 0.88rem; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <span>📊</span> Switch to Cards View
+            </a>
+            {% endif %}
+            <a href="{% url 'camp_gate_view' %}" class="btn btn-primary" style="border-radius: 12px; font-weight: 700; padding: 8px 16px; font-size: 0.88rem;">
+                <span>📱</span> Gate QR Scanner
+            </a>
+            <a href="{% url 'camp_hr_view' %}" class="btn btn-outline-secondary" style="border-radius: 12px; font-weight: 700; padding: 8px 16px; font-size: 0.88rem;">
+                <span>📋</span> HR Leave Register
+            </a>
+            <a href="{% url 'camp_reports_view' %}" class="btn btn-outline-dark" style="border-radius: 12px; font-weight: 700; padding: 8px 16px; font-size: 0.88rem;">
+                <span>📊</span> Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Stories Bar / Quick Status Bubbles -->
+    <div class="stories-bar">
+        <a href="?dir=IN" class="story-item">
+            <div class="story-avatar-ring">
+                <div class="story-avatar-inner">🏠</div>
+            </div>
+            <span class="story-label">Inside Camp</span>
+            <span class="story-count">{{ inside_camp }}</span>
+        </a>
+
+        <a href="?dir=OUT" class="story-item">
+            <div class="story-avatar-ring" style="background: linear-gradient(45deg, #f59e0b, #ef4444);">
+                <div class="story-avatar-inner">🚪</div>
+            </div>
+            <span class="story-label">Outside Camp</span>
+            <span class="story-count">{{ outside_camp }}</span>
+        </a>
+
+        <a href="{% url 'camp_hr_view' %}" class="story-item">
+            <div class="story-avatar-ring" style="background: linear-gradient(45deg, #06b6d4, #3b82f6);">
+                <div class="story-avatar-inner">✈️</div>
+            </div>
+            <span class="story-label">On Leave</span>
+            <span class="story-count">{{ on_leave }}</span>
+        </a>
+
+        <div class="story-item">
+            <div class="story-avatar-ring" style="background: linear-gradient(45deg, #10b981, #059669);">
+                <div class="story-avatar-inner">🍱</div>
+            </div>
+            <span class="story-label">Fed Today</span>
+            <span class="story-count">{{ fed_today }}</span>
+        </div>
+
+        {% if overstay_count > 0 %}
+        <div class="story-item">
+            <div class="story-avatar-ring" style="background: linear-gradient(45deg, #dc2626, #991b1b);">
+                <div class="story-avatar-inner">⚠️</div>
+            </div>
+            <span class="story-label" style="color: #dc2626;">Overstay Alert</span>
+            <span class="story-count" style="color: #dc2626;">{{ overstay_count }}</span>
+        </div>
+        {% endif %}
+
+        <div class="story-item">
+            <div class="story-avatar-ring" style="background: linear-gradient(45deg, #6366f1, #8b5cf6);">
+                <div class="story-avatar-inner">👥</div>
+            </div>
+            <span class="story-label">Total Active</span>
+            <span class="story-count">{{ active_residents }}</span>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="GET" action="{% url 'camp_dashboard_view' %}" class="filter-card">
+        <div style="flex: 1; min-width: 200px;">
+            <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="🔍 Search worker name or ID..." style="border-radius: 12px; font-size: 0.88rem;">
+        </div>
+        <div style="min-width: 140px;">
+            <select name="dir" class="form-select" style="border-radius: 12px; font-size: 0.88rem;">
+                <option value="">All Directions</option>
+                <option value="IN" {% if selected_dir == 'IN' %}selected{% endif %}>🟢 ENTRY (IN)</option>
+                <option value="OUT" {% if selected_dir == 'OUT' %}selected{% endif %}>🟠 EXIT (OUT)</option>
+            </select>
+        </div>
+        <div style="min-width: 150px;">
+            <select name="gate" class="form-select" style="border-radius: 12px; font-size: 0.88rem;">
+                <option value="">All Gates</option>
+                {% for g in gates %}
+                <option value="{{ g }}" {% if selected_gate == g %}selected{% endif %}>{{ g }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="border-radius: 12px; font-weight: 700; padding: 7px 18px; font-size: 0.88rem;">
+            Filter
+        </button>
+        {% if search_q or selected_dir or selected_gate %}
+        <a href="{% url 'camp_dashboard_view' %}" class="btn btn-outline-secondary" style="border-radius: 12px; font-size: 0.88rem;">
+            Reset
+        </a>
+        {% endif %}
+    </form>
+
+    <!-- Feed Layout -->
+    <div class="feed-layout">
+
+        <!-- Feed Stream Left/Center Column -->
+        <div>
+            {% if feed_posts %}
+                {% for post in feed_posts %}
+                <div class="feed-card" id="post-card-{{ post.id }}">
+                    <!-- Card Header -->
+                    <div class="feed-card-header">
+                        <div class="author-info">
+                            <div class="author-avatar">
+                                {{ post.employee_name|slice:":1"|upper }}
+                            </div>
+                            <div class="author-details">
+                                <h4>{{ post.employee_name }} <small style="font-weight: 500; color: #64748b;">(#{{ post.emp_id }})</small></h4>
+                                <p>{{ post.designation }} • {{ post.department }} • 📍 Room {{ post.camp_room }}</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            {% if post.direction == 'IN' %}
+                            <span class="badge-in">🟢 {{ post.direction_display }}</span>
+                            {% else %}
+                            <span class="badge-out">🟠 {{ post.direction_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="feed-card-body">
+                        <div class="activity-hero">
+                            <div class="activity-hero-icon {% if post.direction == 'IN' %}hero-in{% else %}hero-out{% endif %}">
+                                {% if post.direction == 'IN' %}🏠{% else %}🚪{% endif %}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">
+                                    {% if post.direction == 'IN' %}
+                                        Returned to Camp via {{ post.gate_name }}
+                                    {% else %}
+                                        Exited Camp via {{ post.gate_name }}
+                                    {% endif %}
+                                </div>
+                                <div style="font-size: 0.84rem; color: #64748b; margin-top: 2px;">
+                                    Purpose: <strong>{{ post.purpose }}</strong>
+                                    {% if post.remarks %}
+                                        — <span style="font-style: italic;">"{{ post.remarks }}"</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="activity-meta-grid">
+                            <div class="meta-box">
+                                <label>Logged Time</label>
+                                <span>🕒 {{ post.time_str }}</span>
+                            </div>
+                            <div class="meta-box">
+                                <label>Scanned / Verified By</label>
+                                <span>👮 {{ post.scanned_by }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Footer & Actions -->
+                    <div class="feed-card-footer">
+                        <!-- Action buttons -->
+                        <div class="actions-bar">
+                            <button class="btn-feed-action toggle-like-btn {% if post.is_liked %}liked{% endif %}" 
+                                    data-entry-id="{{ post.id }}" 
+                                    title="Like this punch entry">
+                                <span class="heart-icon">{% if post.is_liked %}💖{% else %}🤍{% endif %}</span>
+                            </button>
+
+                            <button class="btn-feed-action toggle-comments-btn" 
+                                    data-entry-id="{{ post.id }}" 
+                                    title="View & post comments">
+                                💬
+                            </button>
+
+                            <button class="btn-feed-action share-btn" 
+                                    data-entry-title="{{ post.employee_name }} - {{ post.direction_display }} at {{ post.gate_name }}"
+                                    data-entry-time="{{ post.time_str }}"
+                                    title="Share entry details">
+                                🔁
+                            </button>
+                        </div>
+
+                        <!-- Engagement Counter Summary -->
+                        <div class="engagement-stats" id="stats-{{ post.id }}">
+                            <span class="like-counter" id="like-count-{{ post.id }}">{{ post.like_count }}</span> likes • 
+                            <span class="comment-counter" id="comment-count-{{ post.id }}">{{ post.comment_count }}</span> comments
+                        </div>
+
+                        <!-- Comments Accordion Section -->
+                        <div class="comments-wrapper" id="comments-sec-{{ post.id }}">
+                            <div class="comments-list" id="comment-list-{{ post.id }}">
+                                {% if post.comments %}
+                                    {% for c in post.comments %}
+                                    <div class="comment-bubble">
+                                        <span class="comment-author">{{ c.user_name }}</span>
+                                        <span class="comment-text">{{ c.comment_text }}</span>
+                                        <span class="comment-time">{{ c.time }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="no-comments-msg" style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">
+                                        No comments yet. Be the first to comment!
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Comment Input Form -->
+                            <div class="comment-input-box">
+                                <input type="text" 
+                                       id="comment-input-{{ post.id }}" 
+                                       placeholder="Write a comment..." 
+                                       onkeypress="if(event.key === 'Enter') submitComment({{ post.id }})">
+                                <button class="btn-post-comment" onclick="submitComment({{ post.id }})">
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="feed-card" style="padding: 40px; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
+                    <h3 style="font-weight: 800; color: #1e293b; margin-bottom: 6px;">No Feed Activities Found</h3>
+                    <p style="color: #64748b; font-size: 0.9rem;">There are no gate punches matching your selected filters today.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar Right Column -->
+        <div>
+            <!-- Overview Box -->
+            <div class="side-widget">
+                <h3>📊 Quick Summary</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem;">
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Total Camp Residents</span>
+                        <strong style="color: #0f172a;">{{ total_residents }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Active Site Workers</span>
+                        <strong style="color: #0f172a;">{{ active_residents }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Today Gate Entries (IN)</span>
+                        <strong style="color: #16a34a;">+{{ today_in_count }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Today Gate Exits (OUT)</span>
+                        <strong style="color: #ea580c;">-{{ today_out_count }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #64748b;">Exited Workers Total</span>
+                        <strong style="color: #94a3b8;">{{ exited_workers }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mess Meals Widget -->
+            <div class="side-widget">
+                <h3>🍱 Predictive Mess Meals</h3>
+                {% if predictive_meals %}
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem;">
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">☕ Breakfast Prepared</span>
+                        <strong style="color: #2563eb;">{{ predictive_meals.breakfast_prepared }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">🍛 Lunch Prepared</span>
+                        <strong style="color: #2563eb;">{{ predictive_meals.lunch_prepared }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #64748b;">🌙 Dinner Prepared</span>
+                        <strong style="color: #2563eb;">{{ predictive_meals.dinner_prepared }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Overstay Alert Widget -->
+            {% if overstay_list %}
+            <div class="side-widget" style="border-color: #fca5a5; background: #fff5f5;">
+                <h3 style="color: #dc2626;">⚠️ Overstay Warnings ({{ overstay_count }})</h3>
+                <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    {% for o in overstay_list %}
+                    <div style="background: white; padding: 8px 12px; border-radius: 10px; border: 1px solid #fecaca; font-size: 0.8rem;">
+                        <strong>{{ o.employee.name }}</strong> (#{{ o.employee.emp_id }})<br>
+                        <span style="color: #dc2626;">Out for {{ o.hours_out }} hrs</span> via {{ o.gate_name }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- AJAX Scripts for Like, Comment, and Share -->
+<script>
+    function getCSRFToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle Like Toggles
+        document.querySelectorAll('.toggle-like-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entryId = this.getAttribute('data-entry-id');
+                const self = this;
+
+                fetch("{% url 'api_feed_toggle_like' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ entry_id: entryId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const heartIcon = self.querySelector('.heart-icon');
+                        const countSpan = document.getElementById('like-count-' + entryId);
+                        
+                        if (data.is_liked) {
+                            self.classList.add('liked');
+                            heartIcon.innerText = '💖';
+                        } else {
+                            self.classList.remove('liked');
+                            heartIcon.innerText = '🤍';
+                        }
+                        if (countSpan) {
+                            countSpan.innerText = data.like_count;
+                        }
+                    } else {
+                        alert(data.message || 'Error toggling like');
+                    }
+                })
+                .catch(err => {
+                    console.error('Like request error:', err);
+                });
+            });
+        });
+
+        // Handle Share Copy
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const title = this.getAttribute('data-entry-title');
+                const time = this.getAttribute('data-entry-time');
+                const shareText = `📌 Camp Punch Activity: ${title} (${time})`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('Copied entry details to clipboard!\n' + shareText);
+                    });
+                } else {
+                    alert(shareText);
+                }
+            });
+        });
+    });
+
+    // Handle Comment Submission
+    function submitComment(entryId) {
+        const input = document.getElementById('comment-input-' + entryId);
+        const text = input.value.trim();
+        if (!text) return;
+
+        fetch("{% url 'api_feed_add_comment' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                entry_id: entryId,
+                comment_text: text
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                input.value = '';
+                const list = document.getElementById('comment-list-' + entryId);
+                const noMsg = list.querySelector('.no-comments-msg');
+                if (noMsg) noMsg.remove();
+
+                const c = data.comment;
+                const bubble = document.createElement('div');
+                bubble.className = 'comment-bubble';
+                bubble.innerHTML = `
+                    <span class="comment-author">${c.user_name}</span>
+                    <span class="comment-text">${c.comment_text}</span>
+                    <span class="comment-time">${c.time}</span>
+                `;
+                list.appendChild(bubble);
+                list.scrollTop = list.scrollHeight;
+
+                const countSpan = document.getElementById('comment-count-' + entryId);
+                if (countSpan) {
+                    countSpan.innerText = data.comment_count;
+                }
+            } else {
+                alert(data.message || 'Error posting comment');
+            }
+        })
+        .catch(err => {
+            console.error('Comment request error:', err);
+        });
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,1381 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Activity & Audit Dashboard | P&M System{% endblock %}
+
+{% block content %}
+<style>
+    .activity-container {
+        padding: 8px 0 95px;
+        max-width: 100%;
+    }
+
+    /* Page Header */
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .activity-title h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .activity-title p {
+        margin: 3px 0 0;
+        color: var(--sidebar-text);
+        font-size: 0.85rem;
+    }
+
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+    .live-pulse-dot {
+        width: 7px;
+        height: 7px;
+        background-color: #10b981;
+        border-radius: 50%;
+        animation: livePulse 1.6s infinite;
+    }
+    @keyframes livePulse {
+        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .header-btn {
+        padding: 7px 13px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+
+    /* Executive KPI Dashboard Bar */
+    .kpi-dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+    .kpi-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    .kpi-info {
+        min-width: 0;
+        flex: 1;
+    }
+    .kpi-num {
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--text-color);
+    }
+    .kpi-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        letter-spacing: 0.3px;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Selected User Spotlight Banner */
+    .user-spotlight-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.06);
+    }
+    .spotlight-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .spotlight-profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1 1 280px;
+        min-width: 0;
+    }
+    .spotlight-avatar {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.35);
+    }
+    .spotlight-info {
+        min-width: 0;
+        flex: 1;
+    }
+    .spotlight-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .spotlight-name {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .spotlight-meta {
+        font-size: 0.78rem;
+        color: var(--sidebar-text);
+        margin-top: 3px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .spotlight-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .btn-spotlight-chat {
+        padding: 7px 14px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 8px;
+        background: #0284c7;
+        color: white;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    .btn-spotlight-chat:hover {
+        background: #0369a1;
+        color: white;
+        transform: translateY(-1px);
+    }
+    .btn-spotlight-back {
+        padding: 7px 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 8px;
+        background: var(--card-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.2s;
+    }
+    .btn-spotlight-back:hover {
+        background: var(--bg-color);
+    }
+
+    .spotlight-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+    .metric-pill {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        text-align: center;
+    }
+    .metric-num {
+        font-size: 1.1rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 2px;
+    }
+    .metric-lbl {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        letter-spacing: 0.4px;
+    }
+
+    /* Chronological Activity Timeline */
+    .timeline-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-top: 14px;
+    }
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+    }
+    .timeline-header h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .timeline-stream {
+        position: relative;
+        padding-left: 20px;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .timeline-stream::before {
+        content: '';
+        position: absolute;
+        top: 5px;
+        bottom: 5px;
+        left: 7px;
+        width: 2px;
+        background: var(--border);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 14px;
+        padding-left: 10px;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -19px;
+        top: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--primary);
+        border: 2px solid var(--card-bg);
+    }
+    .timeline-item-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+    }
+    .timeline-time {
+        font-weight: 800;
+        color: var(--text-color);
+    }
+    .timeline-timeago {
+        color: var(--sidebar-text);
+        font-size: 0.7rem;
+    }
+    .timeline-desc {
+        font-size: 0.82rem;
+        color: var(--text-color);
+        line-height: 1.4;
+        background: var(--bg-color);
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        align-items: flex-end;
+        box-sizing: border-box;
+        width: 100%;
+    }
+    .filter-btn-group {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .form-group {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    .form-group label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-bottom: 4px;
+        display: block;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .form-control, .form-select {
+        width: 100%;
+        max-width: 100%;
+        padding: 7px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.82rem;
+        font-weight: 500;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+    }
+
+    /* Action Badges */
+    .badge-action {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .badge-create { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .badge-update { background: rgba(37, 99, 235, 0.12); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.25); }
+    .badge-delete { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .badge-approve { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.25); }
+    .badge-login { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25); }
+    .badge-logout { background: rgba(100, 116, 139, 0.12); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.25); }
+
+    .badge-module {
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        color: var(--text-color);
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 4px;
+    }
+    .status-online { background-color: #10b981; box-shadow: 0 0 6px #10b981; }
+    .status-idle { background-color: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+    .status-offline { background-color: #94a3b8; }
+
+    .user-click-link {
+        color: var(--primary);
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .user-click-link:hover {
+        color: #7c3aed;
+        text-decoration: underline;
+    }
+
+    .btn-chat-direct {
+        padding: 3px 8px;
+        border-radius: 14px;
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .btn-chat-direct:hover {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+
+    .section-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .section-header h3 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .custom-table th {
+        background: var(--bg-color);
+        color: var(--sidebar-text);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 9px 11px;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+    }
+    .custom-table td {
+        padding: 10px 11px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+        vertical-align: middle;
+    }
+    .custom-table tr.activity-log-row:hover td {
+        background: rgba(99, 102, 241, 0.04);
+    }
+    .pagination-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.82rem;
+        color: var(--sidebar-text);
+    }
+    .page-btn {
+        padding: 5px 11px;
+        border: 1px solid var(--border);
+        background: var(--card-bg);
+        color: var(--text-color);
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .page-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 768px) {
+        .activity-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .header-actions {
+            width: 100%;
+        }
+        .header-btn {
+            flex: 1;
+            justify-content: center;
+        }
+        .spotlight-top {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .spotlight-actions {
+            width: 100%;
+        }
+        .btn-spotlight-chat, .btn-spotlight-back {
+            flex: 1;
+            justify-content: center;
+        }
+        .spotlight-metrics-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .kpi-dashboard-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .filter-card {
+            padding: 12px;
+        }
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .filter-grid .full-mobile {
+            grid-column: 1 / -1;
+        }
+        .filter-btn-group {
+            grid-column: 1 / -1;
+            margin-top: 4px;
+        }
+    }
+</style>
+
+<div class="activity-container">
+    <!-- Header -->
+    <div class="activity-header">
+        <div class="activity-title">
+            <h2>
+                <i class="fas fa-chart-line" style="color:#8b5cf6;"></i> User Activity &amp; Audit Dashboard
+                <span class="live-indicator"><span class="live-pulse-dot"></span> LIVE SYNC</span>
+            </h2>
+            <p>Real-time tracking of active durations, user timelines, and system audits</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'chat_room' %}" class="btn btn-outline header-btn">
+                <i class="fas fa-comments" style="color:#2563eb;"></i> Team Chat
+            </a>
+            <a href="{% url 'export_user_activity' %}?user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" class="btn btn-outline header-btn">
+                <i class="fas fa-file-excel" style="color:#10b981;"></i> Excel Export
+            </a>
+            <a href="{% url 'export_user_activity_pdf' %}?user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" target="_blank" class="btn btn-outline header-btn">
+                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> PDF Report
+            </a>
+            <button type="button" onclick="shareUserActivityReport()" class="btn btn-outline header-btn" style="border-color:#25D366; color:#128C7E; font-weight:700;">
+                <i class="fab fa-whatsapp" style="color:#25D366; font-size:1.05rem;"></i> Share Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Executive KPI Metrics Bar -->
+    <div class="kpi-dashboard-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(99, 102, 241, 0.12); color:#6366f1;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiTotalUsers">{{ summary_stats.total_users }}</div>
+                <div class="kpi-label">Total Users</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(16, 185, 129, 0.12); color:#10b981;">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiActiveUsers" style="color:#10b981;">{{ summary_stats.active_users }}</div>
+                <div class="kpi-label">Active (Online)</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(245, 158, 11, 0.12); color:#f59e0b;">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiIdleUsers" style="color:#f59e0b;">{{ summary_stats.idle_users }}</div>
+                <div class="kpi-label">Idle Users</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(100, 116, 139, 0.12); color:#64748b;">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiOfflineUsers" style="color:#64748b;">{{ summary_stats.offline_users }}</div>
+                <div class="kpi-label">Offline</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(37, 99, 235, 0.12); color:#2563eb;">
+                <i class="fas fa-right-to-bracket"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiTotalLogins" style="color:#2563eb;">{{ summary_stats.total_logins }}</div>
+                <div class="kpi-label">Total Logins</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(239, 68, 68, 0.12); color:#ef4444;">
+                <i class="fas fa-pen-to-square"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiCorrections" style="color:#ef4444;">{{ summary_stats.corrections }}</div>
+                <div class="kpi-label">Corrections</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(139, 92, 246, 0.12); color:#8b5cf6;">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="kpi-info">
+                <div class="kpi-num" id="kpiAvgSpeed" style="font-size:1.05rem;">{{ summary_stats.avg_speed }}</div>
+                <div class="kpi-label">Avg Entry Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected User Spotlight View (Active Time & Audit Timeline) -->
+    {% if selected_user_obj %}
+    <div class="user-spotlight-card">
+        <div class="spotlight-top">
+            <div class="spotlight-profile">
+                <div class="spotlight-avatar">
+                    {{ selected_user_obj.full_name|default:selected_user_obj.username|slice:":1"|upper }}
+                </div>
+                <div class="spotlight-info">
+                    <div class="spotlight-name-row">
+                        <h3 class="spotlight-name">
+                            {{ selected_user_obj.full_name|default:selected_user_obj.username }}
+                        </h3>
+                        <span class="badge" style="background:var(--primary); color:white; font-size:0.7rem; font-weight:700; padding:2px 7px;">
+                            {{ selected_user_obj.system_role }}
+                        </span>
+                        {% if selected_user_obj.is_online %}
+                            <span style="display:inline-flex; align-items:center; color:#10b981; font-weight:700; font-size:0.75rem;">
+                                <span class="status-dot status-online"></span> Online
+                            </span>
+                        {% else %}
+                            <span style="display:inline-flex; align-items:center; color:var(--sidebar-text); font-size:0.75rem;">
+                                <span class="status-dot status-offline"></span> {{ selected_user_obj.last_seen|date:"d M, H:i"|default:"Never" }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="spotlight-meta">
+                        <span>👤 @{{ selected_user_obj.username }}</span>
+                        {% if selected_user_obj.phone_number %}<span>📞 {{ selected_user_obj.phone_number }}</span>{% endif %}
+                        <span style="color:#2563eb; font-weight:700;">⏱️ Active Time: {{ selected_user_metrics.estimated_active_time }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="spotlight-actions">
+                <a href="{% url 'chat_room' %}?user_id={{ selected_user_obj.id }}" class="btn-spotlight-chat">
+                    <i class="fas fa-comment-dots"></i> Chat with {{ selected_user_obj.username }}
+                </a>
+                <a href="{% url 'user_activity' %}" class="btn-spotlight-back">
+                    <i class="fas fa-arrow-left"></i> All Users
+                </a>
+            </div>
+        </div>
+
+        {% if selected_user_metrics %}
+        <div class="spotlight-metrics-grid">
+            <div class="metric-pill">
+                <div class="metric-num" style="color:var(--primary);">{{ selected_user_metrics.total }}</div>
+                <div class="metric-lbl">Total Logs</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#2563eb;">{{ selected_user_metrics.estimated_active_time }}</div>
+                <div class="metric-lbl">Active Time</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#10b981;">{{ selected_user_metrics.creates }}</div>
+                <div class="metric-lbl">Created</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#2563eb;">{{ selected_user_metrics.updates }}</div>
+                <div class="metric-lbl">Updated (Edits)</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#ef4444;">{{ selected_user_metrics.deletes }}</div>
+                <div class="metric-lbl">Deleted</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#8b5cf6;">{{ selected_user_metrics.approves }}</div>
+                <div class="metric-lbl">Approved</div>
+            </div>
+            <div class="metric-pill">
+                <div class="metric-num" style="color:#d97706;">{{ selected_user_metrics.logins }}</div>
+                <div class="metric-lbl">Logins</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Interactive Chronological Activity Timeline -->
+        {% if selected_user_timeline %}
+        <div class="timeline-card">
+            <div class="timeline-header">
+                <h4><i class="fas fa-timeline" style="color:var(--primary);"></i> Activity Timeline</h4>
+                <span style="font-size:0.75rem; color:var(--sidebar-text);">Latest {{ selected_user_timeline|length }} events</span>
+            </div>
+            <div class="timeline-stream">
+                {% for item in selected_user_timeline %}
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-item-header">
+                        <span class="timeline-time">{{ item.date_str }} at {{ item.time_str }}</span>
+                        <span class="timeline-timeago">({{ item.time_ago }})</span>
+                        <span class="badge-module" style="font-size:0.65rem;">{{ item.module_name }}</span>
+                        {% if item.action_type == 'CREATE' %}
+                            <span class="badge-action badge-create" style="font-size:0.65rem; padding:1px 5px;"><i class="fas fa-plus-circle"></i> Created</span>
+                        {% elif item.action_type == 'UPDATE' %}
+                            <span class="badge-action badge-update" style="font-size:0.65rem; padding:1px 5px;"><i class="fas fa-pen-to-square"></i> Updated</span>
+                        {% elif item.action_type == 'DELETE' %}
+                            <span class="badge-action badge-delete" style="font-size:0.65rem; padding:1px 5px;"><i class="fas fa-trash"></i> Deleted</span>
+                        {% elif item.action_type == 'APPROVE' %}
+                            <span class="badge-action badge-approve" style="font-size:0.65rem; padding:1px 5px;"><i class="fas fa-check-double"></i> Approved</span>
+                        {% elif item.action_type == 'LOGIN' %}
+                            <span class="badge-action badge-login" style="font-size:0.65rem; padding:1px 5px;"><i class="fas fa-right-to-bracket"></i> Login</span>
+                        {% else %}
+                            <span class="badge-action badge-update" style="font-size:0.65rem; padding:1px 5px;">{{ item.action_type }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="timeline-desc">
+                        {{ item.description }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Filter Bar -->
+    <div class="filter-card">
+        <form method="GET" action="{% url 'user_activity' %}" id="activityFilterForm">
+            <div class="filter-grid">
+                <div class="form-group full-mobile">
+                    <label>Search Keyword</label>
+                    <input type="text" name="q" id="filter_q" value="{{ q }}" placeholder="Search details, remarks..." class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Filter User</label>
+                    <select name="user_id" id="filter_user_id" class="form-select">
+                        <option value="">All Users</option>
+                        {% for u in target_users %}
+                        <option value="{{ u.id }}" {% if selected_user_id == u.id|stringformat:"i" %}selected{% endif %}>
+                            {% if u.full_name %}{{ u.full_name }}{% else %}{{ u.username }}{% endif %} ({{ u.system_role }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Action Type</label>
+                    <select name="action_type" id="filter_action_type" class="form-select">
+                        <option value="">All Actions</option>
+                        <option value="CREATE" {% if selected_action_type == 'CREATE' %}selected{% endif %}>Created</option>
+                        <option value="UPDATE" {% if selected_action_type == 'UPDATE' %}selected{% endif %}>Updated (Corrections)</option>
+                        <option value="DELETE" {% if selected_action_type == 'DELETE' %}selected{% endif %}>Deleted</option>
+                        <option value="APPROVE" {% if selected_action_type == 'APPROVE' %}selected{% endif %}>Approved</option>
+                        <option value="LOGIN" {% if selected_action_type == 'LOGIN' %}selected{% endif %}>Logged In</option>
+                        <option value="LOGOUT" {% if selected_action_type == 'LOGOUT' %}selected{% endif %}>Logged Out</option>
+                    </select>
+                </div>
+                <div class="form-group full-mobile">
+                    <label>Module</label>
+                    <select name="module_name" id="filter_module_name" class="form-select">
+                        {% if available_modules|length > 1 %}
+                            <option value="">All Permitted Modules ({{ available_modules|length }})</option>
+                        {% endif %}
+                        {% for m in available_modules %}
+                            <option value="{{ m }}" {% if selected_module_name == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date From</label>
+                    <input type="date" name="date_from" id="filter_date_from" value="{{ date_from }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Date To</label>
+                    <input type="date" name="date_to" id="filter_date_to" value="{{ date_to }}" class="form-control">
+                </div>
+                <div class="filter-btn-group full-mobile">
+                    <button type="submit" class="btn btn-primary" style="flex:1; padding:8px 14px; font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fas fa-filter"></i> Apply Filter
+                    </button>
+                    <a href="{% url 'user_activity' %}{% if selected_user_id %}?user_id={{ selected_user_id }}{% endif %}" class="btn btn-outline" style="padding:8px 14px; font-size:0.85rem; display:flex; align-items:center; justify-content:center;" title="Reset Filters">
+                        <i class="fas fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Users Online Duration & Productivity Summary Table -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-stopwatch" style="color:#10b981;"></i> User Productivity &amp; Online Duration Summary</h3>
+            <span style="font-size:0.75rem; color:var(--sidebar-text);">Active Time &amp; Event Metrics</span>
+        </div>
+        <div class="table-container">
+            <table class="custom-table" id="userProductivityTable">
+                <thead>
+                    <tr>
+                        <th style="width:35px;">#</th>
+                        <th>User Name</th>
+                        <th>Role / Post</th>
+                        <th>Live Status</th>
+                        <th>Estimated Active Time</th>
+                        <th style="text-align:center;">Logins</th>
+                        <th style="text-align:center;">Created</th>
+                        <th style="text-align:center;">Updated (Edits)</th>
+                        <th style="text-align:center;">Deleted</th>
+                        <th style="text-align:center;">Total Actions</th>
+                        <th>Last Active</th>
+                        <th style="text-align:center; width:60px;">Chat</th>
+                    </tr>
+                </thead>
+                <tbody id="userProductivityTbody">
+                    {% for u in user_summary_list %}
+                    <tr id="user-prod-row-{{ u.id }}" {% if selected_user_id == u.id|stringformat:"i" %}style="background:rgba(99, 102, 241, 0.08);"{% endif %}>
+                        <td style="color:var(--sidebar-text); font-size:0.75rem; font-family:monospace;">{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'user_activity' %}?user_id={{ u.id }}" class="user-click-link" title="Click to view full timeline & activity of {{ u.name }}">
+                                <i class="fas fa-user-circle" style="opacity:0.7;"></i> {{ u.name }}
+                            </a>
+                        </td>
+                        <td><span class="badge" style="background:rgba(0,0,0,0.05); font-size:0.7rem;">{{ u.role }}</span></td>
+                        <td>
+                            {% if u.is_online %}
+                                <span class="status-dot status-online"></span><span style="color:#10b981; font-weight:700; font-size:0.75rem;">Online</span>
+                            {% elif u.is_idle %}
+                                <span class="status-dot status-idle"></span><span style="color:#f59e0b; font-weight:700; font-size:0.75rem;">Idle</span>
+                            {% else %}
+                                <span class="status-dot status-offline"></span><span style="color:var(--sidebar-text); font-size:0.75rem;">Offline</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight:700; color:#2563eb;">{{ u.estimated_active_time }}</td>
+                        <td style="text-align:center; font-weight:600;">{{ u.logins }}</td>
+                        <td style="text-align:center; color:#10b981; font-weight:700;">{{ u.creates }}</td>
+                        <td style="text-align:center; color:#2563eb; font-weight:700;">{{ u.updates }}</td>
+                        <td style="text-align:center; color:#ef4444; font-weight:700;">{{ u.deletes }}</td>
+                        <td style="text-align:center; font-weight:800; font-size:0.85rem;">{{ u.total_actions }}</td>
+                        <td style="font-size:0.75rem; color:var(--sidebar-text);">{{ u.last_seen }}</td>
+                        <td style="text-align:center;">
+                            <a href="{% url 'chat_room' %}?user_id={{ u.id }}" class="btn-chat-direct" title="Chat with {{ u.name }}">
+                                <i class="fas fa-comment-dots"></i> Chat
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="12" style="text-align:center; color:var(--sidebar-text);">No user data recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detailed Action Logs Table -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3>
+                <i class="fas fa-list-check" style="color:#8b5cf6;"></i> 
+                {% if selected_user_obj %}
+                    Activity Logs for {% if selected_user_obj.full_name %}{{ selected_user_obj.full_name }}{% else %}{{ selected_user_obj.username }}{% endif %}
+                {% else %}
+                    System Activity Logs
+                {% endif %}
+            </h3>
+            <span id="logCountDisplay" style="font-size:0.78rem; font-weight:700; color:var(--sidebar-text);">
+                Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} logs
+            </span>
+        </div>
+
+        <div class="table-container">
+            <table class="custom-table" id="actionLogsTable">
+                <thead>
+                    <tr>
+                        <th style="width:38px;">#</th>
+                        <th style="width:145px;">Date &amp; Time</th>
+                        <th style="width:160px;">User &amp; Role</th>
+                        <th style="width:95px;">Action</th>
+                        <th style="width:130px;">Module</th>
+                        <th>Activity Details (Click row to inspect)</th>
+                        <th style="width:55px; text-align:center;">Chat</th>
+                    </tr>
+                </thead>
+                <tbody id="actionLogsTbody">
+                    {% for log in logs %}
+                    <tr class="activity-log-row" style="cursor:pointer;" onclick="openLogDetail(this)"
+                        data-id="{{ log.id }}"
+                        data-user="{{ log.user_name }}"
+                        data-user-id="{{ log.user_id|default:'' }}"
+                        data-role="{{ log.user_role }}"
+                        data-action="{{ log.action_type }}"
+                        data-module="{{ log.module_name }}"
+                        data-date="{{ log.created_at|date:'d M Y' }}"
+                        data-time="{{ log.created_at|date:'h:i A' }}"
+                        data-timeago="{{ log.created_at|timesince }} ago"
+                        data-desc="{{ log.description|escapejs }}"
+                        title="Click to view full entry details">
+                        <td style="color:var(--sidebar-text); font-size:0.75rem; font-family:monospace;">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td style="white-space:nowrap; font-size:0.78rem; font-weight:600;">
+                            <div>{{ log.created_at|date:"d M Y" }}</div>
+                            <div style="display:flex; align-items:center; gap:4px; font-size:0.7rem; color:var(--sidebar-text); margin-top:1px;">
+                                <span>{{ log.created_at|date:"h:i A" }}</span>
+                                <span style="font-size:0.65rem; background:rgba(99, 102, 241, 0.08); color:var(--primary); padding:1px 5px; border-radius:4px; font-weight:700;">
+                                    {{ log.created_at|timesince }} ago
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:28px; height:28px; min-width:28px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #7c3aed); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem;">
+                                    {{ log.user_name|slice:":1"|upper }}
+                                </div>
+                                <div style="min-width:0;">
+                                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        {% if log.user_id %}
+                                            <a href="{% url 'user_activity' %}?user_id={{ log.user_id }}" class="user-click-link" onclick="event.stopPropagation();">
+                                                {{ log.user_name }}
+                                            </a>
+                                        {% else %}
+                                            {{ log.user_name }}
+                                        {% endif %}
+                                    </div>
+                                    <span class="badge" style="background:rgba(0,0,0,0.05); font-size:0.65rem; padding:1px 5px;">{{ log.user_role }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if log.action_type == 'CREATE' %}
+                                <span class="badge-action badge-create"><i class="fas fa-plus-circle"></i> Created</span>
+                            {% elif log.action_type == 'UPDATE' %}
+                                <span class="badge-action badge-update"><i class="fas fa-pen-to-square"></i> Updated</span>
+                            {% elif log.action_type == 'DELETE' %}
+                                <span class="badge-action badge-delete"><i class="fas fa-trash"></i> Deleted</span>
+                            {% elif log.action_type == 'APPROVE' %}
+                                <span class="badge-action badge-approve"><i class="fas fa-check-double"></i> Approved</span>
+                            {% elif log.action_type == 'LOGIN' %}
+                                <span class="badge-action badge-login"><i class="fas fa-right-to-bracket"></i> Login</span>
+                            {% elif log.action_type == 'LOGOUT' %}
+                                <span class="badge-action badge-logout"><i class="fas fa-right-from-bracket"></i> Logout</span>
+                            {% else %}
+                                <span class="badge-action badge-update">{{ log.action_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-module">{{ log.module_name }}</span>
+                        </td>
+                        <td style="font-size:0.82rem; line-height:1.45;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <span>{{ log.description }}</span>
+                                <span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; color:var(--primary); font-weight:700; background:rgba(99, 102, 241, 0.08); padding:2px 6px; border-radius:6px; white-space:nowrap;">
+                                    <i class="fas fa-eye"></i> Details
+                                </span>
+                            </div>
+                        </td>
+                        <td style="text-align:center;" onclick="event.stopPropagation();">
+                            {% if log.user_id %}
+                            <a href="{% url 'chat_room' %}?user_id={{ log.user_id }}" class="btn-chat-direct" title="Chat with {{ log.user_name }}">
+                                <i class="fas fa-comment-dots"></i>
+                            </a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:35px 15px; color:var(--sidebar-text);">
+                            <i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>
+                            No activity logs found matching the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-bar">
+            <div>
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            <div style="display:flex; gap:5px;">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1&user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" class="page-btn">&laquo; First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" class="page-btn">Prev</a>
+                {% endif %}
+
+                <span class="page-btn" style="background:var(--primary); color:white; border-color:var(--primary);">{{ page_obj.number }}</span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" class="page-btn">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&user_id={{ selected_user_id }}&role={{ selected_role }}&action_type={{ selected_action_type }}&module_name={{ selected_module_name }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}" class="page-btn">Last &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Log Detail Inspection Modal -->
+<div id="logDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(6px); z-index:1050; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
+    <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:18px; max-width:540px; width:100%; box-shadow:0 20px 40px rgba(0,0,0,0.25); overflow:hidden; animation:slideUp 0.25s ease-out;">
+        <!-- Modal Header -->
+        <div style="padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(59, 130, 246, 0.06));">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="modalActionBadge" class="badge-action badge-create">Created</span>
+                <span id="modalModuleBadge" class="badge-module">Vehicle Allocation</span>
+            </div>
+            <button onclick="closeLogDetailModal()" style="background:none; border:none; color:var(--sidebar-text); font-size:1.4rem; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div style="padding:18px; max-height:calc(85vh - 100px); overflow-y:auto;">
+            <!-- User & Timestamp Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px; padding:10px 14px; background:var(--bg-color); border-radius:10px; border:1px solid var(--border);">
+                <div>
+                    <div style="font-size:0.7rem; font-weight:700; color:var(--sidebar-text); text-transform:uppercase;">Performed By</div>
+                    <div id="modalUserName" style="font-weight:800; font-size:0.95rem; color:var(--text-color);">User</div>
+                    <div id="modalUserRole" style="font-size:0.75rem; color:var(--sidebar-text);">Role: DEO</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.7rem; font-weight:700; color:var(--sidebar-text); text-transform:uppercase;">Timestamp</div>
+                    <div id="modalTimestamp" style="font-weight:700; font-size:0.85rem; color:var(--text-color);">Timestamp</div>
+                    <div id="modalTimeAgo" style="font-size:0.72rem; color:var(--primary); font-weight:700;">Just now</div>
+                </div>
+            </div>
+
+            <!-- Detailed Description Card -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.72rem; font-weight:700; color:var(--sidebar-text); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                    <i class="fas fa-file-lines" style="color:var(--primary);"></i> Action Details
+                </div>
+                <div id="modalDescription" style="padding:14px; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; font-size:0.88rem; line-height:1.5; color:var(--text-color); font-weight:500; word-break:break-word;">
+                    Description
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid var(--border);">
+                <div style="display:flex; gap:6px;">
+                    <a id="modalChatUserBtn" href="#" class="btn btn-primary" style="font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:6px 12px;">
+                        <i class="fas fa-comment-dots"></i> Chat
+                    </a>
+                    <a id="modalFilterUserBtn" href="#" class="btn btn-outline" style="font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:6px 12px;">
+                        <i class="fas fa-filter"></i> Filter
+                    </a>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" onclick="copyLogDetails()" class="btn btn-outline" style="font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:6px 10px;">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button type="button" onclick="closeLogDetailModal()" class="btn btn-outline" style="font-size:0.78rem; font-weight:700; padding:6px 12px;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openLogDetail(row) {
+    const action = row.getAttribute('data-action') || 'ACTION';
+    const module = row.getAttribute('data-module') || 'Module';
+    const user = row.getAttribute('data-user') || 'User';
+    const userId = row.getAttribute('data-user-id') || '';
+    const role = row.getAttribute('data-role') || 'User';
+    const date = row.getAttribute('data-date') || '';
+    const time = row.getAttribute('data-time') || '';
+    const timeAgo = row.getAttribute('data-timeago') || '';
+    const desc = row.getAttribute('data-desc') || '';
+
+    const badgeEl = document.getElementById('modalActionBadge');
+    badgeEl.textContent = action;
+    badgeEl.className = 'badge-action ';
+    if (action === 'CREATE') badgeEl.className += 'badge-create';
+    else if (action === 'UPDATE') badgeEl.className += 'badge-update';
+    else if (action === 'DELETE') badgeEl.className += 'badge-delete';
+    else if (action === 'APPROVE') badgeEl.className += 'badge-approve';
+    else if (action === 'LOGIN') badgeEl.className += 'badge-login';
+    else if (action === 'LOGOUT') badgeEl.className += 'badge-logout';
+    else badgeEl.className += 'badge-update';
+
+    document.getElementById('modalModuleBadge').textContent = module;
+    document.getElementById('modalUserName').textContent = user;
+    document.getElementById('modalUserRole').textContent = 'Role: ' + role;
+    document.getElementById('modalTimestamp').textContent = date + ' ' + time;
+    document.getElementById('modalTimeAgo').textContent = timeAgo;
+    document.getElementById('modalDescription').textContent = desc;
+
+    const chatBtn = document.getElementById('modalChatUserBtn');
+    const filterBtn = document.getElementById('modalFilterUserBtn');
+    if (userId) {
+        chatBtn.href = "{% url 'chat_room' %}?user_id=" + userId;
+        chatBtn.style.display = 'inline-flex';
+        filterBtn.href = "{% url 'user_activity' %}?user_id=" + userId;
+        filterBtn.style.display = 'inline-flex';
+    } else {
+        chatBtn.style.display = 'none';
+        filterBtn.style.display = 'none';
+    }
+
+    const modal = document.getElementById('logDetailModal');
+    modal.style.display = 'flex';
+}
+
+function closeLogDetailModal() {
+    document.getElementById('logDetailModal').style.display = 'none';
+}
+
+function copyLogDetails() {
+    const desc = document.getElementById('modalDescription').textContent;
+    navigator.clipboard.writeText(desc).then(() => {
+        alert('Entry details copied to clipboard!');
+    }).catch(err => {
+        console.error('Copy error:', err);
+    });
+}
+
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('logDetailModal');
+    if (e.target === modal) {
+        closeLogDetailModal();
+    }
+});
+
+// ==========================================
+// REAL-TIME LIVE AUTO-SYNC POLLING (No Refresh Needed)
+// ==========================================
+let lastFetchedLogsJson = '';
+
+function pollLiveUserActivity() {
+    const params = new URLSearchParams(window.location.search);
+    const apiUrl = '/api/live/user-activity/?' + params.toString();
+
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'success') return;
+
+            // 1. Update Executive KPI Metrics
+            if (data.summary_stats) {
+                const s = data.summary_stats;
+                if (document.getElementById('kpiTotalUsers')) document.getElementById('kpiTotalUsers').textContent = s.total_users;
+                if (document.getElementById('kpiActiveUsers')) document.getElementById('kpiActiveUsers').textContent = s.active_users;
+                if (document.getElementById('kpiIdleUsers')) document.getElementById('kpiIdleUsers').textContent = s.idle_users;
+                if (document.getElementById('kpiOfflineUsers')) document.getElementById('kpiOfflineUsers').textContent = s.offline_users;
+                if (document.getElementById('kpiTotalLogins')) document.getElementById('kpiTotalLogins').textContent = s.total_logins;
+                if (document.getElementById('kpiCorrections')) document.getElementById('kpiCorrections').textContent = s.corrections;
+                if (document.getElementById('kpiAvgSpeed')) document.getElementById('kpiAvgSpeed').textContent = s.avg_speed;
+            }
+
+            // 2. Update Action Logs Table if changed
+            const logsJson = JSON.stringify(data.logs);
+            if (logsJson !== lastFetchedLogsJson && lastFetchedLogsJson !== '') {
+                renderActionLogsLive(data.logs, data.total_count);
+            }
+            lastFetchedLogsJson = logsJson;
+        })
+        .catch(err => {
+            console.error('Live activity polling error:', err);
+        });
+}
+
+function renderActionLogsLive(logs, totalCount) {
+    const tbody = document.getElementById('actionLogsTbody');
+    if (!tbody || !logs) return;
+
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:35px 15px; color:var(--sidebar-text);"><i class="fas fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; opacity:0.4;"></i>No activity logs found matching the selected filters.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    logs.forEach((log, idx) => {
+        let badgeClass = 'badge-update';
+        let badgeIcon = 'fa-pen-to-square';
+        let actionText = log.action_type;
+
+        if (log.action_type === 'CREATE') { badgeClass = 'badge-create'; badgeIcon = 'fa-plus-circle'; actionText = 'Created'; }
+        else if (log.action_type === 'UPDATE') { badgeClass = 'badge-update'; badgeIcon = 'fa-pen-to-square'; actionText = 'Updated'; }
+        else if (log.action_type === 'DELETE') { badgeClass = 'badge-delete'; badgeIcon = 'fa-trash'; actionText = 'Deleted'; }
+        else if (log.action_type === 'APPROVE') { badgeClass = 'badge-approve'; badgeIcon = 'fa-check-double'; actionText = 'Approved'; }
+        else if (log.action_type === 'LOGIN') { badgeClass = 'badge-login'; badgeIcon = 'fa-right-to-bracket'; actionText = 'Login'; }
+        else if (log.action_type === 'LOGOUT') { badgeClass = 'badge-logout'; badgeIcon = 'fa-right-from-bracket'; actionText = 'Logout'; }
+
+        const userLink = log.user_id 
+            ? `<a href="/user-activity/?user_id=${log.user_id}" class="user-click-link" onclick="event.stopPropagation();">${escapeHtml(log.user_name)}</a>`
+            : escapeHtml(log.user_name);
+
+        const chatBtn = log.user_id
+            ? `<a href="/chat/?user_id=${log.user_id}" class="btn-chat-direct" title="Chat with ${escapeHtml(log.user_name)}"><i class="fas fa-comment-dots"></i></a>`
+            : '-';
+
+        const userInitial = (log.user_name || 'U').charAt(0).toUpperCase();
+
+        html += `
+        <tr class="activity-log-row" style="cursor:pointer;" onclick="openLogDetail(this)"
+            data-id="${log.id}"
+            data-user="${escapeHtml(log.user_name)}"
+            data-user-id="${log.user_id || ''}"
+            data-role="${escapeHtml(log.user_role)}"
+            data-action="${escapeHtml(log.action_type)}"
+            data-module="${escapeHtml(log.module_name)}"
+            data-date="${escapeHtml(log.date_str)}"
+            data-time="${escapeHtml(log.time_str)}"
+            data-timeago="${escapeHtml(log.time_ago)}"
+            data-desc="${escapeHtml(log.description)}"
+            title="Click to view full entry details">
+            <td style="color:var(--sidebar-text); font-size:0.75rem; font-family:monospace;">${idx + 1}</td>
+            <td style="white-space:nowrap; font-size:0.78rem; font-weight:600;">
+                <div>${log.date_str}</div>
+                <div style="display:flex; align-items:center; gap:4px; font-size:0.7rem; color:var(--sidebar-text); margin-top:1px;">
+                    <span>${log.time_str}</span>
+                    <span style="font-size:0.65rem; background:rgba(99, 102, 241, 0.08); color:var(--primary); padding:1px 5px; border-radius:4px; font-weight:700;">
+                        ${escapeHtml(log.time_ago)}
+                    </span>
+                </div>
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:28px; height:28px; min-width:28px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #7c3aed); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem;">
+                        ${userInitial}
+                    </div>
+                    <div style="min-width:0;">
+                        <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${userLink}
+                        </div>
+                        <span class="badge" style="background:rgba(0,0,0,0.05); font-size:0.65rem; padding:1px 5px;">${escapeHtml(log.user_role)}</span>
+                    </div>
+                </div>
+            </td>
+            <td><span class="badge-action ${badgeClass}"><i class="fas ${badgeIcon}"></i> ${actionText}</span></td>
+            <td><span class="badge-module">${escapeHtml(log.module_name)}</span></td>
+            <td style="font-size:0.82rem; line-height:1.45;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <span>${escapeHtml(log.description)}</span>
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; color:var(--primary); font-weight:700; background:rgba(99, 102, 241, 0.08); padding:2px 6px; border-radius:6px; white-space:nowrap;">
+                        <i class="fas fa-eye"></i> Details
+                    </span>
+                </div>
+            </td>
+            <td style="text-align:center;" onclick="event.stopPropagation();">${chatBtn}</td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function shareUserActivityReport() {
+    const qParams = "user_id={{ selected_user_id|default:'' }}&role={{ selected_role|default:'' }}&action_type={{ selected_action_type|default:'' }}&module_name={{ selected_module_name|default:'' }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&q={{ q|default:'' }}";
+    const excelUrl = "{% url 'export_user_activity' %}?" + qParams;
+    const pdfUrl = "{% url 'export_user_activity_pdf' %}?" + qParams;
+
+    const fromDate = "{{ date_from|default:'' }}";
+    const toDate = "{{ date_to|default:'' }}";
+    const dateDisplay = (fromDate && toDate && fromDate !== toDate) ? `${fromDate} to ${toDate}` : (fromDate || "All Time");
+
+    openReportShareModal({
+        title: "User Activity & Security Audit Logs",
+        date: dateDisplay,
+        site: "GIAP Portal Logs",
+        extraInfo: "{% if selected_user %}User: {{ selected_user.username }} | {% endif %}Audit Log Trail",
+        excelUrl: excelUrl,
+        pdfUrl: pdfUrl
+    });
+}
+
+// Initial fetch and start 4-second live background polling
+pollLiveUserActivity();
+setInterval(pollLiveUserActivity, 4000);
+</script>
+{% endblock %}

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camp Security Gate - Official Entry/Exit QR Poster</title>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 24px 16px 40px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* Top Non-Printable Configuration Toolbar */
+        .control-panel {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+            border: 1px solid #cbd5e1;
+            padding: 16px 20px;
+            max-width: 620px;
+            width: 100%;
+            margin-bottom: 24px;
+            box-sizing: border-box;
+        }
+
+        .btn-mode {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-mode.active {
+            background: #0284c7 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            border-color: #0369a1;
+        }
+        .btn-mode:not(.active) {
+            background: #f8fafc;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+
+        .poster {
+            background: white;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
+            border: 8px solid #0284c7;
+            padding: 36px 28px;
+            text-align: center;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .qr-wrapper {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 20px;
+            border: 3px solid #0284c7;
+            display: inline-block;
+            margin: 16px 0 10px 0;
+            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.15);
+        }
+        .btn-print {
+            background: #0284c7;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-print:hover {
+            background: #0369a1;
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none !important; }
+            .poster { box-shadow: none; border-width: 6px; width: 100%; max-width: 600px; margin: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Non-printable Configuration & Testing Toolbar -->
+<div class="control-panel no-print">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">⚙️</span>
+            <b style="color: #0f172a; font-size: 0.95rem;">Poster QR Code Settings</b>
+        </div>
+        <div>
+            {% if has_ngrok %}
+            <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 4px 10px; border-radius: 50px; font-weight: 800; font-size: 0.75rem;">
+                🟢 Active Ngrok Tunnel Ready
+            </span>
+            {% else %}
+            <span style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 50px; font-weight: 800; font-size: 0.75rem;">
+                💻 Localhost Mode
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Switch Buttons -->
+    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+        {% if ngrok_url %}
+        <button type="button" class="btn-mode active" id="btnModeNgrok" onclick="switchUrl('{{ ngrok_url }}', 'ngrok')">
+            <span>⚡</span> Ngrok URL (For Mobile Phones)
+        </button>
+        {% endif %}
+        <button type="button" class="btn-mode {% if not ngrok_url %}active{% endif %}" id="btnModeLocal" onclick="switchUrl('{{ local_url }}', 'local')">
+            <span>💻</span> Localhost URL
+        </button>
+    </div>
+
+    <!-- Active URL Input and Quick Actions -->
+    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <input type="text" id="activeUrlInput" value="{{ punch_url }}" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem; font-family: monospace; font-weight: 600;" oninput="onCustomUrlChange()">
+        <button type="button" onclick="copyActiveUrl()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+            📋 Copy
+        </button>
+        <a id="btnTestOpen" href="{{ punch_url }}" target="_blank" style="background: #2563eb; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            🔗 Open
+        </a>
+    </div>
+
+    <!-- Important Guidance Box -->
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: #1e40af; line-height: 1.45;">
+        <b>💡 Phone Testing Instructions:</b>
+        <ol style="margin: 4px 0 0 0; padding-left: 18px;">
+            <li>Scan the QR code below using your mobile camera.</li>
+            <li>If a browser warning appears, tap <b>"Visit Site"</b>.</li>
+            <li>The Camp Gate Punch page will open immediately on your phone!</li>
+        </ol>
+    </div>
+</div>
+
+<!-- PRINTABLE POSTER -->
+<div class="poster">
+    <div style="font-size: 0.85rem; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 2px;">
+        OFFICIAL CAMP SECURITY ACCESS POINT
+    </div>
+    <h1 style="font-size: 2rem; font-weight: 900; color: #0f172a; margin: 8px 0 4px 0;">
+        CAMP GATE IN / OUT
+    </h1>
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #475569; margin: 0 0 14px 0;">
+        Camp Gate Residence Entry &amp; Exit Access
+    </h3>
+
+    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 10px 16px; margin-bottom: 8px; font-weight: 700; color: #0369a1; font-size: 0.95rem;">
+        📍 Main Camp Gate Security Wall
+    </div>
+
+    <!-- QR Code Container -->
+    <div class="qr-wrapper">
+        <div id="qrcode"></div>
+    </div>
+
+    <div id="qrSubText" style="font-size: 0.72rem; color: #64748b; font-family: monospace; margin-bottom: 12px; word-break: break-all;">
+        {{ punch_url }}
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px;">
+        <div>
+            <span style="font-size: 1.3rem;">🟢</span>
+            <b style="color: #16a34a; font-size: 0.95rem; display: block;">CAMP ENTRY (IN)</b>
+            <span style="font-size: 0.78rem; color: #64748b;">Scan and tap IN when entering camp</span>
+        </div>
+        <div>
+            <span style="font-size: 1.3rem;">🔴</span>
+            <b style="color: #dc2626; font-size: 0.95rem; display: block;">CAMP EXIT (OUT)</b>
+            <span style="font-size: 0.78rem; color: #64748b;">Scan and tap OUT when leaving camp</span>
+        </div>
+    </div>
+
+    <p style="font-size: 0.8rem; color: #64748b; margin: 18px 0 0 0;">
+        📱 Open Mobile Camera or QR Scanner &amp; Scan • All entries logged live with Security
+    </p>
+
+    <button onclick="window.print()" class="btn-print no-print">
+        🖨️ Print Poster (A4)
+    </button>
+</div>
+
+<script>
+    let qrcodeInstance = null;
+
+    function renderQR(targetUrl) {
+        let container = document.getElementById("qrcode");
+        container.innerHTML = "";
+        qrcodeInstance = new QRCode(container, {
+            text: targetUrl,
+            width: 250,
+            height: 250,
+            colorDark : "#0f172a",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        document.getElementById("qrSubText").innerText = targetUrl;
+        document.getElementById("btnTestOpen").href = targetUrl;
+    }
+
+    function switchUrl(url, mode) {
+        document.getElementById("activeUrlInput").value = url;
+        let btnNgrok = document.getElementById("btnModeNgrok");
+        let btnLocal = document.getElementById("btnModeLocal");
+        if (mode === 'ngrok') {
+            if (btnNgrok) btnNgrok.classList.add('active');
+            if (btnLocal) btnLocal.classList.remove('active');
+        } else {
+            if (btnLocal) btnLocal.classList.add('active');
+            if (btnNgrok) btnNgrok.classList.remove('active');
+        }
+        renderQR(url);
+    }
+
+    function onCustomUrlChange() {
+        let url = document.getElementById("activeUrlInput").value.trim();
+        if (url) {
+            renderQR(url);
+        }
+    }
+
+    function copyActiveUrl() {
+        let copyText = document.getElementById("activeUrlInput");
+        copyText.select();
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            alert("Copied to clipboard:\n" + copyText.value);
+        });
+    }
+
+    // Initial render
+    window.onload = function() {
+        renderQR("{{ punch_url }}");
+    };
+</script>
+
+</body>
+</html>

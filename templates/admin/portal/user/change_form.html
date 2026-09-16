@@ -1,0 +1,207 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block content %}
+<style>
+    .user-control-banner {
+        background: linear-gradient(135deg, #1e3a8a, #0f172a);
+        color: #ffffff;
+        padding: 20px 24px;
+        border-radius: 14px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .user-control-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .user-profile-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .user-avatar-badge {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #60a5fa;
+    }
+    .user-meta-info h2 {
+        margin: 0;
+        color: #ffffff !important;
+        font-size: 1.3rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .user-meta-info p {
+        margin: 4px 0 0 0;
+        color: #93c5fd;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .user-quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .quick-action-btn {
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s ease-in-out;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none !important;
+    }
+    .quick-action-btn:hover {
+        transform: translateY(-1px);
+        opacity: 0.95;
+    }
+    .btn-mgr { background: #8b5cf6; color: #ffffff !important; }
+    .btn-deo { background: #10b981; color: #ffffff !important; }
+    .btn-tk  { background: #f59e0b; color: #ffffff !important; }
+    .btn-block { background: #ef4444; color: #ffffff !important; }
+    .btn-activate { background: #059669; color: #ffffff !important; }
+    .btn-pass { background: #3b82f6; color: #ffffff !important; }
+    .btn-log  { background: #64748b; color: #ffffff !important; }
+    .btn-mods { background: #0284c7; color: #ffffff !important; }
+    .btn-spec { background: #d97706; color: #ffffff !important; }
+
+    /* Custom Checkbox Grid Styling for Assigned Modules */
+    #id_assigned_modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+        background: var(--admin-card-header, #f8fafc);
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid var(--admin-border, #cbd5e1);
+        list-style: none;
+        margin: 0;
+    }
+    #id_assigned_modules li {
+        margin: 0;
+        padding: 6px 10px;
+        background: var(--admin-card-bg, #ffffff);
+        border: 1px solid var(--admin-border, #e2e8f0);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+    #id_assigned_modules label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 8px;
+        color: var(--admin-text-main, #1e293b);
+    }
+</style>
+
+{% if original %}
+<div class="user-control-banner">
+    <div class="user-control-header">
+        <div class="user-profile-title">
+            <div class="user-avatar-badge">
+                {{ original.username|slice:":1"|upper }}
+            </div>
+            <div class="user-meta-info">
+                <h2>{{ original.full_name|default:original.username }} (@{{ original.username }})</h2>
+                <p>
+                    System Role: <strong>{{ original.get_system_role_display|default:original.system_role }}</strong> | 
+                    Status: {% if original.is_active %}<span style="color: #4ade80;">Active</span>{% else %}<span style="color: #f87171;">Blocked</span>{% endif %} |
+                    Captain Dept: <strong>{{ original.captain_category }}</strong>
+                </p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <a href="password/" class="quick-action-btn btn-pass">🔑 Change Password</a>
+            <a href="/admin/portal/useractivitylog/?q={{ original.username }}" target="_blank" class="quick-action-btn btn-log">🔍 View Activity Audit Log &rarr;</a>
+        </div>
+    </div>
+
+    <div>
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #93c5fd; margin-bottom: 8px; letter-spacing: 0.5px;">
+            ⚡ Executive 1-Click Control Actions:
+        </div>
+        <div class="user-quick-actions">
+            <button type="button" onclick="quickSetRole('MANAGER')" class="quick-action-btn btn-mgr">👑 Promote to MANAGER</button>
+            <button type="button" onclick="quickSetRole('DEO')" class="quick-action-btn btn-deo">⚡ Set Role to DEO</button>
+            <button type="button" onclick="quickSetRole('TIME_KEEPER')" class="quick-action-btn btn-tk">🕒 Set Role to TIME_KEEPER</button>
+            
+            {% if original.is_active %}
+                <button type="button" onclick="toggleActiveStatus(false)" class="quick-action-btn btn-block">🔒 Block Account</button>
+            {% else %}
+                <button type="button" onclick="toggleActiveStatus(true)" class="quick-action-btn btn-activate">🔓 Activate Account</button>
+            {% endif %}
+
+            <button type="button" onclick="scrollToModules()" class="quick-action-btn btn-spec">🎯 Select Specific Modules &darr;</button>
+            <button type="button" onclick="selectAllModules(true)" class="quick-action-btn btn-mods">✅ Select All Modules</button>
+            <button type="button" onclick="selectAllModules(false)" class="quick-action-btn btn-log">❌ Clear All Modules</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{{ block.super }}
+
+<script>
+    function quickSetRole(roleName) {
+        var roleSelect = document.getElementById('id_system_role');
+        if (roleSelect) {
+            roleSelect.value = roleName;
+            roleSelect.style.border = '2px solid #8b5cf6';
+            roleSelect.style.background = '#f3e8ff';
+            alert('System role updated to ' + roleName + '. Scroll down and click "SAVE" to apply changes.');
+        }
+    }
+
+    function toggleActiveStatus(activate) {
+        var activeCb = document.getElementById('id_is_active');
+        if (activeCb) {
+            activeCb.checked = activate;
+            alert(activate ? 'Account marked ACTIVE. Scroll down and click "SAVE" to apply.' : 'Account marked BLOCKED. Scroll down and click "SAVE" to apply.');
+        }
+    }
+
+    function selectAllModules(checked) {
+        var cbs = document.querySelectorAll('#id_assigned_modules input[type="checkbox"]');
+        cbs.forEach(function(cb) {
+            cb.checked = checked;
+        });
+    }
+
+    function scrollToModules() {
+        var el = document.getElementById('id_assigned_modules') || document.querySelector('.field-assigned_modules');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.transition = 'all 0.4s ease';
+            el.style.boxShadow = '0 0 0 4px #d97706';
+            setTimeout(function() { el.style.boxShadow = 'none'; }, 3000);
+        }
+    }
+</script>
+{% endblock %}

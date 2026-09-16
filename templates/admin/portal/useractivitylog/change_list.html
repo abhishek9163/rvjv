@@ -1,0 +1,520 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block content %}
+<style>
+    /* User Activity Custom Admin Dashboard Styling */
+    .activity-dash-header {
+        background: var(--admin-card-bg, #ffffff);
+        border: 1px solid var(--admin-border, #cbd5e1);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    }
+    .activity-dash-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .activity-dash-title h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--admin-primary, #1e3a8a);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .live-pulse-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+        border-radius: 50%;
+        animation: livePulseAnim 1.6s infinite;
+    }
+    @keyframes livePulseAnim {
+        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* KPI Summary Cards */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .kpi-box {
+        background: var(--admin-card-header, #f8fafc);
+        border: 1px solid var(--admin-border, #e2e8f0);
+        border-radius: 10px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .kpi-box-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    .kpi-box-num {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--admin-text-main, #1e293b);
+        line-height: 1.1;
+    }
+    .kpi-box-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--admin-text-muted, #64748b);
+        margin-top: 2px;
+    }
+
+    /* ADVANCED FILTERS CARD */
+    .adv-filter-card {
+        background: var(--admin-card-bg, #ffffff);
+        border: 1px solid var(--admin-border, #cbd5e1);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .adv-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .filter-group-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--admin-text-muted, #64748b);
+        margin-bottom: 4px;
+        display: block;
+    }
+    .filter-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--admin-border, #cbd5e1);
+        border-radius: 8px;
+        font-size: 0.82rem;
+        box-sizing: border-box;
+        background: var(--admin-card-header, #f8fafc);
+        color: var(--admin-text-main, #0f172a);
+    }
+    .filter-input:focus {
+        outline: none;
+        border-color: var(--admin-primary, #1d4ed8);
+        background: var(--admin-card-bg, #ffffff);
+    }
+
+    .action-pill-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--admin-border, #e2e8f0);
+    }
+    .action-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        cursor: pointer;
+        border: 1px solid var(--admin-border, #cbd5e1);
+        background: var(--admin-card-header, #f8fafc);
+        color: var(--admin-text-muted, #475569);
+        transition: all 0.15s;
+    }
+    .action-pill:hover, .action-pill.active {
+        background: var(--admin-primary, #1d4ed8);
+        color: white !important;
+        border-color: var(--admin-primary, #1d4ed8);
+    }
+
+    /* Activity Cards Feed */
+    .activity-feed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .activity-card-item {
+        background: var(--admin-card-bg, #ffffff);
+        border: 1px solid var(--admin-border, #e2e8f0);
+        border-radius: 12px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .activity-card-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border-color: var(--admin-primary, #93c5fd);
+    }
+    
+    .user-avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        color: white;
+        font-weight: 800;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(29,78,216,0.25);
+    }
+
+    /* Badges */
+    .badge-act {
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .badge-create { background: #d1fae5; color: #047857; }
+    .badge-update { background: #dbeafe; color: #1d4ed8; }
+    .badge-delete { background: #fee2e2; color: #b91c1c; }
+    .badge-approve { background: #f3e8ff; color: #6b21a8; }
+    .badge-login { background: #ecfdf5; color: #059669; }
+    .badge-logout { background: #f1f5f9; color: #475569; }
+    .badge-default { background: #f1f5f9; color: #334155; }
+
+    .role-tag {
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: var(--admin-card-header, #f1f5f9);
+        color: var(--admin-text-muted, #475569);
+        border: 1px solid var(--admin-border, #cbd5e1);
+    }
+    .module-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #2563eb;
+        background: rgba(37, 99, 235, 0.08);
+        padding: 2px 8px;
+        border-radius: 6px;
+    }
+</style>
+
+<div class="activity-dash-header">
+    <div class="activity-dash-title">
+        <h2>
+            ⚡ Live User Activity Audit Stream
+        </h2>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="live-pulse-badge">
+                <span class="live-dot"></span> LIVE REALTIME UPDATES (4s)
+            </span>
+            <a href="/user-activity/export/" class="admin-export-btn btn-excel" style="padding: 7px 14px; text-decoration: none; border-radius: 8px;">
+                📊 Export Excel
+            </a>
+            <a href="/user-activity/export-pdf/" target="_blank" class="admin-export-btn btn-pdf" style="padding: 7px 14px; text-decoration: none; border-radius: 8px;">
+                📄 Export PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Executive KPI Bar -->
+    <div class="kpi-row">
+        <div class="kpi-box">
+            <div class="kpi-box-icon" style="background: rgba(29,78,216,0.1); color: #1d4ed8;">⚡</div>
+            <div>
+                <div class="kpi-box-num" id="kpi-total-logs">0</div>
+                <div class="kpi-box-label">Total Activities</div>
+            </div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-box-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">🟢</div>
+            <div>
+                <div class="kpi-box-num" id="kpi-creates">0</div>
+                <div class="kpi-box-label">Created</div>
+            </div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-box-icon" style="background: rgba(59,130,246,0.1); color: #3b82f6;">🔵</div>
+            <div>
+                <div class="kpi-box-num" id="kpi-updates">0</div>
+                <div class="kpi-box-label">Updated</div>
+            </div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-box-icon" style="background: rgba(239,68,68,0.1); color: #ef4444;">🔴</div>
+            <div>
+                <div class="kpi-box-num" id="kpi-deletes">0</div>
+                <div class="kpi-box-label">Deleted</div>
+            </div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-box-icon" style="background: rgba(139,92,246,0.1); color: #8b5cf6;">👥</div>
+            <div>
+                <div class="kpi-box-num" id="kpi-users">0</div>
+                <div class="kpi-box-label">Active Users</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADVANCED FILTERS CARD -->
+<div class="adv-filter-card">
+    <div style="font-weight: 800; font-size: 0.9rem; color: var(--admin-primary, #1e3a8a); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span>🔍 Advanced Filter Controls</span>
+        <button type="button" onclick="resetActivityFilters()" style="background: none; border: none; color: var(--admin-text-muted); font-size: 0.78rem; font-weight: 700; cursor: pointer; text-decoration: underline;">
+            Clear All Filters
+        </button>
+    </div>
+
+    <div class="adv-filter-grid">
+        <div>
+            <label class="filter-group-label">Search Keyword / Description</label>
+            <input type="text" id="activitySearchInput" class="filter-input" placeholder="e.g. Scania, John, Allocation..." onkeyup="fetchLiveUserActivities()">
+        </div>
+        <div>
+            <label class="filter-group-label">Filter by User</label>
+            <select id="activityUserSelect" class="filter-input" onchange="fetchLiveUserActivities()">
+                <option value="">-- All Users --</option>
+            </select>
+        </div>
+        <div>
+            <label class="filter-group-label">System Role</label>
+            <select id="activityRoleSelect" class="filter-input" onchange="fetchLiveUserActivities()">
+                <option value="">-- All System Roles --</option>
+                <option value="MANAGER">Manager</option>
+                <option value="PROJECT_MANAGER">Project Manager (PM)</option>
+                <option value="TIME_KEEPER">Time Keeper</option>
+                <option value="DEO">Data Entry Operator (DEO)</option>
+                <option value="PENDING">Pending User</option>
+            </select>
+        </div>
+        <div>
+            <label class="filter-group-label">Module / Section</label>
+            <select id="activityModuleSelect" class="filter-input" onchange="fetchLiveUserActivities()">
+                <option value="">-- All Project Modules --</option>
+                <option value="Daily Deployment">Daily Deployment</option>
+                <option value="Vehicle Allocation">Vehicle Allocation</option>
+                <option value="Employees">Employees Directory</option>
+                <option value="Fleet Vehicles">Vehicles Catalog</option>
+                <option value="Vehicle Movement">Vehicle Movements</option>
+                <option value="Lubricants">Lubricants Consumed</option>
+                <option value="Tyre Section">Tyre Fitments</option>
+                <option value="Spare Parts">Spare Parts Inventory</option>
+                <option value="Attendance">Attendance &amp; Muster Roll</option>
+                <option value="Overtime">Overtime Logs</option>
+                <option value="Documents">Documents &amp; Expiries</option>
+                <option value="User Management">User Management / Auth</option>
+                <option value="System Settings">System Settings</option>
+            </select>
+        </div>
+        <div>
+            <label class="filter-group-label">Date From</label>
+            <input type="date" id="activityDateFrom" class="filter-input" onchange="fetchLiveUserActivities()">
+        </div>
+        <div>
+            <label class="filter-group-label">Date To</label>
+            <input type="date" id="activityDateTo" class="filter-input" onchange="fetchLiveUserActivities()">
+        </div>
+    </div>
+
+    <div class="action-pill-group">
+        <span class="action-pill active" onclick="filterAction('')">All Action Types</span>
+        <span class="action-pill" onclick="filterAction('CREATE')">🟢 Created</span>
+        <span class="action-pill" onclick="filterAction('UPDATE')">🔵 Updated</span>
+        <span class="action-pill" onclick="filterAction('DELETE')">🔴 Deleted</span>
+        <span class="action-pill" onclick="filterAction('APPROVE')">⚡ Approved</span>
+        <span class="action-pill" onclick="filterAction('LOGIN')">🔑 Login</span>
+        <span class="action-pill" onclick="filterAction('LOGOUT')">🚪 Logout</span>
+    </div>
+</div>
+
+<!-- Realtime Activity Feed -->
+<div id="activityFeedContainer" class="activity-feed-list">
+    <div style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+        <p style="margin: 0; font-weight: 700;">Loading live activity audit feed...</p>
+    </div>
+</div>
+
+<script>
+    let currentActionFilter = '';
+    let autoRefreshInterval = null;
+    let usersLoaded = false;
+
+    function filterAction(actionType) {
+        currentActionFilter = actionType;
+        document.querySelectorAll('.action-pill').forEach(pill => {
+            pill.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        fetchLiveUserActivities();
+    }
+
+    function resetActivityFilters() {
+        document.getElementById('activitySearchInput').value = '';
+        document.getElementById('activityUserSelect').value = '';
+        document.getElementById('activityRoleSelect').value = '';
+        document.getElementById('activityModuleSelect').value = '';
+        document.getElementById('activityDateFrom').value = '';
+        document.getElementById('activityDateTo').value = '';
+        filterAction('');
+    }
+
+    function getActionBadge(action) {
+        const act = (action || '').toUpperCase();
+        if (act === 'CREATE' || act === 'CREATED') return '<span class="badge-act badge-create">🟢 CREATE</span>';
+        if (act === 'UPDATE' || act === 'UPDATED') return '<span class="badge-act badge-update">🔵 UPDATE</span>';
+        if (act === 'DELETE' || act === 'DELETED') return '<span class="badge-act badge-delete">🔴 DELETE</span>';
+        if (act === 'APPROVE' || act === 'APPROVED') return '<span class="badge-act badge-approve">⚡ APPROVE</span>';
+        if (act === 'LOGIN') return '<span class="badge-act badge-login">🔑 LOGIN</span>';
+        if (act === 'LOGOUT') return '<span class="badge-act badge-logout">🚪 LOGOUT</span>';
+        return `<span class="badge-act badge-default">📌 ${act}</span>`;
+    }
+
+    function fetchLiveUserActivities() {
+        const query = document.getElementById('activitySearchInput')?.value || '';
+        const userId = document.getElementById('activityUserSelect')?.value || '';
+        const role = document.getElementById('activityRoleSelect')?.value || '';
+        const moduleName = document.getElementById('activityModuleSelect')?.value || '';
+        const dateFrom = document.getElementById('activityDateFrom')?.value || '';
+        const dateTo = document.getElementById('activityDateTo')?.value || '';
+
+        let params = new URLSearchParams();
+        if (query) params.append('q', query);
+        if (userId) params.append('user_id', userId);
+        if (role) params.append('role', role);
+        if (moduleName) params.append('module_name', moduleName);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        if (currentActionFilter) params.append('action_type', currentActionFilter);
+
+        const url = `/api/live/user-activity/?${params.toString()}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' || data.logs) {
+                    const logs = data.logs || [];
+                    const stats = data.summary_stats || {};
+                    
+                    // Populate user dropdown once
+                    if (!usersLoaded && data.users) {
+                        const userSelect = document.getElementById('activityUserSelect');
+                        if (userSelect) {
+                            data.users.forEach(u => {
+                                const opt = document.createElement('option');
+                                opt.value = u.id;
+                                opt.textContent = `${u.name} (${u.role})`;
+                                userSelect.appendChild(opt);
+                            });
+                            usersLoaded = true;
+                        }
+                    }
+
+                    // Update KPI counters
+                    if (document.getElementById('kpi-total-logs')) document.getElementById('kpi-total-logs').innerText = stats.total_logs || logs.length;
+                    if (document.getElementById('kpi-creates')) document.getElementById('kpi-creates').innerText = stats.create_count || 0;
+                    if (document.getElementById('kpi-updates')) document.getElementById('kpi-updates').innerText = stats.update_count || 0;
+                    if (document.getElementById('kpi-deletes')) document.getElementById('kpi-deletes').innerText = stats.delete_count || 0;
+                    if (document.getElementById('kpi-users')) document.getElementById('kpi-users').innerText = stats.active_users_count || (data.users ? data.users.length : 0);
+
+                    const container = document.getElementById('activityFeedContainer');
+                    if (logs.length === 0) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 40px; background: var(--admin-card-bg); border-radius: 12px; border: 1px solid var(--admin-border); color: var(--admin-text-muted);">
+                                📁 No activity logs matching selected filters.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    logs.forEach(log => {
+                        const initial = (log.user_name || 'U').charAt(0).toUpperCase();
+                        const timeAgo = log.time_ago || (log.date_str + ' ' + log.time_str);
+                        const badgeHtml = getActionBadge(log.action_type);
+                        const roleTag = log.user_role ? `<span class="role-tag">${log.user_role}</span>` : '';
+                        const moduleTag = log.module_name ? `<span class="module-tag">📁 ${log.module_name}</span>` : '';
+                        const ipBadge = log.ip_address ? `<span style="font-size:0.7rem; color:var(--admin-text-muted); opacity:0.8;">IP: ${log.ip_address}</span>` : '';
+
+                        html += `
+                            <div class="activity-card-item">
+                                <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+                                    <div class="user-avatar-circle">${initial}</div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                                            <strong style="font-size: 0.92rem; color: var(--admin-text-main, #1e293b);">${log.user_name}</strong>
+                                            ${roleTag}
+                                            ${badgeHtml}
+                                            ${moduleTag}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--admin-text-main, #334155); font-weight: 600; line-height: 1.4;">
+                                            ${log.description}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; flex-shrink: 0; font-size: 0.78rem; color: var(--admin-text-muted, #64748b);">
+                                    <div style="font-weight: 800; color: var(--admin-primary, #1d4ed8);">${timeAgo}</div>
+                                    <div style="font-size: 0.72rem; margin-top: 2px;">${log.date_str || ''} ${log.time_str || ''}</div>
+                                    ${ipBadge}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching live activity:', err);
+            });
+    }
+
+    // Initialize & Auto Poll every 4 seconds
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchLiveUserActivities();
+        autoRefreshInterval = setInterval(fetchLiveUserActivities, 4000);
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    });
+</script>
+{% endblock %}

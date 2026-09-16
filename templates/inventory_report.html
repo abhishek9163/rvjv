@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="width: 100%; max-width: 100%; padding: 1.5rem;">
+    <!-- Header Section -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem; background: var(--card-bg); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="background: var(--bg-color); padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border);">
+                <span style="font-size: 1.5rem;">📊</span>
+            </div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px;">{{ section.name }} - Transactions</h2>
+                <p style="margin: 0; color: var(--sidebar-text); font-size: 0.9rem;">Advanced stock tracking and filters</p>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="#" class="btn btn-outline" style="border-color: var(--border);">Back to Inventory</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card" style="margin-bottom: 2rem; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); background: var(--card-bg); border: 1px solid var(--border);">
+        <form id="filterForm" method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; text-transform: uppercase;">Date Filter</label>
+                <select name="date_filter" class="form-control" onchange="toggleCustomDates(this.value)" style="border-radius: 8px;">
+                    <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                    <option value="last7" {% if date_filter == 'last7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>This Month</option>
+                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Date Range</option>
+                </select>
+            </div>
+
+            <div id="customDateContainer" style="display: {% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap: 1rem; flex: 2; min-width: 300px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; text-transform: uppercase;">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ start_date }}" style="border-radius: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; text-transform: uppercase;">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ end_date }}" style="border-radius: 8px;">
+                </div>
+            </div>
+
+            <div style="flex: 1; min-width: 150px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; text-transform: uppercase;">Action</label>
+                <select id="actionFilter" name="action" class="form-control" style="border-radius: 8px;">
+                    <option value="all" {% if action_filter == 'all' %}selected{% endif %}>All (In & Out)</option>
+                    <option value="in" {% if action_filter == 'in' %}selected{% endif %}>Stock In Only</option>
+                    <option value="out" {% if action_filter == 'out' %}selected{% endif %}>Stock Out Only</option>
+                </select>
+            </div>
+
+            <div style="flex: 2; min-width: 200px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--sidebar-text); margin-bottom: 0.5rem; text-transform: uppercase;">Product Name</label>
+                <input type="text" name="q" class="form-control" placeholder="Search product..." value="{{ product_query }}" style="border-radius: 8px;">
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; border-radius: 8px; font-weight: 600;">Apply Filters</button>
+            </div>
+            
+            {% if date_filter != 'all' or action_filter != 'all' or product_query %}
+            <div>
+                <a href="?date_filter=all&action=all&q=" class="btn btn-outline" style="padding: 0.75rem 1.5rem; border-radius: 8px; border-color: var(--border);">Clear</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="card" onclick="document.getElementById('actionFilter').value='in'; document.getElementById('filterForm').submit();" style="display: flex; align-items: center; justify-content: space-between; padding: 2rem; border-left: 5px solid #16a34a; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px -5px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow)';">
+            <div>
+                <p style="margin: 0; color: var(--sidebar-text); font-size: 0.9rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Total Stock IN</p>
+                <h1 style="margin: 0; color: #16a34a; font-size: 3rem; font-weight: 800;">+{{ total_in }}</h1>
+            </div>
+            <div style="font-size: 3rem; opacity: 0.2;">📥</div>
+        </div>
+        <div class="card" onclick="document.getElementById('actionFilter').value='out'; document.getElementById('filterForm').submit();" style="display: flex; align-items: center; justify-content: space-between; padding: 2rem; border-left: 5px solid #dc2626; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px -5px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow)';">
+            <div>
+                <p style="margin: 0; color: var(--sidebar-text); font-size: 0.9rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Total Stock OUT</p>
+                <h1 style="margin: 0; color: #dc2626; font-size: 3rem; font-weight: 800;">-{{ total_out }}</h1>
+            </div>
+            <div style="font-size: 3rem; opacity: 0.2;">📤</div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card" style="padding: 0; overflow: hidden; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);">
+        <div style="padding: 1.5rem; background: var(--bg-color); border-bottom: 1px solid var(--border);">
+            <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-color);">Transaction Log ({{ transactions|length }} Records)</h4>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                <thead>
+                    <tr style="background: transparent; border-bottom: 2px solid var(--border);">
+                        <th style="padding: 1.2rem 1.5rem; text-align: left; color: var(--sidebar-text); font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">Date & Time</th>
+                        <th style="padding: 1.2rem 1.5rem; text-align: left; color: var(--sidebar-text); font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">Product Name</th>
+                        <th style="padding: 1.2rem 1.5rem; text-align: left; color: var(--sidebar-text); font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">Action</th>
+                        <th style="padding: 1.2rem 1.5rem; text-align: left; color: var(--sidebar-text); font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">User</th>
+                        <th style="padding: 1.2rem 1.5rem; text-align: left; color: var(--sidebar-text); font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 1.2rem 1.5rem; color: var(--text-color); font-weight: 500; font-size: 0.95rem;">
+                            {{ txn.date_str|default:"-" }}
+                        </td>
+                        <td style="padding: 1.2rem 1.5rem; color: var(--text-color); font-weight: 700;">
+                            {{ txn.product }}
+                        </td>
+                        <td style="padding: 1.2rem 1.5rem;">
+                            {% if txn.action == 'IN' %}
+                            <span style="background: rgba(34,197,94,0.1); color: #16a34a; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(34,197,94,0.2);">{{ txn.raw_action }}</span>
+                            {% elif txn.action == 'OUT' %}
+                            <span style="background: rgba(239,68,68,0.1); color: #dc2626; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(239,68,68,0.2);">{{ txn.raw_action }}</span>
+                            {% else %}
+                            <span style="color: var(--sidebar-text);">{{ txn.raw_action }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 1.2rem 1.5rem; color: var(--text-color);">
+                            {{ txn.by }}
+                        </td>
+                        <td style="padding: 1.2rem 1.5rem; color: var(--sidebar-text); font-size: 0.9rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ txn.remarks|default:"-" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 4rem; color: var(--sidebar-text);">
+                            <div style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem;">📭</div>
+                            No transactions found matching your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCustomDates(val) {
+    const container = document.getElementById('customDateContainer');
+    if (val === 'custom') {
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

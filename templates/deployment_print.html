@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Deployment Report - P&M Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11px;
+            color: #333;
+            margin: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .title h2 {
+            margin: 0;
+            color: #1e3a8a;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .title p {
+            margin: 5px 0 0;
+            color: #4b5563;
+            font-size: 11px;
+            font-style: italic;
+        }
+        .meta-info {
+            text-align: right;
+            font-size: 10px;
+            color: #4b5563;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 6px 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #1e3a8a;
+            color: white;
+            font-weight: bold;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+        .sub-header {
+            background-color: #2b6cb0;
+        }
+        .align-left {
+            text-align: left;
+        }
+        tr:nth-child(even) td {
+            background-color: #f9fafb;
+        }
+        @media print {
+            body {
+                margin: 10px;
+            }
+            .no-print {
+                display: none;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">
+            <h2>RIGSAR-VAJRA JV PTE LTD</h2>
+            <p>Plant & Machinery (P&M) Daily Deployment Report</p>
+            {% if filter_desc %}
+            <p style="font-weight: bold; color: #1e3a8a; font-style: normal; margin-top: 3px;">{{ filter_desc }}</p>
+            {% endif %}
+        </div>
+        <div class="meta-info">
+            <strong>Exported on:</strong> {{ export_time }}<br>
+            <strong>Total Records:</strong> {{ deployments|length }}
+        </div>
+    </div>
+
+    <button onclick="window.print()" class="no-print" style="margin-bottom:15px; padding:8px 16px; background:#1e3a8a; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size:12px;">Print / Save to PDF</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 80px;">Date</th>
+                <th rowspan="2">Machinery / Reg No</th>
+                <th colspan="2">Zone 1 & 2</th>
+                <th colspan="2">Zone 3 & 4</th>
+                <th colspan="2">Borrow Area</th>
+                <th colspan="2">Culvert Area</th>
+                <th colspan="2">Batching Plant</th>
+                <th colspan="2">Crushing Plant</th>
+                <th colspan="2">Road Maint</th>
+            </tr>
+            <tr class="sub-header">
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+                <th style="width:30px;">D</th><th style="width:30px;">N</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dep in deployments %}
+            <tr>
+                <td style="font-weight: 600;">{{ dep.date|date:"d-m-Y" }}</td>
+                <td class="align-left" style="font-weight: 600; color: #1e3a8a;">{{ dep.machinery }}</td>
+                <td>{{ dep.zone_1_2_day|default:"-" }}</td>
+                <td>{{ dep.zone_1_2_night|default:"-" }}</td>
+                <td>{{ dep.zone_3_4_day|default:"-" }}</td>
+                <td>{{ dep.zone_3_4_night|default:"-" }}</td>
+                <td>{{ dep.borrow_area_day|default:"-" }}</td>
+                <td>{{ dep.borrow_area_night|default:"-" }}</td>
+                <td>{{ dep.culvert_area_day|default:"-" }}</td>
+                <td>{{ dep.culvert_area_night|default:"-" }}</td>
+                <td>{{ dep.batching_plant_day|default:"-" }}</td>
+                <td>{{ dep.batching_plant_night|default:"-" }}</td>
+                <td>{{ dep.crushing_plant_day|default:"-" }}</td>
+                <td>{{ dep.crushing_plant_night|default:"-" }}</td>
+                <td>{{ dep.road_maint_day|default:"-" }}</td>
+                <td>{{ dep.road_maint_night|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="16">No records found matching filters.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Trigger print popup automatically when page opens
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

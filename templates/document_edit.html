@@ -1,0 +1,43 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 2rem auto;">
+    <div class="card" style="padding: 2rem;">
+        <h2 style="margin-top: 0; color: var(--text-color);">{{ title }}</h2>
+        <form method="POST" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            {% csrf_token %}
+            {% for field in form %}
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label style="font-weight: 500; font-size: 0.9rem; color: var(--sidebar-text);">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small style="color: var(--sidebar-text); opacity: 0.7;">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <small style="color: var(--error);">{{ error }}</small>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <a href="{% url 'dashboard' %}" class="btn" style="background: var(--bg-subtle); color: var(--text-color); border: 1px solid var(--border);">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="padding: 10px 30px;">Save Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    form input, form select, form textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--card-bg);
+        color: var(--text-color);
+    }
+</style>
+{% endblock %}
+

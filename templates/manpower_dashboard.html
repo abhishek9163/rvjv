@@ -1,0 +1,494 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manpower Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <style>
+        :root {
+            --cyan: #0891b2; --cyan-l: #e0f7fa; --amber: #f59e0b; --green: #10b981;
+            --red: #ef4444; --purple: #8b5cf6; --blue: #3b82f6;
+            --slate: #1e293b; --muted: #64748b; --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--slate); min-height: 100vh; }
+        .mp-header {
+            background: linear-gradient(135deg, #0c4a6e 0%, #0891b2 100%);
+            padding: 0 28px; display: flex; align-items: center;
+            justify-content: space-between; min-height: 64px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.2);
+        }
+        .mp-header-left { display: flex; align-items: center; gap: 14px; }
+        .icon-circle { width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff; }
+        .mp-header-left h1 { color:#fff;font-size:1.35rem;font-weight:800;letter-spacing:.5px; }
+        .mp-header-left p  { color:rgba(255,255,255,.75);font-size:.78rem;margin-top:1px; }
+        .mp-header-right { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+        .mp-header-right a { padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:none;cursor:pointer;transition:opacity .15s; }
+        .mp-header-right a:hover { opacity:.85; }
+        .btn-back   { background:rgba(255,255,255,.15);color:#fff; }
+        .btn-safety { background:#ef4444;color:#fff; }
+        .kpi-bar { display:flex;gap:14px;flex-wrap:wrap;padding:18px 28px 0; }
+        .kpi-card { background:var(--card);border-radius:12px;padding:14px 20px;flex:1 1 160px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid var(--cyan); }
+        .kpi-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+        .kpi-num { font-size:1.6rem;font-weight:800;line-height:1; }
+        .kpi-lbl { font-size:.72rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px; }
+        .kc-cyan   { background:#e0f7fa;color:#0891b2; }
+        .kc-green  { background:#d1fae5;color:#10b981; }
+        .kc-amber  { background:#fef3c7;color:#f59e0b; }
+        .kc-red    { background:#fee2e2;color:#ef4444; }
+        .kc-purple { background:#ede9fe;color:#8b5cf6; }
+        .kc-blue   { background:#dbeafe;color:#3b82f6; }
+        .tab-pills { display:flex;gap:6px;padding:18px 28px 0;flex-wrap:wrap; }
+        .tab-pill { padding:9px 18px;border-radius:30px;font-size:.84rem;font-weight:700;text-decoration:none;border:2px solid var(--border);color:var(--muted);background:var(--card);transition:all .15s;display:inline-flex;align-items:center;gap:6px; }
+        .tab-pill:hover { border-color:var(--cyan);color:var(--cyan); }
+        .tab-pill.active { background:var(--cyan);border-color:var(--cyan);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,.3); }
+        .filter-bar { background:var(--card);border:1px solid var(--border);border-radius:12px;margin:14px 28px 0;padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end; }
+        .filter-bar label { font-size:.74rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase; }
+        .filter-bar select, .filter-bar input[type="text"] { height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-size:.83rem;color:var(--slate);background:#f8fafc;min-width:160px;outline:none;transition:border-color .15s; }
+        .filter-bar select:focus, .filter-bar input[type="text"]:focus { border-color:var(--cyan); }
+        .fgroup { display:flex;flex-direction:column; }
+        .filter-actions { display:flex;gap:8px;align-items:flex-end; }
+        .btn-filter { height:36px;padding:0 16px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;text-decoration:none; }
+        .btn-filter-apply { background:var(--cyan);color:#fff; }
+        .btn-filter-clear { background:#f1f5f9;color:var(--muted);border:1.5px solid var(--border); }
+        .table-wrap { margin:14px 28px 28px;background:var(--card);border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);border:1px solid var(--border);overflow:hidden; }
+        .table-header { padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#f8fafc; }
+        .table-header-left { display:flex;align-items:center;gap:10px; }
+        .table-header-left h3 { font-size:.95rem;font-weight:800;color:var(--slate); }
+        .record-count { background:var(--cyan-l);color:var(--cyan);border-radius:20px;padding:2px 10px;font-size:.78rem;font-weight:700; }
+        .table-scroll { overflow-x:auto;max-height:520px;overflow-y:auto; }
+        table { width:100%;border-collapse:collapse;font-size:.83rem; }
+        thead { position:sticky;top:0;z-index:2; }
+        thead th { background:#f1f5f9;padding:10px 12px;text-align:left;font-weight:700;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap; }
+        tbody tr { border-bottom:1px solid #f1f5f9;transition:background .1s; }
+        tbody tr:hover { background:#f8fafc; }
+        tbody td { padding:9px 12px;vertical-align:middle; }
+        .badge { display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap; }
+        .badge-green  { background:#d1fae5;color:#065f46; }
+        .badge-red    { background:#fee2e2;color:#991b1b; }
+        .badge-amber  { background:#fef3c7;color:#92400e; }
+        .badge-slate  { background:#f1f5f9;color:#475569; }
+        .badge-blue   { background:#dbeafe;color:#1e40af; }
+        .badge-purple { background:#ede9fe;color:#5b21b6; }
+        .badge-cyan   { background:#e0f7fa;color:#0c4a6e; }
+        .ppe-val { font-size:.74rem;font-weight:600;white-space:nowrap; }
+        .ppe-dot { display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px; }
+        .ppe-dot-yes { background:#10b981; }
+        .ppe-dot-no  { background:#e2e8f0; }
+        .no-data { text-align:center;padding:48px 20px;color:var(--muted); }
+        .no-data i { font-size:2.5rem;margin-bottom:12px;opacity:.4;display:block; }
+        .no-data p { font-size:.9rem; }
+        @media (max-width:700px) {
+            .mp-header { flex-direction:column;padding:12px 16px;gap:10px; }
+            .kpi-bar,.tab-pills,.filter-bar,.table-wrap { margin-left:12px;margin-right:12px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="mp-header">
+    <div class="mp-header-left">
+        <div class="icon-circle"><i class="fas fa-hard-hat"></i></div>
+        <div>
+            <h1>Manpower Dashboard</h1>
+            <p>Labour &bull; RVJV Employees &bull; Hired Operators &bull; Contractor PPE</p>
+        </div>
+    </div>
+    <div class="mp-header-right">
+        <a href="{% url 'safety_dashboard_view' %}" class="btn-safety"><i class="fas fa-shield-alt"></i> Safety Dashboard</a>
+        <a href="{% url 'dashboard' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Main Dashboard</a>
+    </div>
+</div>
+
+<!-- TAB PILLS -->
+<div class="tab-pills">
+    <a href="?tab=labour{% if lab_status_filter %}&lab_status={{ lab_status_filter }}{% endif %}{% if lab_nat_filter %}&lab_nat={{ lab_nat_filter }}{% endif %}{% if lab_search %}&lab_q={{ lab_search }}{% endif %}"
+       class="tab-pill {% if active_tab == 'labour' %}active{% endif %}">
+        <i class="fas fa-users"></i> Labour Register
+    </a>
+    <a href="?tab=rvjv{% if rvjv_dept_filter %}&rvjv_dept={{ rvjv_dept_filter }}{% endif %}{% if rvjv_status_filter %}&rvjv_status={{ rvjv_status_filter }}{% endif %}{% if rvjv_nat_filter %}&rvjv_nat={{ rvjv_nat_filter }}{% endif %}{% if rvjv_search %}&rvjv_q={{ rvjv_search }}{% endif %}"
+       class="tab-pill {% if active_tab == 'rvjv' %}active{% endif %}">
+        <i class="fas fa-building"></i> RVJV Employees
+    </a>
+    <a href="?tab=hired{% if hired_agent_filter %}&hired_agent={{ hired_agent_filter }}{% endif %}{% if hired_type_filter %}&hired_type={{ hired_type_filter }}{% endif %}{% if hired_nat_filter %}&hired_nat={{ hired_nat_filter }}{% endif %}{% if hired_search %}&hired_q={{ hired_search }}{% endif %}"
+       class="tab-pill {% if active_tab == 'hired' %}active{% endif %}">
+        <i class="fas fa-truck"></i> Hired Operators
+    </a>
+    <a href="?tab=ppe{% if ppe_contractor_filter %}&ppe_contractor={{ ppe_contractor_filter }}{% endif %}{% if ppe_desig_filter %}&ppe_desig={{ ppe_desig_filter }}{% endif %}{% if ppe_search %}&ppe_q={{ ppe_search }}{% endif %}"
+       class="tab-pill {% if active_tab == 'ppe' %}active{% endif %}">
+        <i class="fas fa-vest"></i> Contractor PPE
+    </a>
+</div>
+
+<!-- ═══════════════════════════ TAB A — LABOUR ═══════════════════════════ -->
+{% if active_tab == 'labour' %}
+<div class="kpi-bar">
+    <div class="kpi-card" style="border-left-color:#0891b2">
+        <div class="kpi-icon kc-cyan"><i class="fas fa-users"></i></div>
+        <div><div class="kpi-num">{{ labour_total }}</div><div class="kpi-lbl">Total Labour</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#10b981">
+        <div class="kpi-icon kc-green"><i class="fas fa-circle-check"></i></div>
+        <div><div class="kpi-num">{{ labour_active }}</div><div class="kpi-lbl">Active</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#f59e0b">
+        <div class="kpi-icon kc-amber"><i class="fas fa-flag"></i></div>
+        <div><div class="kpi-num">{{ labour_bhutanese }}</div><div class="kpi-lbl">Bhutanese</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#3b82f6">
+        <div class="kpi-icon kc-blue"><i class="fas fa-flag"></i></div>
+        <div><div class="kpi-num">{{ labour_indian }}</div><div class="kpi-lbl">Indian</div></div>
+    </div>
+</div>
+<form method="get" action="">
+    <input type="hidden" name="tab" value="labour"/>
+    <div class="filter-bar">
+        <div class="fgroup"><label>Status</label>
+            <select name="lab_status">
+                <option value="">All Statuses</option>
+                <option value="Active"      {% if lab_status_filter == 'Active'      %}selected{% endif %}>Active</option>
+                <option value="Leave"       {% if lab_status_filter == 'Leave'       %}selected{% endif %}>Leave</option>
+                <option value="Left"        {% if lab_status_filter == 'Left'        %}selected{% endif %}>Left</option>
+                <option value="Registered"  {% if lab_status_filter == 'Registered'  %}selected{% endif %}>Registered</option>
+                <option value="Transferred" {% if lab_status_filter == 'Transferred' %}selected{% endif %}>Transferred</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Nationality</label>
+            <select name="lab_nat">
+                <option value="">All</option>
+                <option value="Bhutanese" {% if lab_nat_filter == 'Bhutanese' %}selected{% endif %}>Bhutanese</option>
+                <option value="Indian"    {% if lab_nat_filter == 'Indian'    %}selected{% endif %}>Indian</option>
+                <option value="Other"     {% if lab_nat_filter == 'Other'     %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Search</label>
+            <input type="text" name="lab_q" value="{{ lab_search }}" placeholder="Name / ID / CID..." style="min-width:200px"/>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter btn-filter-apply"><i class="fas fa-search"></i> Filter</button>
+            <a href="?tab=labour" class="btn-filter btn-filter-clear"><i class="fas fa-times"></i> Clear</a>
+        </div>
+    </div>
+</form>
+<div class="table-wrap">
+    <div class="table-header">
+        <div class="table-header-left">
+            <h3><i class="fas fa-users" style="color:#0891b2"></i> Labour Register</h3>
+            <span class="record-count">{{ labour_list|length }} records</span>
+        </div>
+    </div>
+    <div class="table-scroll">
+        {% if labour_list %}
+        <table>
+            <thead><tr>
+                <th>#</th><th>Labour ID</th><th>Name</th><th>Gender</th>
+                <th>Nationality</th><th>CID Number</th><th>Voter ID</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+            {% for r in labour_list %}
+            <tr>
+                <td style="color:var(--muted)">{{ forloop.counter }}</td>
+                <td><code style="font-size:.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">{{ r.labour_id|default:"—" }}</code></td>
+                <td style="font-weight:600">{{ r.name|default:"—" }}</td>
+                <td>{{ r.gender|default:"—" }}</td>
+                <td>{% if r.nationality == 'Bhutanese' %}<span class="badge badge-amber">Bhutanese</span>
+                    {% elif r.nationality == 'Indian' %}<span class="badge badge-blue">Indian</span>
+                    {% else %}<span class="badge badge-slate">{{ r.nationality|default:"—" }}</span>{% endif %}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ r.cid_number|default:"—" }}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ r.voter_id|default:"—" }}</td>
+                <td>{% if r.status == 'Active' %}<span class="badge badge-green">Active</span>
+                    {% elif r.status == 'Left' %}<span class="badge badge-red">Left</span>
+                    {% elif r.status == 'Leave' %}<span class="badge badge-amber">Leave</span>
+                    {% elif r.status == 'Transferred' %}<span class="badge badge-blue">Transferred</span>
+                    {% else %}<span class="badge badge-slate">{{ r.status|default:"—" }}</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data"><i class="fas fa-search"></i><p>No records found for the selected filters.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════ TAB B — RVJV ═══════════════════════════ -->
+{% if active_tab == 'rvjv' %}
+<div class="kpi-bar">
+    <div class="kpi-card" style="border-left-color:#0891b2">
+        <div class="kpi-icon kc-cyan"><i class="fas fa-id-badge"></i></div>
+        <div><div class="kpi-num">{{ rvjv_total }}</div><div class="kpi-lbl">Total Employees</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#10b981">
+        <div class="kpi-icon kc-green"><i class="fas fa-circle-check"></i></div>
+        <div><div class="kpi-num">{{ rvjv_active }}</div><div class="kpi-lbl">Active</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#f59e0b">
+        <div class="kpi-icon kc-amber"><i class="fas fa-pause-circle"></i></div>
+        <div><div class="kpi-num">{{ rvjv_inactive }}</div><div class="kpi-lbl">Inactive</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#ef4444">
+        <div class="kpi-icon kc-red"><i class="fas fa-door-open"></i></div>
+        <div><div class="kpi-num">{{ rvjv_left }}</div><div class="kpi-lbl">Left</div></div>
+    </div>
+</div>
+<form method="get" action="">
+    <input type="hidden" name="tab" value="rvjv"/>
+    <div class="filter-bar">
+        <div class="fgroup"><label>Department</label>
+            <select name="rvjv_dept" style="min-width:220px">
+                <option value="">All Departments</option>
+                {% for d in all_rvjv_depts %}
+                <option value="{{ d }}" {% if rvjv_dept_filter == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="fgroup"><label>Status</label>
+            <select name="rvjv_status">
+                <option value="">All Statuses</option>
+                <option value="Active"   {% if rvjv_status_filter == 'Active'   %}selected{% endif %}>Active</option>
+                <option value="Inactive" {% if rvjv_status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+                <option value="Left"     {% if rvjv_status_filter == 'Left'     %}selected{% endif %}>Left</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Nationality</label>
+            <select name="rvjv_nat">
+                <option value="">All</option>
+                <option value="Bhutanese" {% if rvjv_nat_filter == 'Bhutanese' %}selected{% endif %}>Bhutanese</option>
+                <option value="Indian"    {% if rvjv_nat_filter == 'Indian'    %}selected{% endif %}>Indian</option>
+                <option value="Other"     {% if rvjv_nat_filter == 'Other'     %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Search</label>
+            <input type="text" name="rvjv_q" value="{{ rvjv_search }}" placeholder="Name / EmpID / Designation..." style="min-width:200px"/>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter btn-filter-apply"><i class="fas fa-search"></i> Filter</button>
+            <a href="?tab=rvjv" class="btn-filter btn-filter-clear"><i class="fas fa-times"></i> Clear</a>
+        </div>
+    </div>
+</form>
+<div class="table-wrap">
+    <div class="table-header">
+        <div class="table-header-left">
+            <h3><i class="fas fa-building" style="color:#0891b2"></i> RVJV Employees</h3>
+            <span class="record-count">{{ rvjv_list|length }} records</span>
+        </div>
+    </div>
+    <div class="table-scroll">
+        {% if rvjv_list %}
+        <table>
+            <thead><tr>
+                <th>#</th><th>Emp ID</th><th>Name</th><th>Designation</th><th>Department</th>
+                <th>Nationality</th><th>Date of Joining</th><th>Status</th>
+                <th>Relieving Date</th><th>Mobile</th><th>Work Permit</th>
+            </tr></thead>
+            <tbody>
+            {% for e in rvjv_list %}
+            <tr>
+                <td style="color:var(--muted)">{{ forloop.counter }}</td>
+                <td><code style="font-size:.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">{{ e.emp_id|default:"—" }}</code></td>
+                <td style="font-weight:600">{{ e.name|default:"—" }}</td>
+                <td style="color:var(--muted)">{{ e.designation|default:"—" }}</td>
+                <td style="font-size:.78rem;max-width:200px;white-space:normal">{{ e.department|default:"—" }}</td>
+                <td>{% if e.nationality == 'Bhutanese' %}<span class="badge badge-amber">Bhutanese</span>
+                    {% elif e.nationality == 'Indian' %}<span class="badge badge-blue">Indian</span>
+                    {% else %}<span class="badge badge-slate">{{ e.nationality|default:"—" }}</span>{% endif %}</td>
+                <td style="font-size:.8rem;white-space:nowrap">{{ e.date_of_joining|default:"—" }}</td>
+                <td>{% if e.status == 'Active' %}<span class="badge badge-green">Active</span>
+                    {% elif e.status == 'Left' %}<span class="badge badge-red">Left</span>
+                    {% elif e.status == 'Inactive' %}<span class="badge badge-amber">Inactive</span>
+                    {% else %}<span class="badge badge-slate">{{ e.status|default:"—" }}</span>{% endif %}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ e.relieving_date|default:"—" }}</td>
+                <td style="font-size:.78rem">{{ e.mobile|default:"—" }}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ e.work_permit|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data"><i class="fas fa-search"></i><p>No records found for the selected filters.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════ TAB C — HIRED ═══════════════════════════ -->
+{% if active_tab == 'hired' %}
+<div class="kpi-bar">
+    <div class="kpi-card" style="border-left-color:#0891b2">
+        <div class="kpi-icon kc-cyan"><i class="fas fa-truck"></i></div>
+        <div><div class="kpi-num">{{ hired_total }}</div><div class="kpi-lbl">Total Operators</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#3b82f6">
+        <div class="kpi-icon kc-blue"><i class="fas fa-steering-wheel"></i></div>
+        <div><div class="kpi-num">{{ hired_driver }}</div><div class="kpi-lbl">Drivers / Operators</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#8b5cf6">
+        <div class="kpi-icon kc-purple"><i class="fas fa-wrench"></i></div>
+        <div><div class="kpi-num">{{ hired_mechanic }}</div><div class="kpi-lbl">Mechanics / Supervisors</div></div>
+    </div>
+</div>
+<form method="get" action="">
+    <input type="hidden" name="tab" value="hired"/>
+    <div class="filter-bar">
+        <div class="fgroup"><label>Hire Agent</label>
+            <select name="hired_agent" style="min-width:200px">
+                <option value="">All Agents</option>
+                {% for a in all_hire_agents %}
+                <option value="{{ a }}" {% if hired_agent_filter == a %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="fgroup"><label>Hire Type</label>
+            <select name="hired_type">
+                <option value="">All Types</option>
+                <option value="Driver/Operator"    {% if hired_type_filter == 'Driver/Operator'    %}selected{% endif %}>Driver / Operator</option>
+                <option value="Mechanic/Supervisor" {% if hired_type_filter == 'Mechanic/Supervisor' %}selected{% endif %}>Mechanic / Supervisor</option>
+                <option value="Other"              {% if hired_type_filter == 'Other'              %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Nationality</label>
+            <select name="hired_nat">
+                <option value="">All</option>
+                <option value="Bhutanese" {% if hired_nat_filter == 'Bhutanese' %}selected{% endif %}>Bhutanese</option>
+                <option value="Indian"    {% if hired_nat_filter == 'Indian'    %}selected{% endif %}>Indian</option>
+                <option value="Other"     {% if hired_nat_filter == 'Other'     %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="fgroup"><label>Search</label>
+            <input type="text" name="hired_q" value="{{ hired_search }}" placeholder="Name / Vehicle / Designation..." style="min-width:200px"/>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter btn-filter-apply"><i class="fas fa-search"></i> Filter</button>
+            <a href="?tab=hired" class="btn-filter btn-filter-clear"><i class="fas fa-times"></i> Clear</a>
+        </div>
+    </div>
+</form>
+<div class="table-wrap">
+    <div class="table-header">
+        <div class="table-header-left">
+            <h3><i class="fas fa-truck" style="color:#0891b2"></i> Hired Operators</h3>
+            <span class="record-count">{{ hired_list|length }} records</span>
+        </div>
+    </div>
+    <div class="table-scroll">
+        {% if hired_list %}
+        <table>
+            <thead><tr>
+                <th>#</th><th>Operator ID</th><th>Name</th><th>Vehicle No</th>
+                <th>Hire Agent</th><th>Hire Type</th><th>Designation</th>
+                <th>Nationality</th><th>Date of Joining</th><th>CID No</th>
+            </tr></thead>
+            <tbody>
+            {% for o in hired_list %}
+            <tr>
+                <td style="color:var(--muted)">{{ forloop.counter }}</td>
+                <td><code style="font-size:.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">{{ o.operator_id|default:"—" }}</code></td>
+                <td style="font-weight:600">{{ o.name|default:"—" }}</td>
+                <td style="font-size:.8rem">{{ o.vehicle_no|default:"—" }}</td>
+                <td style="font-size:.78rem;color:var(--muted);max-width:180px;white-space:normal">{{ o.hire_agent|default:"—" }}</td>
+                <td>{% if o.hire_type == 'Driver/Operator' %}<span class="badge badge-blue">Driver / Operator</span>
+                    {% elif o.hire_type == 'Mechanic/Supervisor' %}<span class="badge badge-purple">Mechanic / Supervisor</span>
+                    {% else %}<span class="badge badge-slate">{{ o.hire_type|default:"—" }}</span>{% endif %}</td>
+                <td style="color:var(--muted)">{{ o.designation|default:"—" }}</td>
+                <td>{% if o.nationality == 'Bhutanese' %}<span class="badge badge-amber">Bhutanese</span>
+                    {% elif o.nationality == 'Indian' %}<span class="badge badge-blue">Indian</span>
+                    {% else %}<span class="badge badge-slate">{{ o.nationality|default:"—" }}</span>{% endif %}</td>
+                <td style="font-size:.8rem;white-space:nowrap">{{ o.date_of_joining|default:"—" }}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ o.cid_no|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data"><i class="fas fa-search"></i><p>No records found for the selected filters.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════ TAB D — PPE ═══════════════════════════ -->
+{% if active_tab == 'ppe' %}
+<div class="kpi-bar">
+    <div class="kpi-card" style="border-left-color:#0891b2">
+        <div class="kpi-icon kc-cyan"><i class="fas fa-vest"></i></div>
+        <div><div class="kpi-num">{{ ppe_total }}</div><div class="kpi-lbl">Total Workers</div></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#8b5cf6">
+        <div class="kpi-icon kc-purple"><i class="fas fa-building"></i></div>
+        <div><div class="kpi-num">{{ ppe_contractors }}</div><div class="kpi-lbl">Contractors</div></div>
+    </div>
+</div>
+<form method="get" action="">
+    <input type="hidden" name="tab" value="ppe"/>
+    <div class="filter-bar">
+        <div class="fgroup"><label>Contractor</label>
+            <select name="ppe_contractor" style="min-width:220px">
+                <option value="">All Contractors</option>
+                {% for c in all_contractors %}
+                <option value="{{ c }}" {% if ppe_contractor_filter == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="fgroup"><label>Designation</label>
+            <input type="text" name="ppe_desig" value="{{ ppe_desig_filter }}" placeholder="Filter by designation..." style="min-width:180px"/>
+        </div>
+        <div class="fgroup"><label>Search</label>
+            <input type="text" name="ppe_q" value="{{ ppe_search }}" placeholder="Name / Worker ID..." style="min-width:200px"/>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter btn-filter-apply"><i class="fas fa-search"></i> Filter</button>
+            <a href="?tab=ppe" class="btn-filter btn-filter-clear"><i class="fas fa-times"></i> Clear</a>
+        </div>
+    </div>
+</form>
+<div class="table-wrap">
+    <div class="table-header">
+        <div class="table-header-left">
+            <h3><i class="fas fa-vest" style="color:#0891b2"></i> Contractor PPE Status</h3>
+            <span class="record-count">{{ ppe_list|length }} records</span>
+        </div>
+    </div>
+    <div class="table-scroll">
+        {% if ppe_list %}
+        <table>
+            <thead><tr>
+                <th>#</th><th>Contractor</th><th>Worker ID</th><th>Name</th><th>Designation</th>
+                <th>Reflector</th><th>Boot</th><th>Helmet</th><th>Gloves</th><th>Mask</th>
+                <th>Goggles</th><th>Ear Plug</th><th>Shoulder</th><th>Harness</th><th>Raincoat</th>
+            </tr></thead>
+            <tbody>
+            {% for w in ppe_list %}
+            <tr>
+                <td style="color:var(--muted)">{{ forloop.counter }}</td>
+                <td style="font-size:.78rem;font-weight:600;max-width:160px;white-space:normal;color:var(--cyan)">{{ w.contractor_name|default:"—" }}</td>
+                <td><code style="font-size:.78rem;background:#f1f5f9;padding:2px 5px;border-radius:4px">{{ w.worker_id|default:"—" }}</code></td>
+                <td style="font-weight:600;white-space:nowrap">{{ w.name|default:"—" }}</td>
+                <td style="font-size:.78rem;color:var(--muted)">{{ w.designation|default:"—" }}</td>
+                {% with val=w.reflector %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.safety_boot %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.helmet %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.gloves %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.face_mask %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.safety_goggles %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.ear_plug %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.shoulder_pads %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.body_harness %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+                {% with val=w.raincoat %}<td style="text-align:center">{% if val and val != '0' and val != '-' %}<span class="ppe-val" title="{{ val }}"><span class="ppe-dot ppe-dot-yes"></span>{{ val|truncatechars:10 }}</span>{% else %}<span class="ppe-dot ppe-dot-no" title="Not Issued"></span>{% endif %}</td>{% endwith %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data"><i class="fas fa-vest"></i><p>No records found for the selected filters.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+</body>
+</html>

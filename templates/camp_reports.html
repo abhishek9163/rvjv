@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Camp Gate Reports &amp; Movement Audit{% endblock %}
+
+{% block content %}
+<style>
+    .report-container { padding: 16px; max-width: 1400px; margin: 0 auto; }
+    
+    @media (max-width: 768px) {
+        .report-container { padding: 8px; }
+        .filter-row { flex-direction: column !important; gap: 10px !important; }
+        .filter-row div, .filter-row input, .filter-row select, .filter-row a, .filter-row button { width: 100% !important; }
+        .export-btns { width: 100%; display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 6px !important; padding-bottom: 4px; scrollbar-width: none; }
+        .export-btns::-webkit-scrollbar { display: none; }
+        .export-btns .btn-action, .export-btns a, .export-btns button { flex: 0 0 auto !important; font-size: 0.78rem !important; padding: 7px 12px !important; white-space: nowrap; }
+        .modal-box { padding: 14px 12px !important; max-width: 98% !important; border-radius: 14px !important; }
+    }
+    @media (max-width: 480px) {
+        .report-container { padding: 6px; }
+        .report-card { padding: 12px 10px !important; border-radius: 12px !important; }
+    }
+
+    .report-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 24px;
+    }
+    .form-control {
+        width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 14px;
+        font-size: 0.9rem; font-weight: 600; color: #1e293b; background: #f8fafc;
+    }
+    .form-control:focus { outline: none; border-color: #3b82f6; background: white; }
+
+    .btn-action {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px;
+        border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+        border: none; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-action:active { transform: scale(0.97); }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px);
+        display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;
+    }
+    .modal-box {
+        background: white; width: 100%; max-width: 540px; border-radius: 20px;
+        padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;
+    }
+
+    /* Dark Mode Theme Support */
+    [data-theme="dark"] .report-container { color: #f1f5f9; }
+    [data-theme="dark"] .report-card,
+    [data-theme="dark"] .modal-box {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+    [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4 {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] p, [data-theme="dark"] small, [data-theme="dark"] .subtext {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] input,
+    [data-theme="dark"] select {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] table thead tr {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr {
+        border-bottom-color: #334155 !important;
+    }
+    [data-theme="dark"] table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    [data-theme="dark"] table td {
+        color: #e2e8f0 !important;
+    }
+</style>
+
+<div class="report-container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Camp Gate Movement Reports &amp; Audit Hub
+            </h1>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.9rem;">
+                Official audit trail of all Security Gate In/Out punches, scanned by guards or self-punched by residents
+            </p>
+        </div>
+        <div class="export-btns" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button onclick="toggleTheme()" class="btn-action" style="background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; color: #334155;" title="Toggle Light / Dark Mode">
+                <span id="campReportsThemeIcon">🌙</span> Theme
+            </button>
+            <button type="button" onclick="openCampExportModal()" class="btn-action" style="background: #10b981; color: white;">
+                <span>📊</span> Export Popup Modal
+            </button>
+            <a href="{% url 'export_camp_excel' %}?from_date={{ from_date }}&to_date={{ to_date }}&direction={{ selected_dir }}&department={{ selected_dept }}" 
+               class="btn-action" style="background: #16a34a; color: white;">
+                <span>📗</span> Excel (.xlsx)
+            </a>
+            <a href="{% url 'export_camp_pdf' %}?from_date={{ from_date }}&to_date={{ to_date }}&direction={{ selected_dir }}&department={{ selected_dept }}" 
+               target="_blank" class="btn-action" style="background: #dc2626; color: white;">
+                <span>📄</span> PDF
+            </a>
+            <button type="button" onclick="shareCampReports()" class="btn-action" style="background: #25D366; color: white;">
+                <span>💬</span> Share Report (WhatsApp / Email)
+            </button>
+            <a href="{% url 'camp_dashboard_view' %}" class="btn-action" style="background: #475569; color: white;">
+                <span>⬅️</span> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="report-card">
+        <form method="GET" action="{% url 'camp_reports_view' %}" class="filter-row" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase;">From Date</label>
+                <input type="date" name="from_date" value="{{ from_date }}" class="form-control">
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase;">To Date</label>
+                <input type="date" name="to_date" value="{{ to_date }}" class="form-control">
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase;">Direction</label>
+                <select name="direction" class="form-control">
+                    <option value="ALL" {% if selected_dir == 'ALL' %}selected{% endif %}>All Directions</option>
+                    <option value="IN" {% if selected_dir == 'IN' %}selected{% endif %}>🟢 Entry / IN Only</option>
+                    <option value="OUT" {% if selected_dir == 'OUT' %}selected{% endif %}>🔴 Exit / OUT Only</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase;">Department</label>
+                <select name="department" class="form-control">
+                    <option value="ALL">All Departments</option>
+                    {% for d in departments %}
+                        <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn-action" style="background: #2563eb; color: white;">
+                    <span>🔍</span> Filter Records
+                </button>
+            </div>
+            <div>
+                <a href="{% url 'camp_reports_view' %}" class="btn-action" style="background: #f1f5f9; color: #475569;">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Table -->
+    <div class="report-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e293b;">
+                Movement Records Log
+            </h3>
+            <span style="font-weight: 700; font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 4px 12px; border-radius: 50px;">
+                Total: {{ total_count }} Entries
+            </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #64748b; font-size: 0.78rem; text-transform: uppercase;">
+                        <th style="padding: 12px 10px;">Date &amp; Time</th>
+                        <th style="padding: 12px 10px;">Worker / Employee</th>
+                        <th style="padding: 12px 10px;">Department</th>
+                        <th style="padding: 12px 10px;">Direction</th>
+                        <th style="padding: 12px 10px;">Gate Name</th>
+                        <th style="padding: 12px 10px;">Purpose</th>
+                        <th style="padding: 12px 10px;">Security / Scanned By</th>
+                        <th style="padding: 12px 10px;">Mode</th>
+                        {% if is_manager %}<th style="padding: 12px 10px; text-align: center;">Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" id="report-log-row-{{ l.id }}" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                        <td style="padding: 12px 10px;">
+                            <span style="font-weight: 700; color: #1e293b; display: block;">{{ l.date|date:"d M Y" }}</span>
+                            <span style="font-size: 0.78rem; color: #64748b;">{{ l.timestamp|localtime|date:"I:i:s A" }}</span>
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            <div style="font-weight: 800; color: #1e293b;">{{ l.employee.name }}</div>
+                            <div style="font-size: 0.8rem; color: #2563eb; font-weight: 700;">
+                                {% if '@' in l.employee.emp_id %}EMP-{{ l.employee.id|stringformat:"04d" }}{% else %}{{ l.employee.emp_id }}{% endif %}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b;">{{ l.employee.designation|default:"Staff" }}</div>
+                        </td>
+                        <td style="padding: 12px 10px; color: #475569; font-weight: 600;">
+                            {{ l.employee.department|default:"-" }}
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            {% if l.direction == 'IN' %}
+                                <span style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">
+                                    🟢 ENTRY / IN
+                                </span>
+                            {% else %}
+                                <span style="background: #fee2e2; color: #b91c1c; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 50px;">
+                                    🔴 EXIT / OUT
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px; font-weight: 700; color: #334155;">
+                            {{ l.gate_name }}
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            <span style="background: #f1f5f9; color: #334155; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+                                {{ l.get_purpose_display }}
+                            </span>
+                            {% if l.remarks %}
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">{{ l.remarks }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px; font-size: 0.85rem; color: #475569;">
+                            {% if l.scanned_by %}
+                                👤 {{ l.scanned_by.get_full_name|default:l.scanned_by.username }}
+                            {% else %}
+                                📲 Self Scan (Gate Wall QR)
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 10px;">
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                                {{ l.entry_mode }}
+                            </span>
+                        </td>
+                        {% if is_manager %}
+                        <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+                                <button type="button" onclick="openEditMovementModal({{ l.id }})" title="Edit Movement" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    ✏️ Edit
+                                </button>
+                                <button type="button" onclick="deleteMovementEntry({{ l.id }})" title="Delete Movement" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if is_manager %}9{% else %}8{% endif %}" style="text-align: center; padding: 40px; color: #94a3b8;">
+                            No gate movement records found for the selected filter range.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- CAMP GATE MOVEMENTS EXPORT MODAL -->
+<div id="campExportModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 520px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Export Gate Movement Reports
+            </h3>
+            <button type="button" onclick="closeCampExportModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="campExportForm" onsubmit="event.preventDefault();">
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Date Range (From - To)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="camp_export_from_date" value="{{ from_date|default:'' }}" class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <input type="date" id="camp_export_to_date" value="{{ to_date|default:'' }}" class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Direction</label>
+                    <select id="camp_export_direction" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Movements (IN &amp; OUT)</option>
+                        <option value="IN" {% if selected_dir == 'IN' %}selected{% endif %}>🟢 Entry / IN Only</option>
+                        <option value="OUT" {% if selected_dir == 'OUT' %}selected{% endif %}>🔴 Exit / OUT Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Department / Contractor</label>
+                    <select id="camp_export_department" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Departments</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Purpose</label>
+                    <select id="camp_export_purpose" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="ALL">All Purposes</option>
+                        <option value="SHIFT_DUTY">🚜 Shift / Site Duty</option>
+                        <option value="PERSONAL">🛍️ Personal / Market Visit</option>
+                        <option value="MEDICAL">🏥 Medical / Hospital</option>
+                        <option value="LEAVE">🏖️ Home Leave / Travel</option>
+                        <option value="OTHER">📌 Other Reason</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase;">Worker Search</label>
+                    <input type="text" id="camp_export_q" placeholder="Name or ID..." class="form-control" style="border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px; flex-wrap: wrap;">
+                <button type="button" onclick="closeCampExportModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Cancel</button>
+                <button type="button" onclick="runCampExport('excel')" class="btn-action" style="background: #10b981; color: white;">
+                    <span>📗</span> Download Excel
+                </button>
+                <button type="button" onclick="runCampExport('pdf')" class="btn-action" style="background: #ef4444; color: white;">
+                    <span>📄</span> Print / PDF
+                </button>
+                <button type="button" onclick="shareCampExportFromModal()" class="btn-action" style="background: #25D366; color: white;">
+                    <span>💬</span> Share (WhatsApp / Email)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT GATE MOVEMENT MODAL (FOR MANAGERS) -->
+{% if is_manager %}
+<div id="editMovementModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 18px; border: 1px solid #e2e8f0; width: 100%; max-width: 500px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>✏️</span> Edit Gate Movement
+                </h3>
+                <p id="editMovementWorkerSubtitle" style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b; font-weight: 600;">Loading...</p>
+            </div>
+            <button type="button" onclick="closeEditMovementModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="editMovementForm" onsubmit="event.preventDefault(); submitEditMovement();">
+            <input type="hidden" id="edit_log_id" value="">
+
+            <!-- Direction Selector -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 6px;">Movement Direction</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label id="editDirInBtn" style="border: 2px solid #86efac; background: #f0fdf4; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; font-weight: 800; color: #15803d; transition: all 0.2s;">
+                        <input type="radio" name="edit_direction" value="IN" style="display: none;" onchange="updateEditDirUi()">
+                        🟢 ENTERED CAMP (IN)
+                    </label>
+                    <label id="editDirOutBtn" style="border: 2px solid #cbd5e1; background: white; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; font-weight: 800; color: #475569; transition: all 0.2s;">
+                        <input type="radio" name="edit_direction" value="OUT" style="display: none;" onchange="updateEditDirUi()">
+                        🔴 EXITED CAMP (OUT)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Date & Time -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Date</label>
+                    <input type="date" id="edit_date" required class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Time</label>
+                    <input type="time" id="edit_time" required class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                </div>
+            </div>
+
+            <!-- Purpose -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Movement Purpose</label>
+                <select id="edit_purpose" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="PERSONAL">Personal / Market</option>
+                    <option value="SHIFT_DUTY">Shift / Site Duty</option>
+                    <option value="MEDICAL">Medical Emergency</option>
+                    <option value="LEAVE">Authorized Leave</option>
+                    <option value="OTHER">Other Reason</option>
+                </select>
+            </div>
+
+            <!-- Gate Name -->
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Gate Name / Location</label>
+                <input type="text" id="edit_gate_name" class="form-control" placeholder="e.g. Main Camp Gate" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-weight: 600;">
+            </div>
+
+            <!-- Remarks -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-weight: 700; font-size: 0.82rem; color: #334155; display: block; margin-bottom: 4px;">Remarks / Note</label>
+                <textarea id="edit_remarks" rows="2" class="form-control" placeholder="Optional details..." style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.88rem;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <button type="button" onclick="closeEditMovementModal()" class="btn-action" style="background: #f1f5f9; color: #475569;">Cancel</button>
+                <button type="submit" id="btnSubmitEditMovement" class="btn-action" style="background: #2563eb; color: white;">
+                    <span>💾</span> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Theme Icon Sync
+    function updateThemeIcon() {
+        const icon = document.getElementById('campReportsThemeIcon');
+        if (!icon) return;
+        const current = document.documentElement.getAttribute('data-theme');
+        icon.innerText = (current === 'dark') ? '☀️' : '🌙';
+    }
+    updateThemeIcon();
+    const origToggleTheme = window.toggleTheme;
+    window.toggleTheme = function() {
+        if (typeof origToggleTheme === 'function') origToggleTheme();
+        setTimeout(updateThemeIcon, 50);
+    };
+
+    // Edit & Delete Movement Controls (For Managers)
+    function updateEditDirUi() {
+        const dir = document.querySelector('input[name="edit_direction"]:checked') ? document.querySelector('input[name="edit_direction"]:checked').value : 'IN';
+        const inBtn = document.getElementById('editDirInBtn');
+        const outBtn = document.getElementById('editDirOutBtn');
+        if (!inBtn || !outBtn) return;
+        if (dir === 'IN') {
+            inBtn.style.border = '2px solid #86efac';
+            inBtn.style.background = '#f0fdf4';
+            inBtn.style.color = '#15803d';
+            outBtn.style.border = '2px solid #cbd5e1';
+            outBtn.style.background = 'white';
+            outBtn.style.color = '#475569';
+        } else {
+            outBtn.style.border = '2px solid #fca5a5';
+            outBtn.style.background = '#fef2f2';
+            outBtn.style.color = '#b91c1c';
+            inBtn.style.border = '2px solid #cbd5e1';
+            inBtn.style.background = 'white';
+            inBtn.style.color = '#475569';
+        }
+    }
+
+    async function openEditMovementModal(logId) {
+        const modal = document.getElementById('editMovementModal');
+        if (!modal) return;
+        const sub = document.getElementById('editMovementWorkerSubtitle');
+        if (sub) sub.innerText = 'Loading movement entry details...';
+        modal.style.display = 'flex';
+
+        try {
+            const res = await fetch(`/camp/api/movement/${logId}/edit/`);
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                const log = data.log;
+                document.getElementById('edit_log_id').value = log.id;
+                if (sub) sub.innerText = `Worker: ${log.worker_name} (${log.emp_id})`;
+
+                const dirRadios = document.querySelectorAll('input[name="edit_direction"]');
+                dirRadios.forEach(r => {
+                    r.checked = (r.value === log.direction);
+                });
+                updateEditDirUi();
+
+                document.getElementById('edit_date').value = log.date || '';
+                document.getElementById('edit_time').value = log.time || '';
+                document.getElementById('edit_purpose').value = log.purpose || 'PERSONAL';
+                document.getElementById('edit_gate_name').value = log.gate_name || 'Main Camp Gate';
+                document.getElementById('edit_remarks').value = log.remarks || '';
+            } else {
+                alert(`⚠️ Error: ${data.msg}`);
+                closeEditMovementModal();
+            }
+        } catch(e) {
+            alert("⚠️ Network error fetching movement details.");
+            closeEditMovementModal();
+        }
+    }
+
+    function closeEditMovementModal() {
+        const modal = document.getElementById('editMovementModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function submitEditMovement() {
+        const logId = document.getElementById('edit_log_id').value;
+        if (!logId) return;
+
+        const btn = document.getElementById('btnSubmitEditMovement');
+        const dir = document.querySelector('input[name="edit_direction"]:checked') ? document.querySelector('input[name="edit_direction"]:checked').value : 'IN';
+        const date = document.getElementById('edit_date').value;
+        const time = document.getElementById('edit_time').value;
+        const purpose = document.getElementById('edit_purpose').value;
+        const gateName = document.getElementById('edit_gate_name').value;
+        const remarks = document.getElementById('edit_remarks').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Saving Changes...';
+
+        try {
+            const res = await fetch(`/camp/api/movement/${logId}/edit/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    direction: dir,
+                    date: date,
+                    time: time,
+                    purpose: purpose,
+                    gate_name: gateName,
+                    remarks: remarks
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                closeEditMovementModal();
+                window.location.reload();
+            } else {
+                alert(`⚠️ Error: ${data.msg}`);
+            }
+        } catch(e) {
+            alert("⚠️ Network error saving movement changes.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> Save Changes';
+        }
+    }
+
+    async function deleteMovementEntry(logId) {
+        if (!confirm("Are you sure you want to delete this gate movement record?\n\nThis will remove the entry and recalculate the worker's Inside/Outside status.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/camp/api/movement/${logId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                const row = document.getElementById(`report-log-row-${logId}`);
+                if (row) {
+                    row.style.transition = 'opacity 0.4s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => { row.remove(); }, 400);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert(`⚠️ Error: ${data.msg}`);
+            }
+        } catch(e) {
+            alert("⚠️ Network error while deleting movement entry.");
+        }
+    }
+
+    // Export Modal Controls
+    function openCampExportModal() {
+        const modal = document.getElementById('campExportModal');
+        if (modal) modal.style.display = 'flex';
+    }
+    function closeCampExportModal() {
+        const modal = document.getElementById('campExportModal');
+        if (modal) modal.style.display = 'none';
+    }
+    function runCampExport(format) {
+        const fromDate = document.getElementById('camp_export_from_date') ? document.getElementById('camp_export_from_date').value : '';
+        const toDate = document.getElementById('camp_export_to_date') ? document.getElementById('camp_export_to_date').value : '';
+        const direction = document.getElementById('camp_export_direction') ? document.getElementById('camp_export_direction').value : 'ALL';
+        const dept = document.getElementById('camp_export_department') ? document.getElementById('camp_export_department').value : 'ALL';
+        const purpose = document.getElementById('camp_export_purpose') ? document.getElementById('camp_export_purpose').value : 'ALL';
+        const q = document.getElementById('camp_export_q') ? document.getElementById('camp_export_q').value : '';
+
+        const baseUrl = format === 'excel' ? "{% url 'export_camp_excel' %}" : "{% url 'export_camp_pdf' %}";
+        const url = `${baseUrl}?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}&direction=${encodeURIComponent(direction)}&department=${encodeURIComponent(dept)}&purpose=${encodeURIComponent(purpose)}&q=${encodeURIComponent(q)}`;
+        window.open(url, '_blank');
+        closeCampExportModal();
+    }
+
+    function shareCampReports() {
+        const fromDate = "{{ from_date }}";
+        const toDate = "{{ to_date }}";
+        const direction = "{{ selected_dir }}";
+        const dept = "{{ selected_dept }}";
+
+        const params = `?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}&direction=${encodeURIComponent(direction)}&department=${encodeURIComponent(dept)}`;
+        openReportShareModal({
+            title: "Camp Gate Movement & Audit Report",
+            subtitle: `Direction: ${direction} • Dept: ${dept || 'All'} • ${fromDate} to ${toDate}`,
+            excelUrl: "{% url 'export_camp_excel' %}" + params,
+            pdfUrl: "{% url 'export_camp_pdf' %}" + params,
+            defaultFormat: 'excel'
+        });
+    }
+
+    function shareCampExportFromModal() {
+        const fromDate = document.getElementById('camp_export_from_date') ? document.getElementById('camp_export_from_date').value : '';
+        const toDate = document.getElementById('camp_export_to_date') ? document.getElementById('camp_export_to_date').value : '';
+        const direction = document.getElementById('camp_export_direction') ? document.getElementById('camp_export_direction').value : 'ALL';
+        const dept = document.getElementById('camp_export_department') ? document.getElementById('camp_export_department').value : 'ALL';
+        const purpose = document.getElementById('camp_export_purpose') ? document.getElementById('camp_export_purpose').value : 'ALL';
+        const q = document.getElementById('camp_export_q') ? document.getElementById('camp_export_q').value : '';
+
+        const params = `?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}&direction=${encodeURIComponent(direction)}&department=${encodeURIComponent(dept)}&purpose=${encodeURIComponent(purpose)}&q=${encodeURIComponent(q)}`;
+        closeCampExportModal();
+        openReportShareModal({
+            title: "Camp Gate Movement & Audit Report",
+            subtitle: `Direction: ${direction} • Dept: ${dept || 'All'}`,
+            excelUrl: "{% url 'export_camp_excel' %}" + params,
+            pdfUrl: "{% url 'export_camp_pdf' %}" + params,
+            defaultFormat: 'excel'
+        });
+    }
+</script>
+{% endblock %}

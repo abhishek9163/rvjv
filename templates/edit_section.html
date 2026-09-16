@@ -1,0 +1,472 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+            .custom-select { position: relative; width: 100%; margin-bottom: 1rem; }
+            .custom-select-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: left; }
+            .custom-select-panel { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; margin-top: 0.25rem; padding: 1rem; }
+            .custom-select.active .custom-select-panel { display: block; }
+            .access-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+            .access-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+</style>
+
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Modify Module: {{ section.name }}</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+<form method="POST" id="mainSettingsForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_settings">
+<div style="display: grid; grid-template-columns: minmax(350px, 400px) minmax(0, 1fr); gap: 2rem; align-items: start;">
+    <!-- Left Column: Module Settings -->
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+    <div class="card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 4px solid var(--primary);">
+        <h3 style="margin-bottom: 1.5rem; color:var(--primary);"><i class="fas fa-cog"></i> General Settings</h3>
+            
+            <div class="form-group">
+                <label>Module Name</label>
+                <input type="text" name="name" class="form-control" value="{{ section.name }}" required>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Module Type</label>
+                <input type="text" class="form-control" value="{% if section.module_type == 'FLEET' %}Fleet / Machinery{% else %}Standard Form{% endif %}" disabled>
+                <small style="color:var(--sidebar-text);">Module Type cannot be changed after creation.</small>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Data View Style</label>
+                <select name="layout_style" class="form-control">
+                    <option value="TABLE" {% if section.layout_style == 'TABLE' %}selected{% endif %}>Standard Table (Rows & Columns)</option>
+                    <option value="GRID" {% if section.layout_style == 'GRID' %}selected{% endif %}>Grid Cards (Modern blocks)</option>
+                    <option value="LIST" {% if section.layout_style == 'LIST' %}selected{% endif %}>List View (Stacked borders)</option>
+                    <option value="MASONRY" {% if section.layout_style == 'MASONRY' %}selected{% endif %}>Masonry (Pinterest-style)</option>
+                    <option value="MINIMAL" {% if section.layout_style == 'MINIMAL' %}selected{% endif %}>Minimalist (Clean text-only)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>On Submit Workflow</label>
+                <select name="on_submit_action" class="form-control">
+                    <option value="NONE" {% if section.on_submit_action == 'NONE' %}selected{% endif %}>Do Nothing (Just Save)</option>
+                    <option value="EMAIL_MANAGER" {% if section.on_submit_action == 'EMAIL_MANAGER' %}selected{% endif %}>Email Manager with Notification</option>
+                </select>
+            </div>
+
+            </div>
+            
+            <div class="card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 4px solid #10b981;">
+                <h3 style="margin-bottom: 1.5rem; color:#10b981;"><i class="fas fa-sliders-h"></i> Features & Filters</h3>
+
+            <div class="form-group" style="margin-top: 1rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="show_in_sidebar" id="showInSidebar" value="true" {% if section.show_in_sidebar %}checked{% endif %} style="width:18px; height:18px; accent-color:var(--primary);">
+                <label for="showInSidebar" style="margin:0; font-weight:500;">Show in Left Sidebar Navigation</label>
+            </div>
+
+            
+            <div class="form-group" style="margin-top: 1rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="is_inventory" id="isInventory" value="true" {% if section.is_inventory %}checked{% endif %}>
+                <label for="isInventory" style="margin:0; font-weight:500;">Enable Inventory Stock System (Stock In/Out tracking)</label>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="enable_search_filter" id="enableSearchFilter" value="true" {% if section.enable_search_filter %}checked{% endif %}>
+                <label for="enableSearchFilter" style="margin:0; font-weight:500;">Enable Text Search Filter</label>
+            </div>
+            <div class="form-group" style="margin-top: 0.5rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="enable_dropdown_filter" id="enableDropdownFilter" value="true" {% if section.enable_dropdown_filter %}checked{% endif %}>
+                <label for="enableDropdownFilter" style="margin:0;">Enable Dropdown Value Filter</label>
+            </div>
+            <div class="form-group" style="margin-top: 0.5rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="enable_date_filter" id="enableDateFilter" value="true" {% if section.enable_date_filter %}checked{% endif %}>
+                <label for="enableDateFilter" style="margin:0;">Enable Exact Date Filter</label>
+            </div>
+            <div class="form-group" style="margin-top: 0.5rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="enable_date_range_filter" id="enableDateRangeFilter" value="true" {% if section.enable_date_range_filter %}checked{% endif %}>
+                <label for="enableDateRangeFilter" style="margin:0;">Enable Date Range Filter (Start to End)</label>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1.5rem; display: flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="require_approval" id="requireApproval" value="true" {% if section.require_approval %}checked{% endif %}>
+                <label for="requireApproval" style="margin:0; font-weight:600; color:var(--primary);">Require Manager Approval for New Entries</label>
+            </div>
+
+            <hr style="border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            
+            
+            
+
+            <h3 style="margin-top:2rem; margin-bottom:1rem; color:var(--primary);">Access Controls</h3>
+
+            <!-- View Access -->
+            <div class="custom-select" id="viewSelect">
+                <button type="button" class="custom-select-btn" onclick="toggleSelect('viewSelect')">
+                    <span style="font-weight:600; color:var(--text-color);">👁️ View Access (Who can view data)</span>
+                    <span>▼</span>
+                </button>
+                <div class="custom-select-panel">
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                        <input type="text" class="form-control access-search" placeholder="🔍 Search employee by name, email, phone..." style="flex:2;" onkeyup="filterAccess('viewSelect')">
+                        <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('viewSelect')">
+                            <option value="ALL">All Posts</option>
+                            {% for post in all_posts %}
+                            <option value="{{ post.name }}">{{ post.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="access-list">
+                        {% for u in all_users %}
+                        <label class="access-label access-item" data-post="{{ u.post.name|default:'Not Assigned' }}">
+                            <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="view_users" value="{{ u.id }}" {% if u in section.view_users.all %}checked{% endif %}> 
+                            <span class="access-name">{{ u.full_name|default:u.username }} {% if u.post %}({{ u.post.name }}){% endif %} - <small>{{ u.email|default:'' }} {{ u.phone_number|default:'' }}</small></span>
+                        </label>
+                        {% empty %}
+                        <span style="color:var(--sidebar-text);">No employees found.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Access -->
+            <div class="custom-select" id="editSelect">
+                <button type="button" class="custom-select-btn" onclick="toggleSelect('editSelect')">
+                    <span style="font-weight:600; color:var(--text-color);">✍️ Edit Access (Data Entry Operators)</span>
+                    <span>▼</span>
+                </button>
+                <div class="custom-select-panel">
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                        <input type="text" class="form-control access-search" placeholder="🔍 Search DEOs by name, email, phone..." style="flex:2;" onkeyup="filterAccess('editSelect')">
+                        <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('editSelect')">
+                            <option value="ALL">All Posts</option>
+                            {% for post in all_posts %}
+                            <option value="{{ post.name }}">{{ post.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="access-list">
+                        {% for u in all_users %}
+                        <label class="access-label access-item" data-post="{{ u.post.name|default:'Not Assigned' }}">
+                            <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="edit_users" value="{{ u.id }}" {% if u in section.edit_users.all %}checked{% endif %}> 
+                            <span class="access-name">{{ u.full_name|default:u.username }} {% if u.post %}({{ u.post.name }}){% endif %} - <small>{{ u.email|default:'' }} {{ u.phone_number|default:'' }}</small></span>
+                        </label>
+                        {% empty %}
+                        <span style="color:var(--sidebar-text);">No employees found.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verify Access -->
+            <div class="custom-select" id="verifySelect">
+                <button type="button" class="custom-select-btn" onclick="toggleSelect('verifySelect')">
+                    <span style="font-weight:600; color:var(--primary);">✅ Verify Access (Designated Officers/Managers)</span>
+                    <span>▼</span>
+                </button>
+                <div class="custom-select-panel">
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                        <input type="text" class="form-control access-search" placeholder="🔍 Search officers by name, email, phone..." style="flex:2;" onkeyup="filterAccess('verifySelect')">
+                        <select class="form-control access-post-filter" style="flex:1;" onchange="filterAccess('verifySelect')">
+                            <option value="ALL">All Posts</option>
+                            {% for post in all_posts %}
+                            <option value="{{ post.name }}">{{ post.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="access-list">
+                        {% for officer in all_officers %}
+                        <label class="access-label access-item" data-post="{{ officer.post.name|default:'Not Assigned' }}">
+                            <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="verify_users" value="{{ officer.id }}" {% if officer in section.verify_users.all %}checked{% endif %}> 
+                            <span class="access-name">{{ officer.full_name|default:officer.username }} {% if officer.post %}({{ officer.post.name }}){% endif %} - <small>{{ officer.email|default:'' }} {{ officer.phone_number|default:'' }}</small></span>
+                        </label>
+                        {% empty %}
+                        <span style="color:var(--sidebar-text);">No active officers found.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; margin-bottom: 1rem;">Save Settings</button>
+    </div>
+
+    
+        
+
+      <!-- Right Column: Fields Management -->
+    {% if section.module_type == 'FLEET' %}
+        <div class="card">
+            <h2 style="font-size:1.5rem; margin-bottom:1rem; border-bottom:2px solid var(--border-color); padding-bottom:0.5rem; color:var(--text-color);">🛡️ Fleet Page Permissions</h2>
+            <p style="color:var(--sidebar-text); font-size:0.9rem; margin-bottom:1rem;">Assign specific pages/tabs to users. If a user is not checked for any page, they won't see it. Managers automatically see the Advanced Manager Dashboard.</p>
+            
+                        <div style="margin-bottom: 1rem;">
+                <input type="text" id="employee-search" class="form-control" placeholder="🔍 Search employee by name or role..." onkeyup="filterEmployees()" style="max-width: 300px; padding: 0.5rem 1rem; border-radius: 8px;">
+            </div>
+            
+            <div style="overflow-x: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px;">
+                <table class="table" style="width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9rem;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color); text-align: left; position: sticky; left: 0; background: var(--bg-color); z-index: 10;">Employee</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-chart-pie"></i> Dashboard</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-wrench"></i> Repair Status</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-car-burst"></i> BD Breakdown</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-oil-can"></i> Oil Service</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-truck"></i> Fleet Master</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-id-card"></i> Drivers</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-keyboard"></i> Data Entry</th>
+                            <th style="padding: 10px; border-bottom: 2px solid var(--border-color);"><i class="fa-solid fa-cog"></i> Settings</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleet-perms-body">
+                        {% for u in all_users %}
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-color); z-index: 10;">
+                                <b>{{ u.full_name|default:u.username }}</b><br>
+                                <small style="color: var(--sidebar-text);">{{ u.get_system_role_display }}</small>
+                            </td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_analytics" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_repairs" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_bd" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_oil" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_fleet" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_drivers" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_entry" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: center;"><input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="fleet_perm_{{ u.id }}_export" value="1" style="width: 18px; height: 18px; cursor: pointer;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <script>
+                function filterEmployees() {
+                    const input = document.getElementById('employee-search');
+                    const filter = input.value.toLowerCase();
+                    const tbody = document.getElementById('fleet-perms-body');
+                    const trs = tbody.getElementsByTagName('tr');
+
+                    for (let i = 0; i < trs.length; i++) {
+                        const td = trs[i].getElementsByTagName('td')[0];
+                        if (td) {
+                            const txtValue = td.textContent || td.innerText;
+                            if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                                trs[i].style.display = "";
+                            } else {
+                                trs[i].style.display = "none";
+                            }
+                        }
+                    }
+                }
+
+                document.addEventListener("DOMContentLoaded", function() {
+                    const fleetPerms = JSON.parse('{{ section.fleet_permissions_json|escapejs|default:"{}" }}');
+                    for (const [userId, pages] of Object.entries(fleetPerms)) {
+                        pages.forEach(page => {
+                            const cb = document.querySelector(`input[name="fleet_perm_${userId}_${page}"]`);
+                            if (cb) cb.checked = true;
+                        });
+                    }
+                });
+            </script>
+            
+            <button type="submit" form="mainSettingsForm" class="btn btn-primary" style="width: 100%; margin-top: 1rem; margin-bottom: 1rem;">Save Fleet Permissions</button>
+        </div>
+{% endif %}
+</div> <!-- End of grid-container -->
+</form>
+
+
+            {% if section.module_type == 'STANDARD' %}
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">Manage Form Builder / Fields</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
+            {% for field in section.fields.all %}
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px;">
+                <div style="flex: 1; min-width: 200px;">
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ field.name }}</div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem;">
+                        <span style="color: var(--primary);">{{ field.get_field_type_display }}</span>
+                        <span style="color: var(--border);">|</span>
+                        <span style="color: var(--sidebar-text);">{% if field.is_required %}Required ✅{% else %}Optional ❌{% endif %}</span>
+                    </div>
+                </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap: wrap;">
+                      <form method="POST" style="margin: 0;">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="toggle_filter">
+                          <input type="hidden" name="field_id" value="{{ field.id }}">
+                          {% if field.is_filterable %}
+                              <button type="submit" class="btn" style="background:var(--primary); color:white; padding: 0.4rem 0.8rem; border:none;" title="Disable Filtering">Filter ON</button>
+                          {% else %}
+                              <button type="submit" class="btn btn-outline" style="padding: 0.4rem 0.8rem;" title="Enable Filtering">Filter OFF</button>
+                          {% endif %}
+                      </form>
+                      <form method="POST" style="margin: 0;">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="toggle_dashboard_stat">
+                          <input type="hidden" name="field_id" value="{{ field.id }}">
+                          {% if field.show_on_dashboard %}
+                              <button type="submit" class="btn" style="background:var(--success); color:white; padding: 0.4rem 0.8rem; border:none;" title="Hide from Dashboard">Dashboard ON</button>
+                          {% else %}
+                              <button type="submit" class="btn btn-outline" style="padding: 0.4rem 0.8rem;" title="Show on Dashboard">Dashboard OFF</button>
+                          {% endif %}
+                      </form>
+                      <form method="POST" style="margin: 0;">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="delete_field">
+                          <input type="hidden" name="field_id" value="{{ field.id }}">
+                          <button type="submit" class="btn btn-outline" style="color: var(--error); border-color: var(--error); padding: 0.4rem 0.8rem;" onclick="return confirm('Delete this field?')">Delete</button>
+                      </form>
+                  </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center; padding: 1rem; color: var(--sidebar-text);">No form elements added yet.</div>
+            {% endfor %}
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 2rem 0;">
+
+        <h3 style="margin-bottom: 1rem;">Add New Form Element</h3>
+        <form method="POST" id="addFieldForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_field">
+            
+            <div style="display: flex; flex-direction:column; gap: 1rem;">
+                <div class="form-group">
+                    <label>Label / Element Text</label>
+                    <input type="text" name="new_field_name" class="form-control" placeholder="e.g. Choose Option, or a Heading title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Element Type</label>
+                    <select name="new_field_type" class="form-control" id="fieldTypeSelect" onchange="checkFieldType()">
+                        <optgroup label="Layout Components">
+                            <option value="HEADING">Heading / Title block</option>
+                            <option value="DESCRIPTION">Description / Text block</option>
+                        </optgroup>
+                        <optgroup label="Input Fields">
+                            <option value="TEXT" selected>Short Text</option>
+                            <option value="TEXTAREA">Long Text Area</option>
+                            <option value="NUMBER">Number</option>
+                            <option value="DATE">Date Picker</option>
+                            <option value="TIME">Time (Hour & Minute)</option>
+                            <option value="FILE">File / Image Upload</option>
+                        </optgroup>
+                        <optgroup label="Choices (Requires Options)">
+                            <option value="DROPDOWN">Dropdown List</option>
+                            <option value="RADIO">Radio Buttons</option>
+                            <option value="CHECKBOX">Checkboxes (Multiple)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group" id="optionsGroup" style="display:none; padding: 1rem; background: var(--bg-color); border-radius: 8px;">
+                    <label>Options (Comma Separated)</label>
+                    <input type="text" name="new_field_options" class="form-control" placeholder="e.g. Red, Blue, Green">
+                    <small style="color:var(--sidebar-text);">Only needed for Dropdown, Radio, or Checkbox.</small>
+                </div>
+                
+                <div class="form-group" style="display: flex; align-items:center; gap:1.5rem;" id="requiredGroup">
+                    <div style="display: flex; align-items:center; gap:0.5rem;">
+                        <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="is_required" value="true">
+                        <label style="margin:0;">Required?</label>
+                    </div>
+                    <div style="display: flex; align-items:center; gap:0.5rem;">
+                        <input type="checkbox" style="width:18px; height:18px; accent-color:var(--primary);" name="is_filterable" value="true">
+                        <label style="margin:0;">Use for Filtering?</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Conditional Logic (Advanced)</label>
+                    <div style="display:flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.02); padding: 0.5rem; border-radius: 4px; border: 1px dashed var(--border);">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Show only if</span>
+                        <input type="text" name="new_depends_on_name" class="form-control" placeholder="Parent Field Name" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">equals</span>
+                        <input type="text" name="new_depends_on_value" class="form-control" placeholder="Value" style="flex:1; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>    
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">+ Add Element</button>
+            </div>
+        </form>
+    {% endif %}
+
+<!-- Danger Zone for Module Deletion -->
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px dashed var(--error);">
+            <h3 style="color: var(--error); margin-bottom: 0.5rem;">Danger Zone</h3>
+            <p style="color: var(--sidebar-text); margin-bottom: 1rem;">Deleting this module will hide it from everyone, but all data will be preserved. You can restore it later from your Dashboard.</p>
+            <form method="POST" action="#" onsubmit="return confirm('Are you sure you want to archive this module?');">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="background: var(--error); color: white;">Delete Module</button>
+            </form>
+        </div>
+  <script>
+function checkFieldType() {
+    var val = document.getElementById('fieldTypeSelect').value;
+    var optGroup = document.getElementById('optionsGroup');
+    var reqGroup = document.getElementById('requiredGroup');
+    
+    // Show options for choice fields
+    if(val === 'DROPDOWN' || val === 'RADIO' || val === 'CHECKBOX') {
+        optGroup.style.display = 'block';
+    } else {
+        optGroup.style.display = 'none';
+    }
+    
+    // Hide 'required' for layout elements
+    if(val === 'HEADING' || val === 'DESCRIPTION') {
+        reqGroup.style.display = 'none';
+    } else {
+        reqGroup.style.display = 'flex';
+    }
+}
+// Init
+checkFieldType();
+
+
+
+function toggleSelect(id) {
+    let el = document.getElementById(id);
+    if(el.classList.contains('active')) {
+        el.classList.remove('active');
+    } else {
+        // Close others
+        document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('active'));
+        el.classList.add('active');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if(!e.target.closest('.custom-select')) {
+        document.querySelectorAll('.custom-select').forEach(sel => sel.classList.remove('active'));
+    }
+});
+
+function filterAccess(parentId) {
+    let parent = document.getElementById(parentId);
+    let search = parent.querySelector('.access-search').value.toLowerCase();
+    let postFilter = parent.querySelector('.access-post-filter').value;
+    let items = parent.querySelectorAll('.access-item');
+    
+    items.forEach(item => {
+        let name = item.querySelector('.access-name').innerText.toLowerCase();
+        let post = item.getAttribute('data-post');
+        
+        let matchesSearch = name.includes(search);
+        let matchesPost = (postFilter === 'ALL') || (post === postFilter);
+        
+        if (matchesSearch && matchesPost) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+</script>
+{% endblock %}

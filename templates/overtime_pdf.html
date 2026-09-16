@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - Official Overtime Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 12mm 15mm 12mm;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px 25px;
+            color: #000000;
+            background: #ffffff;
+            font-size: 11.5pt;
+        }
+
+        /* Top Edit / Control Toolbar - Visible on Screen, Hidden when Printing */
+        .no-print-toolbar {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .toolbar-field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+            margin-bottom: 3px;
+        }
+        .toolbar-field input {
+            width: 100%;
+            padding: 6px 9px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+        .btn-print {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-print:hover {
+            background: #1d4ed8;
+        }
+
+        /* Official Report Document Style */
+        .report-page-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* RIGSAR - VAJRA JV Official Company Letterhead Header */
+        .company-letterhead {
+            width: 100%;
+            margin-bottom: 12px;
+            page-break-inside: avoid;
+        }
+        .letterhead-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 4px;
+        }
+        .letterhead-logo {
+            flex: 0 0 80px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+        .letterhead-title {
+            flex: 1;
+            text-align: center;
+        }
+        .letterhead-title h1 {
+            margin: 0;
+            font-size: 20pt;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #000000;
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+            text-transform: uppercase;
+        }
+        .letterhead-iso {
+            flex: 0 0 80px;
+            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .letterhead-divider {
+            width: 100%;
+            height: 2.5px;
+            background: #f59e0b;
+            margin: 4px 0 6px 0;
+        }
+        .letterhead-meta {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            font-size: 11pt;
+            color: #000000;
+            font-family: 'Times New Roman', serif;
+            margin-bottom: 8px;
+        }
+
+        /* Main Official Table */
+        table.official-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10.5pt;
+            border: 1.5px solid #000000;
+            margin-bottom: 35px;
+            table-layout: fixed;
+            box-sizing: border-box;
+        }
+
+        table.official-table th, table.official-table td {
+            border: 1px solid #000000;
+            padding: 6px 6px;
+            color: #000000;
+            line-height: 1.25;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* Top Title Header */
+        .main-report-title-th {
+            text-align: center;
+            font-weight: bold;
+            font-size: 11.5pt;
+            padding: 8px 10px !important;
+            background: transparent;
+            color: #000000;
+            border: 1px solid #000000 !important;
+            text-transform: none;
+        }
+
+        /* Column Headers */
+        .col-header-th {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            padding: 6px 4px;
+            background: transparent;
+            border: 1px solid #000000;
+        }
+
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .font-mono { font-family: 'Courier New', Courier, monospace; }
+
+        /* Signatory 4-Column Footer */
+        .signatory-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 30px;
+            page-break-inside: avoid;
+            font-size: 10pt;
+        }
+
+        .sign-box {
+            text-align: center;
+        }
+        .sign-title {
+            font-weight: normal;
+            margin-bottom: 50px; /* Space for signature */
+        }
+        .sign-title strong {
+            font-weight: bold;
+        }
+        .sign-designation {
+            font-weight: normal;
+        }
+
+        .editable-span {
+            outline: none;
+            border-bottom: 1px dashed transparent;
+            transition: border-color 0.2s;
+        }
+        .editable-span:hover, .editable-span:focus {
+            border-bottom: 1px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        @media print {
+            .no-print-toolbar {
+                display: none !important;
+            }
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .editable-span {
+                border-bottom: none !important;
+                background: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Toolbar for PM / User to edit headings & print (Hidden on print) -->
+    <div class="no-print-toolbar">
+        <div style="display:flex; justify-content:flex-end; align-items:center; border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+            <button class="btn-print" onclick="window.print()">
+                <i class="fas fa-print"></i> Print / Save as PDF
+            </button>
+        </div>
+
+        <div class="toolbar-grid">
+            <div class="toolbar-field" style="grid-column: span 2;">
+                <label>Report Header Title</label>
+                <input type="text" id="inputReportTitle" value="{{ report_title }}" oninput="updateDocField('docReportTitle', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Report Date</label>
+                <input type="text" id="inputDocDate" value="{{ today_formatted }}" oninput="updateDocField('docDateDisplay', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>1st Sign Title / Label</label>
+                <input type="text" id="inputCustomLabel" value="{{ custom_sign_label|default:'Checked By' }}" oninput="updateDocField('docCustomLabel', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>1st Sign (Name)</label>
+                <input type="text" id="inputCustomName" value="{{ custom_sign_name|default:'Dorji Wangchuk' }}" oninput="updateDocField('docCustomName', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>1st Sign (Designation)</label>
+                <input type="text" id="inputCustomDesig" value="{{ custom_sign_desig|default:'Site Supervisor' }}" oninput="updateDocField('docCustomDesig', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Prepared By (Name)</label>
+                <input type="text" id="inputPrepName" value="{{ prepared_by_name }}" oninput="updateDocField('docPrepName', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Prepared By (Designation)</label>
+                <input type="text" id="inputPrepDesig" value="{{ prepared_by_desig }}" oninput="updateDocField('docPrepDesig', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Verified By (Name)</label>
+                <input type="text" id="inputVerName" value="{{ verified_by_name }}" oninput="updateDocField('docVerName', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Verified By (Designation)</label>
+                <input type="text" id="inputVerDesig" value="{{ verified_by_desig }}" oninput="updateDocField('docVerDesig', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Approved By (Name)</label>
+                <input type="text" id="inputApprName" value="{{ approved_by_name }}" oninput="updateDocField('docApprName', this.value)">
+            </div>
+            <div class="toolbar-field">
+                <label>Approved By (Designation)</label>
+                <input type="text" id="inputApprDesig" value="{{ approved_by_desig }}" oninput="updateDocField('docApprDesig', this.value)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Report Page Container -->
+    <div class="report-page-container">
+        
+        <!-- RIGSAR - VAJRA JV Official Company Letterhead Header -->
+        <div class="company-letterhead">
+            <div class="letterhead-top">
+                <div class="letterhead-logo">
+                    <svg width="68" height="68" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Top diamond (Red) -->
+                        <polygon points="50,6 71,27 50,48 29,27" fill="#dc2626" />
+                        <!-- Left diamond (Yellow/Orange) -->
+                        <polygon points="27,29 48,50 27,71 6,50" fill="#f59e0b" />
+                        <!-- Right diamond (Green) -->
+                        <polygon points="73,29 94,50 73,71 52,50" fill="#16a34a" />
+                        <!-- Bottom diamond (Olive Gold) -->
+                        <polygon points="50,52 71,73 50,94 29,73" fill="#84cc16" />
+                    </svg>
+                </div>
+                <div class="letterhead-title">
+                    <h1>RIGSAR - VAJRA JV</h1>
+                </div>
+                <div class="letterhead-iso">
+                    <svg width="68" height="68" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="46" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="3 1.5" />
+                        <circle cx="50" cy="50" r="41" stroke="#94a3b8" stroke-width="2" />
+                        <circle cx="50" cy="50" r="37" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+                        <line x1="30" y1="28" x2="70" y2="28" stroke="#94a3b8" stroke-width="1.5" />
+                        <line x1="35" y1="33" x2="65" y2="33" stroke="#94a3b8" stroke-width="1.5" />
+                        <text x="50" y="56" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="22" fill="#64748b" letter-spacing="1">ISO</text>
+                        <text x="50" y="68" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="7.5" fill="#64748b" letter-spacing="1">CERTIFIED</text>
+                        <line x1="35" y1="74" x2="65" y2="74" stroke="#94a3b8" stroke-width="1.5" />
+                    </svg>
+                </div>
+            </div>
+            <div class="letterhead-divider"></div>
+            <div class="letterhead-meta">
+                <span class="meta-date">Date: <span contenteditable="true" class="editable-span" id="docDateDisplay" oninput="syncToInput('inputDocDate', this.innerText)">{{ today_formatted }}</span></span>
+            </div>
+        </div>
+
+        <!-- Official Format Overtime Table -->
+        <table class="official-table">
+            <thead>
+                <!-- Top Header Row with centered customizable title -->
+                <tr>
+                    <th colspan="8" class="main-report-title-th">
+                        <span contenteditable="true" class="editable-span" id="docReportTitle" oninput="syncToInput('inputReportTitle', this.innerText)">{{ report_title }}</span>
+                    </th>
+                </tr>
+                <!-- Column Headers matching exact document -->
+                <tr>
+                    <th class="col-header-th" style="width: 5%;">SN</th>
+                    <th class="col-header-th" style="width: 19%;">Emp ID</th>
+                    <th class="col-header-th" style="width: 19%;">Name</th>
+                    <th class="col-header-th" style="width: 17%;">Designation</th>
+                    <th class="col-header-th" style="width: 14%;">Acc No</th>
+                    <th class="col-header-th" style="width: 8%;">OT Rate</th>
+                    <th class="col-header-th" style="width: 8%;">OT hrs</th>
+                    <th class="col-header-th" style="width: 10%;">OT Amt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="text-left font-mono" style="padding-left:6px;">{{ r.emp_id_snapshot }}</td>
+                    <td class="text-left" style="padding-left:6px;">{{ r.employee_name }}</td>
+                    <td class="text-left" style="padding-left:6px;">{{ r.designation }}</td>
+                    <td class="text-center">
+                        <span contenteditable="true" class="editable-span" style="min-width:30px; display:inline-block;" title="Click to edit Account Number">{% if r.account_number and r.account_number != '-' %}{{ r.account_number }}{% elif r.employee.account_number and r.employee.account_number != '-' %}{{ r.employee.account_number }}{% else %}-{% endif %}</span>
+                    </td>
+                    <td class="text-center">{{ r.overtime_rate }}</td>
+                    <td class="text-center">{{ r.overtime_hours }}</td>
+                    <td class="text-center">{{ r.overtime_amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 20px;">No records available for the selected filters.</td>
+                </tr>
+                {% endfor %}
+                <!-- Bottom Summary Total Row -->
+                <tr>
+                    <td colspan="6" class="text-center" style="font-weight: bold; padding: 5px;">Total</td>
+                    <td class="text-center" style="font-weight: bold;">{{ total_hours }}</td>
+                    <td class="text-center" style="font-weight: bold;">{{ total_amount }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Signatory 4-Column Footer -->
+        <div class="signatory-container">
+            <!-- 1st Custom Signatory (e.g. Checked By / Site In-Charge) -->
+            <div class="sign-box">
+                <div class="sign-title">
+                    <span contenteditable="true" class="editable-span" id="docCustomLabel" oninput="syncToInput('inputCustomLabel', this.innerText)">{{ custom_sign_label|default:"Checked By" }}</span>: <span contenteditable="true" class="editable-span" id="docCustomName" oninput="syncToInput('inputCustomName', this.innerText)">{{ custom_sign_name|default:"Dorji Wangchuk" }}</span>
+                </div>
+                <div class="sign-designation">
+                    <span contenteditable="true" class="editable-span" id="docCustomDesig" oninput="syncToInput('inputCustomDesig', this.innerText)">{{ custom_sign_desig|default:"Site Supervisor" }}</span>
+                </div>
+            </div>
+
+            <!-- Prepared By -->
+            <div class="sign-box">
+                <div class="sign-title">
+                    Prepared By: <span contenteditable="true" class="editable-span" id="docPrepName" oninput="syncToInput('inputPrepName', this.innerText)">{{ prepared_by_name }}</span>
+                </div>
+                <div class="sign-designation">
+                    <span contenteditable="true" class="editable-span" id="docPrepDesig" oninput="syncToInput('inputPrepDesig', this.innerText)">{{ prepared_by_desig }}</span>
+                </div>
+            </div>
+
+            <!-- Verified By -->
+            <div class="sign-box">
+                <div class="sign-title">
+                    Verified By: <span contenteditable="true" class="editable-span" id="docVerName" oninput="syncToInput('inputVerName', this.innerText)">{{ verified_by_name }}</span>
+                </div>
+                <div class="sign-designation">
+                    <span contenteditable="true" class="editable-span" id="docVerDesig" oninput="syncToInput('inputVerDesig', this.innerText)">{{ verified_by_desig }}</span>
+                </div>
+            </div>
+
+            <!-- Approved By -->
+            <div class="sign-box">
+                <div class="sign-title">
+                    Approved By: <span contenteditable="true" class="editable-span" id="docApprName" oninput="syncToInput('inputApprName', this.innerText)">{{ approved_by_name }}</span>
+                </div>
+                <div class="sign-designation">
+                    <span contenteditable="true" class="editable-span" id="docApprDesig" oninput="syncToInput('inputApprDesig', this.innerText)">{{ approved_by_desig }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function updateDocField(docElementId, val) {
+            const el = document.getElementById(docElementId);
+            if (el) el.innerText = val;
+        }
+
+        function syncToInput(inputId, val) {
+            const inp = document.getElementById(inputId);
+            if (inp) inp.value = val;
+        }
+    </script>
+</body>
+</html>

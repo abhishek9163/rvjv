@@ -1,0 +1,1627 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mess Management - Master Executive Monitor{% endblock %}
+
+{% block content %}
+<style>
+    @media (max-width: 640px) {
+        .monitor-container { padding: 10px; }
+        .table-card { padding: 12px; }
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+        .header-btn-wrap { width: 100%; display: flex; flex-direction: column; gap: 6px !important; }
+        .header-btn-wrap button, .header-btn-wrap a { width: 100%; text-align: center; justify-content: center; }
+    }
+    .kpi-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;
+    }
+    .kpi-card-master {
+        background: white; border-radius: 14px; border: 1px solid #e2e8f0; padding: 18px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02); transition: all 0.2s;
+    }
+    .kpi-val { font-size: 1.8rem; font-weight: 800; margin-bottom: 2px; }
+    .kpi-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #64748b; }
+    /* Dark Mode Overrides for Mess Monitor */
+    [data-theme="dark"] .kpi-card-master {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .table-card {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .monitor-container h1,
+    [data-theme="dark"] .monitor-container h2,
+    [data-theme="dark"] .monitor-container h3 {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .monitor-container p,
+    [data-theme="dark"] .monitor-container small,
+    [data-theme="dark"] .kpi-label {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] table th {
+        background: #0f172a !important;
+        color: #cbd5e1 !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] table td {
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+    [data-theme="dark"] table tr:hover td {
+        background: #334155 !important;
+    }
+    [data-theme="dark"] input,
+    [data-theme="dark"] select {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+</style>
+
+<div class="monitor-container">
+    
+    <!-- Top Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0;">🍱 Executive Mess Management &amp; Meal Analytics</h1>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.9rem;">Real-Time Comparative Analytics across Mess Locations</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onclick="openAssignMessModal()" class="btn" style="background: #ea580c; color: white; border-radius: 10px; padding: 8px 14px; border: none; font-weight: 700; cursor: pointer;">
+                📍 Assign Mess Roster
+            </button>
+            <button onclick="openAddMessModal()" class="btn" style="background: #2563eb; color: white; border-radius: 10px; padding: 8px 14px; border: none; font-weight: 700; cursor: pointer;">
+                ➕ Add Mess Location
+            </button>
+            <button onclick="openAddTimekeeperModal()" class="btn" style="background: #8b5cf6; color: white; border-radius: 10px; padding: 8px 14px; border: none; font-weight: 700; cursor: pointer;">
+                👤 Add Timekeeper
+            </button>
+            <a href="{% url 'mess_contractor_view' %}" class="btn" style="background: #0d9488; color: white; border-radius: 10px; padding: 8px 14px; text-decoration: none; font-weight: 700;">
+                👨‍🍳 Ration Hub
+            </a>
+            <a href="{% url 'mess_scan_view' %}" class="btn btn-purple" style="background: #a855f7; color: white; border-radius: 10px; padding: 8px 14px; text-decoration: none; font-weight: 700;">
+                📷 PDA Scanner
+            </a>
+            <button onclick="openMessExportModal()" class="btn" style="background: #10b981; color: white; border-radius: 10px; padding: 8px 14px; border: none; font-weight: 700; cursor: pointer;">
+                📊 Billing &amp; Reports
+            </button>
+        </div>
+    </div>
+
+    <!-- 15+ DAYS ZERO MEAL ACTIVITY ALERT (FOR INCHARGE / MANAGER) -->
+    {% if inactive_count > 0 %}
+    <div style="background: linear-gradient(135deg, #fff1f2, #ffe4e6); border: 1.5px solid #fca5a5; border-radius: 14px; padding: 16px 20px; margin-bottom: 22px; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: #e11d48; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(225,29,72,0.3);">
+                    ⚠️
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #9f1239;">
+                            15+ Days Zero Mess Punches Inactivity Alert ({{ inactive_count }} Workers Detected)
+                        </h3>
+                        <span style="background: #e11d48; color: white; font-size: 0.72rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; text-transform: uppercase;">Action Required</span>
+                    </div>
+                    <p style="margin: 4px 0 0 0; font-size: 0.86rem; color: #881337; font-weight: 600;">
+                        These active workers have not recorded any scans for Breakfast, Lunch, or Dinner in 15+ days (possible resignation or absence). Review and update their status to free up mess and room allotments.
+                    </p>
+                </div>
+            </div>
+            <button onclick="toggleInactiveWorkersTable()" id="btnToggleInactive" class="btn" style="background: #be123c; color: white; border-radius: 10px; padding: 10px 18px; border: none; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(190,18,60,0.25);">
+                <span>📋 Review Inactive Workers ({{ inactive_count }})</span> <span id="inactiveChevron">▼</span>
+            </button>
+        </div>
+
+        <!-- Inactive Workers List Table (Collapsible) -->
+        <div id="inactiveWorkersSection" style="display: none; margin-top: 16px; border-top: 1px dashed #fca5a5; padding-top: 14px;">
+            <div style="overflow-x: auto; background: white; border-radius: 12px; border: 1px solid #fecdd3; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="background: #fff1f2; border-bottom: 2px solid #fecdd3; color: #9f1239; font-weight: 800;">
+                            <th style="padding: 10px 14px;">Worker Name &amp; ID</th>
+                            <th style="padding: 10px 14px;">Department / Role</th>
+                            <th style="padding: 10px 14px;">Assigned Mess</th>
+                            <th style="padding: 10px 14px;">Last Meal Scan</th>
+                            <th style="padding: 10px 14px;">Inactivity Status</th>
+                            <th style="padding: 10px 14px; text-align: center;">Resignation Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for iw in inactive_workers %}
+                        <tr id="row_iw_{{ iw.id }}" style="border-bottom: 1px solid #ffe4e6;">
+                            <td style="padding: 10px 14px; font-weight: 700; color: #0f172a;">
+                                <div style="font-size: 0.94rem;">{{ iw.name }}</div>
+                                <div style="font-size: 0.78rem; color: #64748b; font-family: monospace;">EMP ID: {{ iw.emp_id }}</div>
+                            </td>
+                            <td style="padding: 10px 14px; color: #475569;">
+                                <div style="font-weight: 600;">{{ iw.department }}</div>
+                                <div style="font-size: 0.76rem; color: #64748b;">{{ iw.designation }}</div>
+                            </td>
+                            <td style="padding: 10px 14px; color: #0284c7; font-weight: 700;">{{ iw.assigned_mess }}</td>
+                            <td style="padding: 10px 14px; color: #64748b; font-weight: 600;">{{ iw.last_date }}</td>
+                            <td style="padding: 10px 14px;">
+                                <span style="background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                    ⚠️ {{ iw.days_absent }} Days Absent
+                                </span>
+                            </td>
+                            <td style="padding: 10px 14px; text-align: center;">
+                                <button onclick="markWorkerResigned({{ iw.id }}, '{{ iw.name|escapejs }}', '{{ iw.emp_id }}')" style="background: #dc2626; color: white; border: none; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(220,38,38,0.25);">
+                                    🚪 Mark Resigned / Offboard
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- MASTER EXECUTIVE KPIS -->
+    <div class="kpi-grid">
+        <div class="kpi-card-master" style="border-left: 4px solid #3b82f6;">
+            <div class="kpi-val" style="color: #2563eb;">{{ kpi_master.total_eligible }}</div>
+            <div class="kpi-label">👥 Total Eligible Workers</div>
+            <small style="color: #64748b; font-size: 0.75rem;">Company Headcount</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #10b981;">
+            <div class="kpi-val" style="color: #16a34a;">{{ kpi_master.total_fed }}</div>
+            <div class="kpi-label">🍽️ Total Fed / Scanned</div>
+            <small style="color: #16a34a; font-weight: 700; font-size: 0.75rem;">{{ kpi_master.fed_percentage }}% Served</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #f59e0b;">
+            <div class="kpi-val" style="color: #d97706;">{{ kpi_master.total_remaining }}</div>
+            <div class="kpi-label">⏳ Remaining / Unfed</div>
+            <small style="color: #d97706; font-size: 0.75rem;">Yet to eat</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #ef4444;">
+            <div class="kpi-val" style="color: #dc2626;">{{ kpi_master.total_blocked }}</div>
+            <div class="kpi-label">🔴 Duplicate / Error Blocked</div>
+            <small style="color: #dc2626; font-size: 0.75rem;">Anti-Passback triggers</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #be123c;">
+            <div class="kpi-val" style="color: #be123c;">{{ inactive_count|default:"0" }}</div>
+            <div class="kpi-label">⚠️ 15+ Days Inactive</div>
+            <small style="color: #be123c; font-weight: 700; font-size: 0.75rem;">Absent from Mess</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #64748b;">
+            <div class="kpi-val" style="color: #475569;">{{ kpi_master.total_absent }}</div>
+            <div class="kpi-label">❌ Absent / Not Visited</div>
+            <small style="color: #64748b; font-size: 0.75rem;">Off Duty</small>
+        </div>
+        <div class="kpi-card-master" style="border-left: 4px solid #0284c7;">
+            <div class="kpi-val" id="mess_inside_camp_val" style="color: #0284c7;">{{ camp_inside_count|default:"0" }}</div>
+            <div class="kpi-label">🏕️ Inside Camp Now</div>
+            <small style="color: #0284c7; font-weight: 700; font-size: 0.75rem;">Physical Attendance</small>
+        </div>
+    </div>
+
+    <!-- COMPARATIVE MESS LOCATION BREAKDOWN TABLE -->
+    <div class="table-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">🏢 Mess Location Comparative Analytics</h2>
+            <button onclick="openAddMessModal()" style="background: #eff6ff; color: #2563eb; font-weight: 700; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.82rem;">
+                + Add New Mess
+            </button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                        <th style="padding: 12px;">Mess Location</th>
+                        <th style="padding: 12px;">Capacity</th>
+                        <th style="padding: 12px;">Fed Today</th>
+                        <th style="padding: 12px;">Progress</th>
+                        <th style="padding: 12px;">Errors Blocked</th>
+                        <th style="padding: 12px;">Live Food Status</th>
+                        <th style="padding: 12px;">Mess QR Code</th>
+                        <th style="padding: 12px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in mess_breakdown %}
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 12px; font-weight: 800; color: #1e293b;">
+                            {{ m.name }}
+                            {% if m.code %}
+                            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600; display: block;">Code: {{ m.code }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px; color: #64748b;">{{ m.capacity }} heads</td>
+                        <td style="padding: 12px; font-weight: 800; color: #16a34a;">{{ m.fed }} meals</td>
+                        <td style="padding: 12px;">
+                            <div style="background: #e2e8f0; border-radius: 20px; height: 10px; width: 120px; overflow: hidden; display: inline-block; vertical-align: middle;">
+                                <div style="background: #10b981; height: 100%; width: {{ m.progress_pct }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-left: 6px;">{{ m.progress_pct }}%</span>
+                        </td>
+                        <td style="padding: 12px; font-weight: 800; color: #dc2626;">{{ m.errors }} blocked</td>
+                        <td style="padding: 12px;">
+                            <span class="badge" style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">
+                                {{ m.status }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px;">
+                            <a href="{% url 'mess_qr_poster_view' mess_id=m.id %}" target="_blank" style="background: #0284c7; color: white; border-radius: 8px; padding: 6px 12px; font-weight: 700; text-decoration: none; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                <span>🔲</span> Print QR Poster
+                            </a>
+                        </td>
+                        <td style="padding: 12px; text-align: center; white-space: nowrap;">
+                            <button onclick="editMessLocation({{ m.id }}, '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', {{ m.capacity }}, '{{ m.contractor_agency|escapejs }}')" style="background: #f8fafc; border: 1px solid #cbd5e1; color: #1e293b; border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer; margin-right: 4px;" title="Edit Mess Details">
+                                ✏️ Edit
+                            </button>
+                            <button onclick="deleteMessLocation({{ m.id }}, '{{ m.name|escapejs }}')" style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer;" title="Delete / Deactivate Mess">
+                                🗑️ Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" style="text-align: center; padding: 20px; color: #64748b;">No multi-mess locations configured yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ADVANCED MULTI-FILTER BAR -->
+    <div class="table-card" style="border-top: 4px solid #2563eb; background: #f8fafc;">
+        <h2 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;">
+            <span>🔍</span> Filter Served Meals &amp; Employee Activity
+        </h2>
+        <form method="GET" action="{% url 'mess_monitor_view' %}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">From Date</label>
+                    <input type="date" name="from_date" value="{{ from_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">To Date</label>
+                    <input type="date" name="to_date" value="{{ to_date }}" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Mess Location</label>
+                    <select name="mess_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL" {% if selected_mess == 'ALL' %}selected{% endif %}>All Mess Locations</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}" {% if selected_mess == m.id|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Meal Window</label>
+                    <select name="meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL" {% if selected_meal == 'ALL' %}selected{% endif %}>All Meals (Breakfast/Lunch/Dinner)</option>
+                        <option value="BREAKFAST" {% if selected_meal == 'BREAKFAST' %}selected{% endif %}>Breakfast</option>
+                        <option value="LUNCH" {% if selected_meal == 'LUNCH' %}selected{% endif %}>Lunch</option>
+                        <option value="SNACKS" {% if selected_meal == 'SNACKS' %}selected{% endif %}>Tea &amp; Snacks</option>
+                        <option value="DINNER" {% if selected_meal == 'DINNER' %}selected{% endif %}>Dinner</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Department</label>
+                    <select name="department" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        <option value="ALL" {% if selected_dept == 'ALL' %}selected{% endif %}>All Departments</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">Live Employee Search Dropdown</label>
+                    <input list="employee_datalist" id="employee_search_input" name="search" value="{{ search_query }}" placeholder="Type Employee Name / ID..." class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;" oninput="fetchEmployeeSuggestions(this.value)">
+                    <datalist id="employee_datalist">
+                        <!-- Populated dynamically via JS API -->
+                    </datalist>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <a href="{% url 'mess_monitor_view' %}" class="btn" style="background: #e2e8f0; color: #475569; font-weight: 700; border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 0.88rem;">
+                    🔄 Reset Filters
+                </a>
+                <button type="submit" class="btn" style="background: #2563eb; color: white; font-weight: 800; border-radius: 8px; padding: 8px 20px; border: none; cursor: pointer; font-size: 0.88rem;">
+                    🔍 Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- FED / SERVICED WORKERS TABLE (ONLY SHOWS PEOPLE WHO HAVE EATEN) -->
+    <div class="table-card" style="border-top: 4px solid #10b981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🍱</span> Serviced Employees Meal Logs
+                </h2>
+                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">Showing details of workers who scanned &amp; received meals</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 8px;">
+                    Total Served: {{ filtered_fed_count }} Meals
+                </span>
+                <a href="{% url 'mess_reports_view' %}" class="btn" style="background: #2563eb; color: white; font-weight: 800; font-size: 0.82rem; padding: 6px 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                    <span>📊</span> Full Consumption Reports Hub &rarr;
+                </a>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                        <th style="padding: 10px;">📅 Time of Consumption</th>
+                        <th style="padding: 10px;">👤 Worker Details</th>
+                        <th style="padding: 10px;">💼 Dept &amp; Post</th>
+                        <th style="padding: 10px;">🏢 Mess Facility</th>
+                        <th style="padding: 10px;">📍 Assigned Mess</th>
+                        <th style="padding: 10px;">🍽️ Meal Window</th>
+                        <th style="padding: 10px;">🎫 Pass Token</th>
+                        <th style="padding: 10px;">Status</th>
+                        <th style="padding: 10px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in fed_logs %}
+                    <tr id="row_mess_log_{{ log.id }}" style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px; white-space: nowrap;">
+                            <div style="font-weight: 800; color: #0f172a;">{{ log.date|date:"d M Y" }}</div>
+                            <div style="color: #0284c7; font-weight: 700; font-size: 0.78rem; font-family: monospace;">⏱️ {{ log.punch_time|date:"h:i:s A" }}</div>
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="font-weight: 800; color: #0f172a; font-size: 0.92rem;">{{ log.employee.name }}</div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px;">
+                                <span style="color: #2563eb; font-weight: 800; font-size: 0.78rem;">
+                                    {% if '@' in log.employee.emp_id %}EMP-{{ log.employee.id|stringformat:"04d" }}{% else %}{{ log.employee.emp_id }}{% endif %}
+                                </span>
+                                {% if log.employee.contact_info %}
+                                <span style="color: #475569; font-weight: 600; font-size: 0.75rem;">📞 {{ log.employee.contact_info }}</span>
+                                {% endif %}
+                                {% if log.employee.work_permit_no %}
+                                <span style="color: #059669; font-weight: 700; font-size: 0.74rem;">🪪 WP: {{ log.employee.work_permit_no }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="color: #334155; font-weight: 700;">{{ log.employee.department|default:"General Site" }}</div>
+                            <div style="color: #64748b; font-size: 0.76rem;">💼 {{ log.employee.designation|default:"P&M Staff" }}</div>
+                        </td>
+                        <td style="padding: 10px; font-weight: 800; color: #0d9488;">
+                            🏢 {{ log.mess_location.name|default:"Main Canteen" }}
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="color: #475569; font-weight: 700;">{{ log.employee.assigned_mess.name|default:"Unassigned" }}</div>
+                            {% if log.employee.assigned_mess and log.mess_location and log.employee.assigned_mess.id != log.mess_location.id %}
+                            <span style="background: #fef08a; color: #854d0e; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; display: inline-block;">⚠️ Guest Entry</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; font-weight: 800; color: #d97706;">
+                            <span style="background: #ffedd5; color: #9a3412; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem;">{{ log.get_meal_type_display }}</span>
+                        </td>
+                        <td style="padding: 10px;">
+                            <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.78rem; font-weight: 800; color: #0f172a;">{{ log.verification_token|default:"-" }}</code>
+                        </td>
+                        <td style="padding: 10px;">
+                            <span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">
+                                🟢 Served
+                            </span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; white-space: nowrap;">
+                            <button type="button" onclick="openEditMessLogModal({{ log.id }})" class="btn" style="background: #eff6ff; color: #0284c7; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer; margin-right: 4px;" title="Edit Meal Punch">
+                                ✏️ Edit
+                            </button>
+                            <button type="button" onclick="deleteMessLogEntry({{ log.id }}, '{{ log.employee.name|escapejs }}', '{{ log.get_meal_type_display|escapejs }}')" class="btn" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer;" title="Delete Meal Punch">
+                                🗑️ Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b; font-weight: 600;">
+                            No workers have eaten yet for the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- EDIT MESS MEAL LOG MODAL -->
+    <div id="editMessMealLogModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+        <div class="modal-box" style="background: white; border-radius: 16px; border: 1px solid #cbd5e1; width: 100%; max-width: 520px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>✏️</span> Edit Serviced Meal Punch Log
+                </h3>
+                <button type="button" onclick="closeEditMessLogModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+            </div>
+            <form id="editMessLogForm" onsubmit="saveEditMessLog(event)">
+                <input type="hidden" id="edit_mess_log_id">
+                <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+                    <strong id="edit_mess_log_worker" style="font-size: 0.95rem; color: #0f172a; display: block;"></strong>
+                    <small id="edit_mess_log_emp_id" style="color: #0284c7; font-weight: 700;"></small>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Date <span style="color: #dc2626;">*</span></label>
+                        <input type="date" id="edit_mess_log_date" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Time <span style="color: #dc2626;">*</span></label>
+                        <input type="time" id="edit_mess_log_time" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Meal Window</label>
+                        <select id="edit_mess_log_meal_type" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem; font-weight: 700;">
+                            <option value="BREAKFAST">🌅 Breakfast</option>
+                            <option value="LUNCH">☀️ Lunch</option>
+                            <option value="SNACKS">☕ Evening Snacks</option>
+                            <option value="DINNER">🌙 Dinner</option>
+                            <option value="SPECIAL">⭐ Special Meal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Mess Facility</label>
+                        <select id="edit_mess_log_location" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                            {% for m in mess_locations %}
+                                <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Status</label>
+                    <select id="edit_mess_log_status" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem; font-weight: 800;">
+                        <option value="SUCCESS">🟢 Served / Success</option>
+                        <option value="REJECTED">🔴 Rejected</option>
+                        <option value="DUPLICATE">🟡 Duplicate Punch</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 18px;">
+                    <label style="display: block; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 5px;">Remarks</label>
+                    <input type="text" id="edit_mess_log_remarks" placeholder="Supervisor notes..." style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.84rem;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" onclick="closeEditMessLogModal()" class="btn-action" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 7px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">Cancel</button>
+                    <button type="submit" id="saveEditMessLogBtn" class="btn-action" style="background: #0284c7; color: white; padding: 7px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; border: none;">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 1-CLICK FOOD STATUS BROADCAST -->
+    <div class="table-card">
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 16px 0;">📢 Broadcast Live Food Readiness</h2>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #475569; display: block; margin-bottom: 4px;">Target Mess Location</label>
+                <select id="broadcast_mess_id" class="form-control" style="width: 100%; border-radius: 10px; padding: 10px; border: 1px solid #cbd5e1;">
+                    <option value="ALL">All Mess Locations (Global Broadcast)</option>
+                    {% for m in mess_locations %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <button onclick="updateFoodStatus('READY_IN_5')" style="background: #f59e0b; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer;">
+                ⏳ Notify: Ready in 5 Minutes!
+            </button>
+            <button onclick="updateFoodStatus('READY')" style="background: #10b981; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer;">
+                🟢 Notify: Food is NOW READY!
+            </button>
+            <button onclick="updateFoodStatus('CLOSED')" style="background: #64748b; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer;">
+                🔴 Mark Kitchen Closed
+            </button>
+        </div>
+        <div id="status-broadcast-msg" style="margin-top: 12px; font-weight: 700;"></div>
+    </div>
+
+    <!-- DAILY MENU EDITOR -->
+    <div class="table-card">
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 16px 0;">📋 Daily Food Menu Schedule</h2>
+        <form method="POST" action="{% url 'api_update_mess_menu' %}">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #ea580c; display: block; margin-bottom: 6px;">🌅 Breakfast (06:00 AM - 08:00 AM)</label>
+                    <textarea name="breakfast_menu" rows="3" class="form-control" style="width: 100%; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px;">{{ menu.breakfast_menu|default:"" }}</textarea>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #16a34a; display: block; margin-bottom: 6px;">☀️ Lunch (01:00 PM - 02:00 PM)</label>
+                    <textarea name="lunch_menu" rows="3" class="form-control" style="width: 100%; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px;">{{ menu.lunch_menu|default:"" }}</textarea>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #9333ea; display: block; margin-bottom: 6px;">🌙 Dinner (08:00 PM - 09:00 PM)</label>
+                    <textarea name="dinner_menu" rows="3" class="form-control" style="width: 100%; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px;">{{ menu.dinner_menu|default:"" }}</textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-purple" style="background: #7e22ce; color: white; font-weight: 700; border-radius: 10px; padding: 10px 24px; border: none; cursor: pointer;">
+                Save Menu Changes
+            </button>
+        </form>
+    </div>
+
+    <!-- MEAL WINDOW SHIFT & TIMING CONFIGURATOR -->
+    <div class="table-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">⏰ Meal Window Timings &amp; Shift Schedule Configurator</h2>
+                <p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0 0;">Automated device time matching for Day Shift &amp; Night Shift workers</p>
+            </div>
+            <button onclick="openMealWindowModal()" class="btn" style="background: #6366f1; color: white; border-radius: 10px; padding: 8px 16px; border: none; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                ➕ Add / Edit Meal Timings
+            </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+            {% for w in meal_windows %}
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: {% if w.shift == 'DAY' %}#ea580c{% elif w.shift == 'NIGHT' %}#7e22ce{% else %}#0284c7{% endif %}; background: white; padding: 2px 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        {% if w.shift == 'DAY' %}☀️ DAY SHIFT{% elif w.shift == 'NIGHT' %}🌙 NIGHT SHIFT{% else %}⭐ ALL SHIFTS{% endif %}
+                    </span>
+                    <h4 style="margin: 6px 0 2px 0; color: #0f172a; font-weight: 800; font-size: 1rem;">{{ w.name }}</h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: #475569; font-weight: 700;">
+                        ⏱️ {{ w.start_time|time:"h:i A" }} - {{ w.end_time|time:"h:i A" }}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="editMealWindow({{ w.id }}, '{{ w.name|escapejs }}', '{{ w.shift }}', '{{ w.meal_type }}', '{{ w.start_time|time:'H:i' }}', '{{ w.end_time|time:'H:i' }}')" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; font-weight: 700; cursor: pointer;">✏️</button>
+                    <button onclick="deleteMealWindow({{ w.id }})" style="background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; border-radius: 8px; padding: 6px 10px; font-weight: 700; cursor: pointer;">🗑️</button>
+                </div>
+            </div>
+            {% empty %}
+            <div style="color: #64748b; font-weight: 600; padding: 12px;">Default timings active (Breakfast 6-8 AM, Lunch 1-2 PM, Dinner 8-9 PM). Click button above to customize.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- MEAL WINDOW CONFIGURATOR POPUP MODAL -->
+<div id="mealWindowModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; width: 95%; max-width: 500px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>⏰</span> Meal Window Schedule Configurator
+            </h3>
+            <button type="button" onclick="closeMealWindowModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <!-- QUICK SHIFT TIMING PRESETS -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px;">
+            <div style="font-size: 0.74rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                <span>⚡</span> Quick Shift Presets:
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" onclick="applyMwPreset('Morning Breakfast', 'DAY', 'BREAKFAST', '06:00', '08:30')" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 700; color: #ea580c;">☀️ Breakfast (6-8:30 AM)</button>
+                <button type="button" onclick="applyMwPreset('Lunch Session', 'DAY', 'LUNCH', '12:30', '14:30')" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 700; color: #16a34a;">☀️ Lunch (12:30-2:30 PM)</button>
+                <button type="button" onclick="applyMwPreset('Night Dinner', 'DAY', 'DINNER', '19:30', '21:30')" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 700; color: #9333ea;">🌙 Dinner (7:30-9:30 PM)</button>
+                <button type="button" onclick="applyMwPreset('Night Shift Refreshment', 'NIGHT', 'NIGHT_REFRESHMENT', '01:00', '02:30')" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 700; color: #4338ca;">🌌 Night Refreshment (1-2:30 AM)</button>
+            </div>
+        </div>
+
+        <form id="mealWindowForm" onsubmit="submitMealWindow(event)">
+            <input type="hidden" id="mw_id" value="">
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Meal Window Name *</label>
+                <input type="text" id="mw_name" required placeholder="e.g. Morning Breakfast / Night Refreshment" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Applicable Shift</label>
+                    <select id="mw_shift" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+                        <option value="DAY">☀️ Day / Morning Shift</option>
+                        <option value="NIGHT">🌙 Night Shift</option>
+                        <option value="ALL">⭐ All Shifts</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Meal Category</label>
+                    <select id="mw_meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+                        <option value="BREAKFAST">🌅 Breakfast</option>
+                        <option value="LUNCH">☀️ Lunch</option>
+                        <option value="SNACKS">☕ Evening Tea &amp; Snacks</option>
+                        <option value="DINNER">🌙 Dinner</option>
+                        <option value="NIGHT_REFRESHMENT">☕ Night Refreshment</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Start Time (Device/Server)</label>
+                    <input type="time" id="mw_start_time" required value="06:00" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">End Time (Device/Server)</label>
+                    <input type="time" id="mw_end_time" required value="08:00" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div id="mw_msg" style="margin-bottom: 12px; font-weight: 700; font-size: 0.88rem;"></div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeMealWindowModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn" style="background: #6366f1; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">Save Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD / EDIT MESS LOCATION MODAL -->
+<div id="addMessModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; width: 95%; max-width: 480px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+            <h3 id="messModalTitle" style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>🏢</span> Add New Mess Location
+            </h3>
+            <button type="button" onclick="closeAddMessModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="addMessForm" onsubmit="submitAddMess(event)">
+            <input type="hidden" id="edit_mess_id" value="">
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Mess Location Name *</label>
+                <input type="text" id="new_mess_name" required placeholder="e.g. Mess D (Site 3 Camp)" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Location Code (Unique) *</label>
+                <input type="text" id="new_mess_code" required placeholder="e.g. MESS_D" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Seating / Meal Capacity</label>
+                <input type="number" id="new_mess_capacity" value="200" min="10" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Contractor / Catering Agency</label>
+                <input type="text" id="new_mess_contractor" placeholder="e.g. RVJV Catering Services" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div id="add_mess_msg" style="margin-bottom: 12px; font-weight: 700; font-size: 0.88rem;"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeAddMessModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                <button type="submit" id="btnSaveMess" class="btn" style="background: #2563eb; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">Save Location</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD TIMEKEEPER / SCANNER OPERATOR MODAL -->
+<div id="addTimekeeperModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; width: 95%; max-width: 480px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>👤</span> Add Timekeeper / Scanner Operator
+            </h3>
+            <button type="button" onclick="closeAddTimekeeperModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="addTimekeeperForm" onsubmit="submitAddTimekeeper(event)">
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Operator Full Name *</label>
+                <input type="text" id="tk_fullname" required placeholder="e.g. Sunita Devi" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Username (For PDA Login) *</label>
+                <input type="text" id="tk_username" required placeholder="e.g. scanner_op1" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Default Password</label>
+                <input type="text" id="tk_password" value="timekeeper123" class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+            </div>
+            <div id="add_tk_msg" style="margin-bottom: 12px; font-weight: 700; font-size: 0.88rem;"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeAddTimekeeperModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn" style="background: #8b5cf6; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">Create Timekeeper</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EXPORT BUILDER POPUP MODAL -->
+<div id="messExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: var(--card-bg, #ffffff); border-radius: 16px; border: 1px solid var(--border, #e2e8f0); width: 95%; max-width: 540px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 18px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>🍱</span> Mess Consumption Export Hub
+            </h3>
+            <button type="button" onclick="closeMessExportModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <form id="messExportForm" method="GET" action="{% url 'export_mess_excel' %}">
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">Date Range (From - To)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="export_from_date" name="from_date" value="{{ today_date|date:'Y-m-d' }}" class="form-control" style="border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                    <input type="date" id="export_to_date" name="to_date" value="{{ today_date|date:'Y-m-d' }}" class="form-control" style="border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">🏢 Mess Location</label>
+                    <select id="export_mess_id" name="mess_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                        <option value="ALL">All Mess Locations</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">👤 Timekeeper / Operator</label>
+                    <select id="export_timekeeper_id" name="timekeeper_id" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                        <option value="ALL">All Timekeepers / Self Scans</option>
+                        {% for tk in timekeepers %}
+                            <option value="{{ tk.id }}">{{ tk.get_full_name|default:tk.username }} ({{ tk.username }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">Department / Contractor</label>
+                    <select id="export_dept" name="department" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                        <option value="">All Departments &amp; Contractors</option>
+                        {% for d in departments %}
+                            <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">🟢 Scan Status</label>
+                    <select id="export_status" name="status" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                        <option value="ALL">All Statuses (Success &amp; Blocked)</option>
+                        <option value="SUCCESS" selected>🟢 Success / Served Only</option>
+                        <option value="DUPLICATE">🔴 Duplicate Punch Blocked</option>
+                        <option value="INVALID">⚠️ Invalid Scan</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 6px;">Meal Window</label>
+                <select id="export_meal" name="meal_type" class="form-control" style="width: 100%; border-radius: 8px; padding: 8px; border: 1px solid #cbd5e1;">
+                    <option value="ALL">All Meals (Breakfast, Lunch, Dinner, Night)</option>
+                    <option value="BREAKFAST">Breakfast</option>
+                    <option value="LUNCH">Lunch</option>
+                    <option value="SNACKS">Evening Tea &amp; Snacks</option>
+                    <option value="DINNER">Dinner</option>
+                    <option value="NIGHT_REFRESHMENT">Night Refreshment</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                <button type="button" onclick="closeMessExportModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                <button type="button" onclick="runMessExport('excel')" style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📊 Download Excel
+                </button>
+                <button type="button" onclick="runMessExport('pdf')" style="background: #ef4444; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📄 Print PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ASSIGN EMPLOYEE MESS LOCATION MODAL -->
+<div id="assignMessModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; width: 95%; max-width: 650px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>📍</span> Assign Employees to Mess Location
+            </h3>
+            <button type="button" onclick="closeAssignMessModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+            <button type="button" id="tabBtnAssignExisting" onclick="switchAssignModalTab('EXISTING')" style="background: #ea580c; color: white; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+                📋 Assign Existing Workers
+            </button>
+            <button type="button" id="tabBtnAddNewWorker" onclick="switchAssignModalTab('NEW')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 16px; font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+                ➕ Register &amp; Assign New Worker
+            </button>
+        </div>
+
+        <!-- TAB 1: ASSIGN EXISTING WORKERS -->
+        <div id="assignTabExisting">
+            <form id="assignMessForm" onsubmit="submitAssignMess(event)">
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: 700; font-size: 0.88rem; color: #334155; display: block; margin-bottom: 6px;">Target Mess Location *</label>
+                    <select id="assign_target_mess_id" required class="form-control" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #cbd5e1;">
+                        <option value="">-- Select Mess Location --</option>
+                        {% for m in mess_locations %}
+                            <option value="{{ m.id }}">{{ m.name }} (Capacity: {{ m.capacity }})</option>
+                        {% endfor %}
+                        <option value="UNASSIGN">Remove / Unassign Mess</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: 700; font-size: 0.88rem; color: #334155; display: block; margin-bottom: 6px;">🔍 Search &amp; Select Employee</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                        <select id="assign_emp_quick_select" onchange="quickSelectEmp(this.value)" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                            <option value="">-- Quick Dropdown Select --</option>
+                            {% for emp in all_active_employees %}
+                                <option value="{{ emp.id }}">{{ emp.emp_id }} - {{ emp.name }} ({{ emp.department|default:"General" }})</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" id="assign_emp_search_input" oninput="filterAssignEmpList()" placeholder="🔍 Search name, ID, dept..." class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 700; font-size: 0.88rem; color: #334155;">Select Employees to Assign (<span id="assign_selected_count">0</span> Selected)</label>
+                        <button type="button" onclick="toggleSelectAllEmployees()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+                            Select / Deselect All
+                        </button>
+                    </div>
+                    <div id="assign_emp_list_box" style="max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; background: #f8fafc;">
+                        {% for emp in all_active_employees %}
+                        <label class="emp-assign-row" data-search="{{ emp.emp_id|lower }} {{ emp.name|lower }} {{ emp.department|default:''|lower }}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.88rem;">
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="assign_emp_checkbox" value="{{ emp.id }}" id="emp_cb_{{ emp.id }}" class="emp-assign-cb" onchange="updateAssignSelectedCount()">
+                                <b>{{ emp.emp_id }}</b> - {{ emp.name }} <span style="color: #64748b; font-size: 0.8rem;">({{ emp.department|default:"General" }})</span>
+                            </span>
+                            <span style="font-size: 0.78rem; font-weight: 700; color: #0d9488; background: #ccfbf1; padding: 2px 6px; border-radius: 4px;">
+                                {% if emp.assigned_mess %}{{ emp.assigned_mess.name }}{% else %}Unassigned{% endif %}
+                            </span>
+                        </label>
+                        {% empty %}
+                        <div style="padding: 12px; text-align: center; color: #64748b;">No active employees found.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="assign_mess_msg" style="margin-bottom: 12px; font-weight: 700; font-size: 0.88rem;"></div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeAssignMessModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn" style="background: #ea580c; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">Assign Employees</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: REGISTER & ASSIGN NEW WORKER ON THE SPOT -->
+        <div id="assignTabNew" style="display: none;">
+            <form id="quickAddWorkerForm" onsubmit="submitQuickAddWorker(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Worker Full Name *</label>
+                        <input type="text" id="qw_name" required placeholder="e.g. Ramesh Kumar" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Employee ID / Badge (Optional)</label>
+                        <input type="text" id="qw_empid" placeholder="e.g. 2940 or HR-EMP-..." class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                        <small style="font-size: 0.72rem; color: #64748b;">Auto-generated if left blank</small>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Mobile / Phone Number</label>
+                        <input type="text" id="qw_phone" placeholder="e.g. 9876543210" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Department</label>
+                        <input type="text" id="qw_dept" placeholder="e.g. P&M, Mechanical, Civil" value="P&M Department" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Designation / Trade</label>
+                        <input type="text" id="qw_desig" placeholder="e.g. Fitter, Welder, Helper" value="Staff / Worker" class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.85rem; color: #334155; display: block; margin-bottom: 4px;">Assign To Mess Counter *</label>
+                        <select id="qw_mess_id" required class="form-control" style="width: 100%; border-radius: 8px; padding: 9px; border: 1px solid #cbd5e1;">
+                            <option value="">-- Select Mess --</option>
+                            {% for m in mess_locations %}
+                                <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="qw_msg" style="margin-bottom: 12px; font-weight: 700; font-size: 0.88rem;"></div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeAssignMessModal()" class="btn" style="background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 10px 18px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn" style="background: #16a34a; color: white; font-weight: 800; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">➕ Register &amp; Assign Worker</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openMessExportModal() { document.getElementById('messExportModal').style.display = 'flex'; }
+function closeMessExportModal() { document.getElementById('messExportModal').style.display = 'none'; }
+function openAddMessModal() {
+    document.getElementById('edit_mess_id').value = '';
+    document.getElementById('messModalTitle').innerHTML = '<span>🏢</span> Add New Mess Location';
+    document.getElementById('new_mess_name').value = '';
+    document.getElementById('new_mess_code').value = '';
+    document.getElementById('new_mess_capacity').value = '200';
+    document.getElementById('new_mess_contractor').value = '';
+    document.getElementById('add_mess_msg').innerText = '';
+    document.getElementById('btnSaveMess').innerText = 'Save Location';
+    document.getElementById('addMessModal').style.display = 'flex';
+}
+function closeAddMessModal() { document.getElementById('addMessModal').style.display = 'none'; }
+
+function editMessLocation(id, name, code, capacity, contractor) {
+    document.getElementById('edit_mess_id').value = id;
+    document.getElementById('messModalTitle').innerHTML = '<span>✏️</span> Edit Mess Location: ' + name;
+    document.getElementById('new_mess_name').value = name;
+    document.getElementById('new_mess_code').value = code || '';
+    document.getElementById('new_mess_capacity').value = capacity || 200;
+    document.getElementById('new_mess_contractor').value = contractor || '';
+    document.getElementById('add_mess_msg').innerText = '';
+    document.getElementById('btnSaveMess').innerText = 'Update Location';
+    document.getElementById('addMessModal').style.display = 'flex';
+}
+
+function deleteMessLocation(id, name) {
+    if (!confirm(`Are you sure you want to delete or deactivate "${name}"?\n\n• Employees assigned to this mess will be unassigned.\n• Existing food logs will be safely preserved.`)) {
+        return;
+    }
+    fetch('/mess/api/delete-location/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + (data.msg || 'Failed to delete mess location.'));
+        }
+    })
+    .catch(err => {
+        alert('Network or server error while deleting.');
+    });
+}
+
+function openAddTimekeeperModal() { document.getElementById('addTimekeeperModal').style.display = 'flex'; }
+function closeAddTimekeeperModal() { document.getElementById('addTimekeeperModal').style.display = 'none'; }
+function openAssignMessModal() { document.getElementById('assignMessModal').style.display = 'flex'; }
+function closeAssignMessModal() { document.getElementById('assignMessModal').style.display = 'none'; }
+
+function openMealWindowModal() {
+    document.getElementById('mw_id').value = '';
+    document.getElementById('mw_name').value = '';
+    document.getElementById('mw_shift').value = 'DAY';
+    document.getElementById('mw_meal_type').value = 'BREAKFAST';
+    document.getElementById('mw_start_time').value = '06:00';
+    document.getElementById('mw_end_time').value = '08:00';
+    document.getElementById('mw_msg').innerText = '';
+    document.getElementById('mealWindowModal').style.display = 'flex';
+}
+
+function closeMealWindowModal() {
+    document.getElementById('mealWindowModal').style.display = 'none';
+}
+
+function editMealWindow(id, name, shift, mealType, startTime, endTime) {
+    document.getElementById('mw_id').value = id;
+    document.getElementById('mw_name').value = name;
+    document.getElementById('mw_shift').value = shift;
+    document.getElementById('mw_meal_type').value = mealType;
+    document.getElementById('mw_start_time').value = startTime;
+    document.getElementById('mw_end_time').value = endTime;
+    document.getElementById('mw_msg').innerText = '';
+    document.getElementById('mealWindowModal').style.display = 'flex';
+}
+
+function submitMealWindow(e) {
+    e.preventDefault();
+    let id = document.getElementById('mw_id').value;
+    let name = document.getElementById('mw_name').value;
+    let shift = document.getElementById('mw_shift').value;
+    let meal_type = document.getElementById('mw_meal_type').value;
+    let start_time = document.getElementById('mw_start_time').value;
+    let end_time = document.getElementById('mw_end_time').value;
+    let msgEl = document.getElementById('mw_msg');
+
+    fetch('/mess/api/meal-window/save/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id, name: name, shift: shift, meal_type: meal_type, start_time: start_time, end_time: end_time})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = data.msg;
+            setTimeout(() => { window.location.reload(); }, 1000);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = data.msg || 'Error saving meal window.';
+        }
+    });
+}
+
+function deleteMealWindow(id) {
+    if (!confirm('Are you sure you want to delete this meal window schedule?')) return;
+    fetch('/mess/api/meal-window/delete/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ Delete Error: ' + (data.msg || 'Failed to delete.'));
+        }
+    });
+}
+
+function toggleSelectAllEmployees() {
+    let visibleRows = Array.from(document.querySelectorAll('.emp-assign-row')).filter(r => r.style.display !== 'none');
+    let checkboxes = visibleRows.map(r => r.querySelector('.emp-assign-cb')).filter(Boolean);
+    if (checkboxes.length === 0) {
+        checkboxes = document.querySelectorAll('.emp-assign-cb');
+    }
+    let allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    updateAssignSelectedCount();
+}
+
+let assignSearchTimeout = null;
+function filterAssignEmpList() {
+    let q = (document.getElementById('assign_emp_search_input').value || '').trim();
+    let lowerQ = q.toLowerCase();
+    
+    // First filter visible items
+    let rows = document.querySelectorAll('.emp-assign-row');
+    let matchedVisible = 0;
+    rows.forEach(row => {
+        let searchText = row.getAttribute('data-search') || '';
+        if (!lowerQ || searchText.includes(lowerQ)) {
+            row.style.display = 'flex';
+            matchedVisible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // If query is longer and matches few or user is looking across all 4000+ records, fetch from server
+    if (q.length >= 2) {
+        clearTimeout(assignSearchTimeout);
+        assignSearchTimeout = setTimeout(() => {
+            fetch(`/mess/api/search-employees/?q=${encodeURIComponent(q)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'SUCCESS' && data.employees) {
+                        let listBox = document.getElementById('assign_emp_list_box');
+                        data.employees.forEach(emp => {
+                            if (!document.getElementById('emp_cb_' + emp.id)) {
+                                let label = document.createElement('label');
+                                label.className = 'emp-assign-row';
+                                label.setAttribute('data-search', `${emp.emp_id.toLowerCase()} ${emp.name.toLowerCase()} ${(emp.department||'').toLowerCase()}`);
+                                label.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.88rem; background: #f0fdf4;';
+                                label.innerHTML = `
+                                    <span style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" name="assign_emp_checkbox" value="${emp.id}" id="emp_cb_${emp.id}" class="emp-assign-cb" onchange="updateAssignSelectedCount()">
+                                        <b>${emp.emp_id}</b> - ${emp.name} <span style="color: #64748b; font-size: 0.8rem;">(${emp.department || 'General'})</span>
+                                    </span>
+                                    <span style="font-size: 0.78rem; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">
+                                        Found via Search
+                                    </span>
+                                `;
+                                listBox.prepend(label);
+                            }
+                        });
+                    }
+                });
+        }, 300);
+    }
+}
+
+function quickSelectEmp(empId) {
+    if (!empId) return;
+    let cb = document.getElementById('emp_cb_' + empId);
+    if (cb) {
+        cb.checked = true;
+        updateAssignSelectedCount();
+        let row = cb.closest('.emp-assign-row');
+        if (row) {
+            row.style.display = 'flex';
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            row.style.backgroundColor = '#fef08a';
+            setTimeout(() => { row.style.backgroundColor = ''; }, 1500);
+        }
+    }
+}
+
+function updateAssignSelectedCount() {
+    let checked = document.querySelectorAll('.emp-assign-cb:checked').length;
+    let el = document.getElementById('assign_selected_count');
+    if (el) el.innerText = checked;
+}
+
+function submitAssignMess(e) {
+    e.preventDefault();
+    let mess_id = document.getElementById('assign_target_mess_id').value;
+    let selectedCbs = document.querySelectorAll('.emp-assign-cb:checked');
+    let emp_ids = Array.from(selectedCbs).map(cb => parseInt(cb.value));
+    let msgEl = document.getElementById('assign_mess_msg');
+
+    if (!mess_id) {
+        msgEl.style.color = '#dc2626';
+        msgEl.innerText = 'Please select a Mess Location.';
+        return;
+    }
+
+    if (emp_ids.length === 0) {
+        msgEl.style.color = '#dc2626';
+        msgEl.innerText = 'Please select at least one employee.';
+        return;
+    }
+
+    fetch('/mess/api/assign-mess/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({employee_ids: emp_ids, mess_id: mess_id})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = data.msg;
+            setTimeout(() => { window.location.reload(); }, 1200);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = data.msg || 'Error assigning employees.';
+        }
+    });
+}
+
+function switchAssignModalTab(tab) {
+    const tabExisting = document.getElementById('assignTabExisting');
+    const tabNew = document.getElementById('assignTabNew');
+    const btnExisting = document.getElementById('tabBtnAssignExisting');
+    const btnNew = document.getElementById('tabBtnAddNewWorker');
+
+    if (tab === 'NEW') {
+        tabExisting.style.display = 'none';
+        tabNew.style.display = 'block';
+        btnNew.style.background = '#16a34a';
+        btnNew.style.color = 'white';
+        btnNew.style.borderColor = '#15803d';
+        btnExisting.style.background = '#f1f5f9';
+        btnExisting.style.color = '#475569';
+        btnExisting.style.border = '1px solid #cbd5e1';
+    } else {
+        tabExisting.style.display = 'block';
+        tabNew.style.display = 'none';
+        btnExisting.style.background = '#ea580c';
+        btnExisting.style.color = 'white';
+        btnExisting.style.border = 'none';
+        btnNew.style.background = '#f1f5f9';
+        btnNew.style.color = '#475569';
+        btnNew.style.border = '1px solid #cbd5e1';
+    }
+}
+
+function submitQuickAddWorker(e) {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('qw_name').value.trim(),
+        emp_id: document.getElementById('qw_empid').value.trim(),
+        phone: document.getElementById('qw_phone').value.trim(),
+        department: document.getElementById('qw_dept').value.trim(),
+        designation: document.getElementById('qw_desig').value.trim(),
+        mess_id: document.getElementById('qw_mess_id').value
+    };
+    const msgEl = document.getElementById('qw_msg');
+
+    fetch('/mess/api/quick-add-worker/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = '✅ ' + data.msg;
+            setTimeout(() => { window.location.reload(); }, 1200);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = '❌ ' + (data.msg || 'Error adding worker.');
+        }
+    })
+    .catch(err => {
+        msgEl.style.color = '#dc2626';
+        msgEl.innerText = 'Network error while adding worker.';
+    });
+}
+
+function fetchEmployeeSuggestions(query) {
+    if (!query || query.length < 1) return;
+    fetch(`/mess/api/search-employees/?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'SUCCESS') {
+                let datalist = document.getElementById('employee_datalist');
+                datalist.innerHTML = '';
+                data.employees.forEach(emp => {
+                    let opt = document.createElement('option');
+                    opt.value = `${emp.name} (${emp.emp_id})`;
+                    opt.label = `${emp.emp_id} - ${emp.name} [${emp.department}]`;
+                    datalist.appendChild(opt);
+                });
+            }
+        });
+}
+
+function submitAddMess(e) {
+    e.preventDefault();
+    let editId = document.getElementById('edit_mess_id').value;
+    let name = document.getElementById('new_mess_name').value;
+    let code = document.getElementById('new_mess_code').value;
+    let capacity = document.getElementById('new_mess_capacity').value;
+    let contractor = document.getElementById('new_mess_contractor').value;
+    let msgEl = document.getElementById('add_mess_msg');
+
+    fetch('/mess/api/add-location/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({id: editId ? parseInt(editId) : null, name: name, code: code, capacity: capacity, contractor_agency: contractor})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = data.msg;
+            setTimeout(() => { window.location.reload(); }, 1000);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = data.msg || 'Error adding location.';
+        }
+    });
+}
+
+function submitAddTimekeeper(e) {
+    e.preventDefault();
+    let username = document.getElementById('tk_username').value;
+    let fullname = document.getElementById('tk_fullname').value;
+    let password = document.getElementById('tk_password').value;
+    let msgEl = document.getElementById('add_tk_msg');
+
+    fetch('/mess/api/add-timekeeper/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, full_name: fullname, password: password})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = data.msg;
+            setTimeout(() => { closeAddTimekeeperModal(); }, 1500);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = data.msg || 'Error creating timekeeper.';
+        }
+    });
+}
+
+function runMessExport(format) {
+    let from_date = document.getElementById('export_from_date').value;
+    let to_date = document.getElementById('export_to_date').value;
+    let dept = document.getElementById('export_dept').value;
+    let meal = document.getElementById('export_meal').value;
+    let mess_id = document.getElementById('export_mess_id') ? document.getElementById('export_mess_id').value : 'ALL';
+    let tk_id = document.getElementById('export_timekeeper_id') ? document.getElementById('export_timekeeper_id').value : 'ALL';
+    let status_val = document.getElementById('export_status') ? document.getElementById('export_status').value : 'ALL';
+
+    let baseUrl = format === 'excel' ? "{% url 'export_mess_excel' %}" : "{% url 'export_mess_pdf' %}";
+    let url = `${baseUrl}?from_date=${from_date}&to_date=${to_date}&department=${encodeURIComponent(dept)}&meal_type=${meal}&mess_id=${mess_id}&timekeeper_id=${tk_id}&status=${status_val}`;
+    
+    window.open(url, '_blank');
+    closeMessExportModal();
+}
+
+function updateFoodStatus(status) {
+    let mess_id = document.getElementById('broadcast_mess_id').value;
+    fetch('/mess/api/food-status/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({status: status, meal_type: '{{ active_meal }}', mess_id: mess_id})
+    })
+    .then(res => res.json())
+    .then(data => {
+        let el = document.getElementById('status-broadcast-msg');
+        if (data.status === 'SUCCESS') {
+            el.style.color = '#16a34a';
+            el.innerText = '✅ Broadcast updated successfully!';
+        } else {
+            el.style.color = '#dc2626';
+            el.innerText = data.msg || 'Update error.';
+        }
+    });
+}
+
+function triggerSyncDesktopExcel() {
+    if (!confirm('Re-sync all 1300+ employee details from Desktop Excel file (Employee (3).xlsx)?')) return;
+    fetch('/mess/api/sync-desktop-employees/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'}
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ Sync Error: ' + (data.msg || 'Failed to sync.'));
+        }
+    });
+}
+
+function openMealWindowModal() {
+    document.getElementById('mw_id').value = '';
+    document.getElementById('mw_name').value = '';
+    document.getElementById('mw_shift').value = 'DAY';
+    document.getElementById('mw_meal_type').value = 'BREAKFAST';
+    document.getElementById('mw_start_time').value = '06:00';
+    document.getElementById('mw_end_time').value = '08:00';
+    document.getElementById('mw_msg').innerText = '';
+    document.getElementById('mealWindowModal').style.display = 'flex';
+}
+
+function closeMealWindowModal() {
+    document.getElementById('mealWindowModal').style.display = 'none';
+}
+
+function editMealWindow(id, name, shift, meal_type, start_t, end_t) {
+    document.getElementById('mw_id').value = id;
+    document.getElementById('mw_name').value = name;
+    document.getElementById('mw_shift').value = shift;
+    document.getElementById('mw_meal_type').value = meal_type;
+    document.getElementById('mw_start_time').value = start_t;
+    document.getElementById('mw_end_time').value = end_t;
+    document.getElementById('mw_msg').innerText = '';
+    document.getElementById('mealWindowModal').style.display = 'flex';
+}
+
+function deleteMealWindow(id) {
+    if (!confirm("Are you sure you want to delete this meal window schedule?")) return;
+    fetch("{% url 'api_delete_meal_window' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            window.location.reload();
+        } else {
+            alert('❌ ' + (data.msg || 'Error deleting meal window.'));
+        }
+    });
+}
+
+function submitMealWindow(e) {
+    e.preventDefault();
+    const idVal = document.getElementById('mw_id').value;
+    const payload = {
+        id: idVal ? parseInt(idVal) : null,
+        name: document.getElementById('mw_name').value.trim(),
+        shift: document.getElementById('mw_shift').value,
+        meal_type: document.getElementById('mw_meal_type').value,
+        start_time: document.getElementById('mw_start_time').value,
+        end_time: document.getElementById('mw_end_time').value
+    };
+    const msgEl = document.getElementById('mw_msg');
+    fetch("{% url 'api_save_meal_window' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            msgEl.style.color = '#16a34a';
+            msgEl.innerText = data.msg;
+            setTimeout(() => { window.location.reload(); }, 900);
+        } else {
+            msgEl.style.color = '#dc2626';
+            msgEl.innerText = data.msg || 'Error saving meal window.';
+        }
+    });
+}
+
+function applyMwPreset(name, shift, mealType, start, end) {
+    document.getElementById('mw_name').value = name;
+    document.getElementById('mw_shift').value = shift;
+    document.getElementById('mw_meal_type').value = mealType;
+    document.getElementById('mw_start_time').value = start;
+    document.getElementById('mw_end_time').value = end;
+}
+
+function toggleInactiveWorkersTable() {
+    const sec = document.getElementById('inactiveWorkersSection');
+    const chev = document.getElementById('inactiveChevron');
+    if (!sec) return;
+    if (sec.style.display === 'none' || !sec.style.display) {
+        sec.style.display = 'block';
+        if (chev) chev.innerText = '▲';
+    } else {
+        sec.style.display = 'none';
+        if (chev) chev.innerText = '▼';
+    }
+}
+
+function markWorkerResigned(empDbId, empName, empCode) {
+    if (!confirm(`Kya aap employee "${empName}" (ID: ${empCode}) ko 'Resigned' mark karna chahte hain?\n\nIs action se:\n1. Employee status 'Resigned' ho jayega\n2. Mess meal eligibility band ho jayegi\n3. Camp room/bed allocation free ho jayega`)) {
+        return;
+    }
+    
+    fetch("{% url 'api_mess_mark_worker_resigned' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            emp_id: empDbId,
+            action: 'RESIGNED',
+            remarks: 'Offboarded due to 15+ consecutive days absent from mess meals'
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'SUCCESS') {
+            alert('✅ ' + data.msg);
+            const row = document.getElementById('row_iw_' + empDbId);
+            if (row) row.remove();
+            setTimeout(() => { window.location.reload(); }, 700);
+        } else {
+            alert('❌ ' + (data.msg || 'Worker ko offboard karne me error aayi.'));
+        }
+    })
+    .catch(err => {
+        alert('Server error: ' + err);
+    });
+}
+
+// Real-Time Camp Live Poll for Mess Monitor
+async function pollCampInMessMonitor() {
+    try {
+        const res = await fetch("{% url 'api_camp_live_stats' %}");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status !== 'success') return;
+        if (data.kpis && data.kpis.inside_count !== undefined) {
+            const el = document.getElementById('mess_inside_camp_val');
+            if (el && el.innerText != data.kpis.inside_count) {
+                el.innerText = data.kpis.inside_count;
+                el.style.transform = 'scale(1.15)';
+                setTimeout(() => { el.style.transform = 'scale(1)'; }, 300);
+            }
+        }
+    } catch(e) {}
+}
+setInterval(pollCampInMessMonitor, 4000);
+
+// --- MESS MEAL LOG EDIT & DELETE ---
+async function openEditMessLogModal(logId) {
+    try {
+        const res = await fetch(`/mess/api/log/${logId}/edit/`);
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            const l = data.log;
+            document.getElementById('edit_mess_log_id').value = l.id;
+            document.getElementById('edit_mess_log_worker').textContent = l.worker_name;
+            document.getElementById('edit_mess_log_emp_id').textContent = l.emp_id;
+            document.getElementById('edit_mess_log_date').value = l.date;
+            document.getElementById('edit_mess_log_time').value = l.time;
+            document.getElementById('edit_mess_log_meal_type').value = l.meal_type;
+            if (l.mess_location_id) {
+                document.getElementById('edit_mess_log_location').value = l.mess_location_id;
+            }
+            document.getElementById('edit_mess_log_status').value = l.status;
+            document.getElementById('edit_mess_log_remarks').value = l.remarks || '';
+
+            document.getElementById('editMessMealLogModal').style.display = 'flex';
+        } else {
+            alert('Error: ' + (data.msg || 'Failed to load meal punch details.'));
+        }
+    } catch (e) {
+        alert('Server error: ' + e.message);
+    }
+}
+
+function closeEditMessLogModal() {
+    document.getElementById('editMessMealLogModal').style.display = 'none';
+}
+
+async function saveEditMessLog(event) {
+    event.preventDefault();
+    const logId = document.getElementById('edit_mess_log_id').value;
+    const btn = document.getElementById('saveEditMessLogBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const payload = {
+        date: document.getElementById('edit_mess_log_date').value,
+        time: document.getElementById('edit_mess_log_time').value,
+        meal_type: document.getElementById('edit_mess_log_meal_type').value,
+        mess_location_id: document.getElementById('edit_mess_log_location').value,
+        status: document.getElementById('edit_mess_log_status').value,
+        remarks: document.getElementById('edit_mess_log_remarks').value,
+    };
+
+    try {
+        const res = await fetch(`/mess/api/log/${logId}/edit/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            alert(data.msg || 'Meal punch updated successfully.');
+            closeEditMessLogModal();
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.msg || 'Failed to update meal punch.'));
+        }
+    } catch (e) {
+        alert('Server error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Save Changes';
+    }
+}
+
+async function deleteMessLogEntry(logId, workerName, mealType) {
+    if (!confirm(`Are you sure you want to delete the ${mealType} meal punch log for "${workerName}"? This action cannot be undone.`)) {
+        return;
+    }
+    try {
+        const res = await fetch(`/mess/api/log/${logId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            alert(data.msg || 'Meal punch deleted successfully.');
+            const row = document.getElementById(`row_mess_log_${logId}`);
+            if (row) row.remove();
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.msg || 'Failed to delete meal punch.'));
+        }
+    } catch (e) {
+        alert('Server error: ' + e.message);
+    }
+}
+
+</script>
+{% endblock %}

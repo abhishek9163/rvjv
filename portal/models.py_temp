@@ -1,0 +1,237 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class CompanyPost(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    
+    def __str__(self):
+        return self.name
+
+class User(AbstractUser):
+    # System roles: DEVELOPER (Superuser), MANAGER (Full Access), EMPLOYEE (Restricted)
+    SYSTEM_ROLES = (
+        ('MANAGER', 'Manager'),
+        ('DEO', 'DEO (Data Entry Operator)'),
+        ('PENDING', 'Pending Approval'),
+    )
+    system_role = models.CharField(max_length=20, choices=SYSTEM_ROLES, default='PENDING')
+    post = models.ForeignKey(CompanyPost, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
+    
+    otp = models.CharField(max_length=6, blank=True, null=True)
+    full_name = models.CharField(max_length=150, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    profile_picture = models.FileField(upload_to='profiles/', null=True, blank=True)
+
+    def __str__(self):
+        return self.username
+
+class SystemSettings(models.Model):
+    trash_retention_days = models.IntegerField(default=30, help_text='Number of days before archived modules are permanently deleted')
+    website_name = models.CharField(max_length=100, default='P&M Department')
+    logo = models.FileField(upload_to='system/', null=True, blank=True)
+    
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+    LAYOUT_CHOICES = (
+        ('TABLE', 'Standard Table (Rows & Columns)'),
+        ('GRID', 'Grid Cards (Modern blocks)'),
+        ('LIST', 'List View (Stacked borders)'),
+        ('MASONRY', 'Masonry (Pinterest-style)'),
+        ('MINIMAL', 'Minimalist (Clean text-only)'),
+    )
+    ACTION_CHOICES = (
+        ('NONE', 'Do Nothing'),
+        ('EMAIL_MANAGER', 'Email Manager'),
+    )
+    name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_sections')
+    view_users = models.ManyToManyField(User, related_name='viewable_sections', blank=True)
+    edit_users = models.ManyToManyField(User, related_name='editable_sections', blank=True)
+    verify_users = models.ManyToManyField(User, related_name='verifiable_sections', blank=True)
+    
+    MODULE_TYPE_CHOICES = (
+        ('STANDARD', 'Standard Form (Custom Fields)'),
+        ('FLEET', 'Fleet / Machinery (Rigsar Vajra)'),
+    )
+    module_type = models.CharField(max_length=20, choices=MODULE_TYPE_CHOICES, default='STANDARD')
+    
+    # New No-Code settings
+    layout_style = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default='TABLE')
+    on_submit_action = models.CharField(max_length=20, choices=ACTION_CHOICES, default='NONE')
+    show_in_sidebar = models.BooleanField(default=False)
+    fleet_permissions = models.JSONField(default=dict, blank=True)
+    
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    is_inventory = models.BooleanField(default=False)
+    enable_date_filter = models.BooleanField(default=True)
+    enable_date_range_filter = models.BooleanField(default=False)
+    enable_search_filter = models.BooleanField(default=True)
+    enable_dropdown_filter = models.BooleanField(default=True)
+    require_approval = models.BooleanField(default=True)
+    
+    # Dashboard Analytics Settings (Removed)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    FIELD_TYPES = (
+        # Layout components
+        ('HEADING', 'Heading / Title'),
+        ('DESCRIPTION', 'Description / Text Block'),
+        # Data inputs
+        ('TEXT', 'Short Text'),
+        ('TEXTAREA', 'Long Text (Paragraph)'),
+        ('NUMBER', 'Number'),
+        ('DATE', 'Date'),
+        ('TIME', 'Time (Hour & Minute)'),
+        ('FILE', 'Image/File'),
+        ('DROPDOWN', 'Dropdown Select'),
+        ('RADIO', 'Radio Buttons (Single Choice)'),
+        ('CHECKBOX', 'Checkboxes (Multiple Choice)'),
+    )
+    section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='fields')
+    name = models.CharField(max_length=100) # Used for labels or heading text
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES, default='TEXT')
+    is_required = models.BooleanField(default=False)
+    is_filterable = models.BooleanField(default=False, help_text='If true, a dropdown filter will appear for this field in data view')
+    
+    # Options for Dropdown, Radio, Checkboxes (comma separated)
+    options = models.TextField(blank=True, null=True, help_text="Comma separated options for choice fields")
+    
+    # Ordering for layout engine
+    order = models.IntegerField(default=0)
+    
+    # Dashboard setting for fields
+    show_on_dashboard = models.BooleanField(default=False)
+    
+    # Conditional logic
+    depends_on = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependent_fields', help_text="This field will only show if the selected parent field has a specific value.")
+    depends_on_value = models.CharField(max_length=200, blank=True, null=True, help_text="The value the parent field must have for this field to appear.")
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    @property
+    def option_list(self):
+        if self.options:
+            return [opt.strip() for opt in self.options.split(',') if opt.strip()]
+        return []
+
+    def __str__(self):
+        return f"{self.section.name} - {self.name}"
+
+    STATUS_CHOICES = (
+        ('PENDING', 'Pending Verification'),
+        ('VERIFIED', 'Verified/Approved'),
+        ('REJECTED', 'Rejected/Issue Found'),
+    )
+    section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='entries')
+    entered_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    data = models.JSONField(default=dict)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_entries')
+    verification_remarks = models.TextField(blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Vehicle(models.Model):
+    department = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    number = models.CharField(max_length=50)
+    image = models.FileField(upload_to='vehicles/', null=True, blank=True)
+    driver_name = models.CharField(max_length=100)
+    driver_number = models.CharField(max_length=20)
+    driver_email = models.EmailField()
+    driver_employee_id = models.CharField(max_length=50)
+    driver_age = models.IntegerField()
+    driver_blood_group = models.CharField(max_length=10)
+    
+    garage_in_time = models.DateTimeField(null=True, blank=True)
+    garage_out_time = models.DateTimeField(null=True, blank=True)
+    garage_issue = models.TextField(null=True, blank=True)
+    entered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.number}"
+
+
+
+class Employee(models.Model):
+    emp_id = models.CharField(max_length=50, null=True, blank=True, verbose_name='Employee Registration')
+    name = models.CharField(max_length=150, null=True, blank=True)
+    nationality = models.CharField(max_length=50)
+    designation = models.CharField(max_length=100)
+    department = models.CharField(max_length=100)
+    joining_date = models.DateField(null=True, blank=True)
+    work_permit_no = models.CharField(max_length=100, null=True, blank=True)
+    work_permit_expiry = models.DateField(null=True, blank=True)
+    passport_details = models.CharField(max_length=150, null=True, blank=True)
+    contact_info = models.CharField(max_length=100, null=True, blank=True)
+    status = models.CharField(max_length=50, choices=(('Active', 'Active'), ('On Leave', 'On Leave'), ('Terminated', 'Terminated')), default='Active')
+    contractor_agency = models.CharField(max_length=150, null=True, blank=True, verbose_name='Contractor / Hiring Agency')
+    document_upload = models.FileField(upload_to='employees/docs/', null=True, blank=True)
+    document_type = models.CharField(max_length=100, null=True, blank=True, default='General Document')
+    created_at = models.DateTimeField(auto_now_add=True)
+    entered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.emp_id} - {self.name}"
+
+class EmployeeDocument(models.Model):
+    DOCUMENT_TYPES = (
+        ('PASSPORT', 'Passport'),
+        ('WORK_VISA', 'Work Visa / Residence Permit'),
+        ('INDIAN_LICENSE', 'Indian HMV License'),
+        ('FOREIGN_LICENSE', 'Foreign Host Country License'),
+        ('IDP', 'International Driving Permit (IDP)'),
+        ('MEDICAL', 'Medical Fitness Certificate'),
+        ('CONTRACT', 'Employment Contract'),
+        ('PCC', 'Police Clearance Certificate'),
+        ('HAZMAT', 'Hazmat/Special Certification'),
+        ('OTHER', 'Other License/Permit'),
+    )
+    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='documents')
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    document_number = models.CharField(max_length=100, blank=True, null=True)
+    issuing_country = models.CharField(max_length=100, blank=True, null=True)
+    issue_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True)
+    attachment = models.FileField(upload_to='employee_docs/', blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.get_document_type_display()} - {self.employee.full_name}"
+
+class VehicleDocument(models.Model):
+    driver_operator = models.CharField(max_length=150, blank=True, null=True)
+    vehicle_type = models.CharField(max_length=100, blank=True, null=True)
+    contact_no = models.CharField(max_length=50, blank=True, null=True)
+    reports_to = models.CharField(max_length=100, blank=True, null=True)
+    registration_no = models.CharField(max_length=100, blank=True, null=True)
+    rc_issued_on = models.DateField(blank=True, null=True)
+    rc_expiry_date = models.DateField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class InsuranceDocument(models.Model):
+    driver_operator = models.CharField(max_length=150, blank=True, null=True)
+    vehicle_type = models.CharField(max_length=100, blank=True, null=True)
+    contact_no = models.CharField(max_length=50, blank=True, null=True)
+    reports_to = models.CharField(max_length=100, blank=True, null=True)
+    registration_no = models.CharField(max_length=100, blank=True, null=True)
+    insurance_provider = models.CharField(max_length=150, blank=True, null=True)
+    policy_no = models.CharField(max_length=100, blank=True, null=True)
+    issued_on = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)

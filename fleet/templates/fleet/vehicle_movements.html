@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% block title %}Vehicle Movement Register - P&M{% endblock %}
+{% block content %}
+<style>
+.vm-wrap{max-width:1400px;margin:1rem auto}
+.vm-head{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap}
+.vm-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.vm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem}
+.vm-field label{display:block;font-size:.78rem;font-weight:700;margin-bottom:.3rem;color:var(--sidebar-text)}
+.vm-field input,.vm-field select{width:100%;box-sizing:border-box;padding:.7rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-color);color:var(--text-color);font-size:.9rem}
+.vm-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.vm-toggle button{border:0;background:transparent;padding:.6rem 1rem;cursor:pointer;font-weight:600;color:var(--sidebar-text)}
+.vm-toggle button.active{background:var(--primary);color:#fff}
+.vm-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.1rem}
+.vm-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:1rem;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:.7rem;transition:transform .15s,box-shadow .15s;border-top:4px solid #2563eb}
+.vm-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.vm-card.night{border-top-color:#7c3aed}
+.vm-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.vm-veh{font-size:1.25rem;font-weight:800;color:var(--text-color);line-height:1.1}
+.vm-meta{font-size:.72rem;color:var(--sidebar-text);font-weight:600;margin-top:2px}
+.vm-badge{display:inline-block;padding:.25rem .65rem;border-radius:99px;font-size:.75rem;font-weight:800;white-space:nowrap}
+.badge-day{background:#dbeafe;color:#1d4ed8}
+.badge-night{background:#ede9fe;color:#6d28d9}
+.vm-row{display:flex;gap:.6rem;align-items:flex-start;font-size:.9rem;color:var(--text-secondary)}
+.vm-row i{width:16px;color:var(--primary);margin-top:2px;font-size:.9rem}
+.vm-row strong{color:var(--text-color);font-weight:700}
+.vm-foot{margin-top:auto;padding-top:.5rem;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--sidebar-text)}
+.vm-foot-actions{display:flex;gap:.4rem}
+.btn-mini{padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-subtle);color:var(--text-color);cursor:pointer;font-size:.78rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn-mini:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-mini.danger:hover{background:#ef4444;border-color:#ef4444}
+.vm-table{width:100%;border-collapse:collapse;min-width:940px}
+.vm-table th,.vm-table td{padding:.75rem;text-align:left;border-bottom:1px solid var(--border)}
+.vm-table th{font-size:.72rem;text-transform:uppercase;color:var(--sidebar-text);background:var(--bg-subtle);letter-spacing:.3px}
+.vm-table tr:hover td{background:var(--bg-subtle)}
+.vm-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;padding:1rem}
+.vm-dialog{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--card-bg);border-radius:16px;padding:1.5rem}
+.vm-fieldset{display:inline-block;border:1px solid var(--border);border-radius:10px;padding:.8rem;margin-bottom:1rem}
+.vm-fieldset div{display:flex;flex-wrap:wrap;gap:.4rem}
+.vm-fieldset label{display:flex;gap:.4rem;align-items:center;font-size:.85rem;padding:.35rem .5rem;border:1px solid var(--border);border-radius:7px;cursor:pointer}
+.vm-fieldset label input{width:auto}
+.vm-modal-actions{display:flex;gap:.7rem;justify-content:flex-end;margin-top:1.2rem;flex-wrap:wrap}
+.empty{text-align:center;padding:3.5rem 1rem;color:var(--sidebar-text)}
+.live-hint{font-size:.72rem;color:var(--sidebar-text);display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 1s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+.vm-actionbar-fixed{display:none}
+@media(max-width:700px){
+  .vm-head{flex-direction:column;align-items:stretch;gap:.8rem}
+  .vm-grid{grid-template-columns:1fr}
+  .vm-actions{flex-wrap:wrap}
+  .vm-actions>button{display:none}
+  .vm-actions .btn{flex:1 1 45%;justify-content:center;min-width:0}
+  .vm-actionbar-fixed{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--card-bg);border-top:1px solid var(--border);padding:.6rem .75rem;z-index:9000;gap:.5rem;box-shadow:0 -4px 15px rgba(0,0,0,.12)}
+  .vm-actionbar-fixed .btn{flex:1;justify-content:center;font-size:.78rem;padding:.65rem}
+  .vm-wrap{padding:0 .6rem 5.5rem;margin:.6rem auto}
+  .vm-cards{grid-template-columns:1fr}
+  .vm-card{padding:.85rem}
+  .vm-veh{font-size:1.1rem}
+  .vm-dialog{width:100%;padding:1rem;border-radius:14px;margin:0;max-height: 85vh !important; overflow-y: auto !important;}
+  .vm-modal{padding:.5rem;align-items:flex-end}
+  .vm-dialog form .vm-grid{grid-template-columns:1fr 1fr}
+  .vm-field input,.vm-field select{padding:.72rem;font-size:1rem}
+  .vm-toggle button{padding:.55rem .9rem}
+  .vm-fieldset div label{flex:1 1 45%}
+}
+@media(max-width:420px){.vm-dialog form .vm-grid{grid-template-columns:1fr}.vm-actions .btn{flex:1 1 100%}}
+</style>
+
+<div class="vm-wrap">
+  <div class="vm-head">
+    <div>
+      <h2 style="margin:0">Vehicle Movement Register</h2>
+      <p style="margin:.35rem 0 0;color:var(--sidebar-text)">Track which driver took which vehicle and when.</p>
+    </div>
+    <div class="vm-actions">
+      <div class="vm-toggle">
+        <button type="button" class="active" id="btnCard" onclick="setView('card')"><i class="fas fa-th-large"></i> Card</button>
+        <button type="button" id="btnList" onclick="setView('list')"><i class="fas fa-list"></i> List</button>
+      </div>
+      <a class="btn btn-outline" href="{% url 'fleet:movement_directory' %}" style="border-color:var(--primary);color:var(--primary);font-weight:700"><i class="fas fa-table-list"></i> Fleet Records</a>
+      <button class="btn btn-outline" onclick="openAddVehicle()"><i class="fas fa-plus"></i> Add Vehicle</button>
+      <button class="btn btn-outline" onclick="openExportModal()"><i class="fas fa-file-export"></i> Export</button>
+      <button class="btn btn-primary" onclick="openAdd()"><i class="fas fa-plus"></i> New Entry</button>
+      <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+    </div>
+  </div>
+
+  <div class="card" style="padding:1rem;margin-bottom:1.2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem">
+      <strong style="font-size:.85rem;color:var(--text-color)"><i class="fas fa-filter"></i> Filter Data</strong>
+      <small style="color:var(--sidebar-text)">Vehicle + Driver + Date range likhen - live result niche milega. Specific driver/vehicle ka full data <a href="{% url 'fleet:movement_directory' %}" style="color:var(--primary);font-weight:600">Directory</a> mein.</small>
+    </div>
+    <div class="vm-grid">
+      <div class="vm-field"><label>Vehicle Number</label><input id="fVehicle" value="{{ filters.vehicle }}" placeholder="Type to search..."></div>
+      <div class="vm-field"><label>Driver Name</label><input id="fDriver" value="{{ filters.driver }}" placeholder="Type to search..."></div>
+      <div class="vm-field"><label>Shift</label><select id="fShift"><option value="">All Shifts</option><option value="Day" {% if filters.shift == 'Day' %}selected{% endif %}>Day</option><option value="Night" {% if filters.shift == 'Night' %}selected{% endif %}>Night</option></select></div>
+      <div class="vm-field"><label>From Date</label><input id="fFrom" type="date" value="{{ filters.date_from }}"></div>
+      <div class="vm-field"><label>To Date</label><input id="fTo" type="date" value="{{ filters.date_to }}"></div>
+      <div class="vm-field" style="display:flex;align-items:flex-end;gap:.5rem">
+        <button class="btn btn-outline" onclick="clearFilters()" style="flex:1">Clear</button>
+        <span class="live-hint"><span class="dot"></span> Live search</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="cardView">
+    <div class="vm-cards" id="cardsContainer">
+      {% for m in movements %}
+      <div class="vm-card {% if m.shift == 'Night' %}night{% endif %}">
+        <div class="vm-card-top">
+          <div>
+            <div class="vm-veh"><i class="fas fa-truck-pickup" style="color:var(--primary);margin-right:6px"></i>{{ m.vehicle_number }}</div>
+            <div class="vm-meta">{% if m.vehicle and m.vehicle.model_name %}{{ m.vehicle.model_name }}{% else %}Vehicle{% endif %}</div>
+          </div>
+          <span class="vm-badge {% if m.shift == 'Night' %}badge-night{% else %}badge-day{% endif %}">{{ m.shift }} Shift</span>
+        </div>
+        <div class="vm-row"><i class="fas fa-user"></i><div><strong>Driver:</strong> {{ m.driver_name }}</div></div>
+        <div class="vm-row"><i class="fas fa-calendar-day"></i><div><strong>{{ m.movement_date|date:"d M Y" }}</strong> at <strong>{{ m.movement_time|time:"h:i A" }}</strong></div></div>
+        {% if m.destination %}<div class="vm-row"><i class="fas fa-location-dot"></i><div><strong>Destination:</strong> {{ m.destination }}</div></div>{% endif %}
+        {% if m.purpose %}<div class="vm-row"><i class="fas fa-note-sticky"></i><div><strong>Purpose:</strong> {{ m.purpose }}</div></div>{% endif %}
+        <div class="vm-foot">
+          <span><i class="fas fa-user-pen"></i> {% if m.entered_by %}{{ m.entered_by.full_name|default:m.entered_by.username }}{% else %}System{% endif %}<br><small>Updated {{ m.updated_at|date:"d M, H:i" }}</small></span>
+          <div class="vm-foot-actions">
+            <button class="btn-mini" onclick="openEdit({{ m.id }})"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn-mini danger" onclick="askDelete({{ m.id }})"><i class="fas fa-trash"></i> Del</button>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="card empty" style="grid-column:1/-1">No movement records found. Click "New Entry" to add the first one.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="listView" style="display:none">
+    <div class="card" id="listTableWrap" style="overflow-x:auto;padding:0">
+      <table class="vm-table">
+        <thead><tr><th>Date &amp; Time</th><th>Vehicle No</th><th>Driver</th><th>Shift</th><th>Destination / Purpose</th><th>Entered By</th><th>Action</th></tr></thead>
+        <tbody id="listBody">
+          {% for m in movements %}
+          <tr>
+            <td><strong>{{ m.movement_date|date:"d M Y" }}</strong><br><small>{{ m.movement_time|time:"h:i A" }}</small></td>
+            <td><strong>{{ m.vehicle_number }}</strong>{% if m.vehicle and m.vehicle.model_name %}<br><small>{{ m.vehicle.model_name }}</small>{% endif %}</td>
+            <td>{{ m.driver_name }}</td>
+            <td><span class="vm-badge {% if m.shift == 'Night' %}badge-night{% else %}badge-day{% endif %}">{{ m.shift }}</span></td>
+            <td>{{ m.destination|default:"-" }}{% if m.purpose %}<br><small>{{ m.purpose }}</small>{% endif %}</td>
+            <td>{% if m.entered_by %}{{ m.entered_by.full_name|default:m.entered_by.username }}{% else %}System{% endif %}<br><small>Updated {{ m.updated_at|date:"d M, H:i" }}</small></td>
+            <td>
+              <button class="btn-mini" onclick="openEdit({{ m.id }})"><i class="fas fa-edit"></i> Edit</button>
+              <button class="btn-mini danger" onclick="askDelete({{ m.id }})"><i class="fas fa-trash"></i> Del</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--sidebar-text)">No movement records found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile bottom action bar -->
+<div class="vm-actionbar-fixed">
+  <button class="btn btn-primary" onclick="openAdd()"><i class="fas fa-plus"></i> New</button>
+  <button class="btn btn-outline" onclick="openAddVehicle()"><i class="fas fa-plus"></i> Vehicle</button>
+  <button class="btn btn-outline" onclick="openExportModal()"><i class="fas fa-file-export"></i> Export</button>
+</div>
+
+<div id="movementModal" class="vm-modal">
+  <div class="vm-dialog">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 id="vmTitle" style="margin:0">New Movement Entry</h3>
+      <button type="button" onclick="hideModal('movementModal')" style="border:0;background:none;font-size:1.7rem;cursor:pointer;color:var(--text-color)">&times;</button>
+    </div>
+    <form id="movementForm" method="post" action="{% url 'fleet:add_vehicle_movement' %}" style="margin-top:1.1rem">
+      {% csrf_token %}
+      <div class="vm-grid">
+        <div class="vm-field"><label>Vehicle Number *</label>
+          <input id="vmVehicle" type="text" name="vehicle_number" placeholder="Start typing..." list="vmVehicleList" required>
+          <datalist id="vmVehicleList">{% for v in vehicle_list %}<option value="{{ v.value }}">{{ v.label }}</option>{% endfor %}</datalist>
+        </div>
+        <div class="vm-field"><label>Driver Name *</label>
+          <input id="vmDriver" type="text" name="driver_name" placeholder="Start typing..." list="vmDriverList" required>
+          <datalist id="vmDriverList">{% for d in driver_list %}<option value="{{ d }}"></option>{% endfor %}</datalist>
+        </div>
+        <div class="vm-field"><label>Shift *</label><select id="vmShift" name="shift" required><option value="Day">Day Shift</option><option value="Night">Night Shift</option></select></div>
+        <div class="vm-field"><label>Date *</label><input id="vmDate" type="date" name="movement_date" required></div>
+        <div class="vm-field"><label>Time *</label><input id="vmTime" type="time" name="movement_time" required></div>
+        <div class="vm-field"><label>Destination / Location</label>
+          <input id="vmDestination" name="destination" maxlength="200" list="dlDest">
+          <datalist id="dlDest">{% for d in destinations %}<option value="{{ d }}"></option>{% endfor %}</datalist>
+        </div>
+        <div class="vm-field" style="grid-column:1/-1"><label>Purpose / Remarks</label><input id="vmPurpose" name="purpose" maxlength="255"></div>
+        <div style="grid-column:1/-1;display:flex;gap:.6rem;align-items:flex-start;padding:.8rem;background:var(--bg-subtle);border-radius:8px">
+          <span>&#8505;&#65039;</span>
+          <span><strong>Shift Management updates automatically.</strong> The driver's shift and assigned vehicle are synced from this entry.</span>
+        </div>
+      </div>
+      <div class="vm-modal-actions">
+        <button type="button" class="btn btn-outline" onclick="hideModal('movementModal')">Cancel</button>
+        <button class="btn btn-primary">Save Movement</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="addVehModal" class="vm-modal">
+  <div class="vm-dialog">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Add Vehicle</h3>
+      <button type="button" onclick="hideModal('addVehModal')" style="border:0;background:none;font-size:1.7rem;cursor:pointer;color:var(--text-color)">&times;</button>
+    </div>
+    <form method="post" action="{% url 'fleet:add_fleet_vehicle' %}">
+      {% csrf_token %}
+      <div class="vm-grid" style="grid-template-columns:1fr 1fr">
+        <div class="vm-field"><label>Vehicle Number *</label><input type="text" name="regn" placeholder="e.g. DL-123C-AA-1822" required></div>
+        <div class="vm-field"><label>Door No</label><input type="text" name="dno" placeholder="e.g. D-07"></div>
+        <div class="vm-field" style="grid-column:1/-1"><label>Model / Type</label><input type="text" name="model_name" placeholder="e.g. TATA 1613 Tanker"></div>
+      </div>
+      <div class="vm-modal-actions">
+        <button type="button" class="btn btn-outline" onclick="hideModal('addVehModal')">Cancel</button>
+        <button class="btn btn-primary">Save Vehicle</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="exportModal" class="vm-modal">
+  <div class="vm-dialog" style="width:min(640px,100%)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Advanced Export</h3>
+      <button type="button" onclick="hideModal('exportModal')" style="border:0;background:none;font-size:1.7rem;cursor:pointer;color:var(--text-color)">&times;</button>
+    </div>
+    <div class="vm-fieldset">
+      <div>
+        <label><input type="checkbox" value="vehicle_number" checked> Vehicle Number</label>
+        <label><input type="checkbox" value="driver_name" checked> Driver Name</label>
+        <label><input type="checkbox" value="shift" checked> Shift</label>
+        <label><input type="checkbox" value="movement_date" checked> Date</label>
+        <label><input type="checkbox" value="movement_time" checked> Time</label>
+        <label><input type="checkbox" value="destination" checked> Destination</label>
+        <label><input type="checkbox" value="purpose"> Purpose / Remarks</label>
+        <label><input type="checkbox" value="entered_by" checked> Entered By</label>
+        <label><input type="checkbox" value="updated_at"> Last Updated</label>
+      </div>
+    </div>
+    <div style="margin-top:.7rem;border:1px solid var(--border);border-radius:10px;padding:.8rem">
+      <label style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--sidebar-text);display:block;margin-bottom:.5rem">Filter Data</label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">
+        <div class="vm-field"><label>From Date</label><input type="date" id="eDateFrom"></div>
+        <div class="vm-field"><label>To Date</label><input type="date" id="eDateTo"></div>
+        <div class="vm-field"><label>Shift</label><select id="eShift"><option value="">All Shifts</option><option value="Day">Day</option><option value="Night">Night</option></select></div>
+        <div class="vm-field"><label>Vehicle Type</label><select id="eVType"><option value="">All Types</option>{% for vt in vehicle_types %}<option value="{{ vt }}">{{ vt }}</option>{% endfor %}</select></div>
+        <div class="vm-field"><label>Driver Name</label><input id="eDriver" list="expDriverList" placeholder="All drivers"><datalist id="expDriverList">{% for d in driver_list %}<option value="{{ d }}"></option>{% endfor %}</datalist></div>
+        <div class="vm-field"><label>Destination</label><input id="eDest" list="expDestList" placeholder="All destinations"><datalist id="expDestList">{% for d in destinations %}<option value="{{ d }}"></option>{% endfor %}</datalist></div>
+      </div>
+    </div>
+    <div class="vm-grid" style="grid-template-columns:1fr 1fr">
+      <div class="vm-field"><label>Export Format</label><select id="exportFormat"><option value="excel">Excel (.xlsx)</option><option value="pdf">PDF (Print)</option></select></div>
+      <div class="vm-field"><label>Export Scope</label><input id="exportSummary" readonly style="background:var(--bg-subtle)"></div>
+    </div>
+    <div class="vm-modal-actions">
+      <button type="button" class="btn btn-outline" onclick="hideModal('exportModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doExport()"><i class="fas fa-download"></i> Download</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteModal" class="vm-modal">
+  <div class="vm-dialog" style="width:min(420px,100%)">
+    <h3 style="margin:0">Delete Movement Record?</h3>
+    <form id="deleteForm" method="post">
+      {% csrf_token %}
+      <div class="vm-modal-actions">
+        <button type="button" class="btn btn-outline" onclick="hideModal('deleteModal')">Cancel</button>
+        <button class="btn btn-primary" style="background:#ef4444;border-color:#ef4444">Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const cardsEl=document.getElementById('cardsContainer'),listBody=document.getElementById('listBody');
+  const allMovements={{ movements_json|safe }};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function badge(sh){return sh==='Night'?'badge-night':'badge-day'}
+  function cardCls(m){return m.shift==='Night'?'night':''}
+  function cardHTML(m){
+    return `<div class="vm-card ${cardCls(m)}">
+      <div class="vm-card-top"><div><div class="vm-veh"><i class="fas fa-truck-pickup" style="color:var(--primary);margin-right:6px"></i>${esc(m.vehicle_number)}</div><div class="vm-meta">${esc(m.model_name||'Vehicle')}</div></div>
+        <span class="vm-badge ${badge(m.shift)}">${esc(m.shift)} Shift</span></div>
+      <div class="vm-row"><i class="fas fa-user"></i><div><strong>Driver:</strong> ${esc(m.driver_name)}</div></div>
+      <div class="vm-row"><i class="fas fa-calendar-day"></i><div><strong>${esc(m.movement_date_display)}</strong> at <strong>${esc(m.movement_time_display)}</strong></div></div>
+      ${m.destination?`<div class="vm-row"><i class="fas fa-location-dot"></i><div><strong>Destination:</strong> ${esc(m.destination)}</div></div>`:''}
+      ${m.purpose?`<div class="vm-row"><i class="fas fa-note-sticky"></i><div><strong>Purpose:</strong> ${esc(m.purpose)}</div></div>`:''}
+      <div class="vm-foot"><span><i class="fas fa-user-pen"></i> ${esc(m.entered_by)}<br><small>Updated ${esc(m.updated_at)}</small></span>
+        <div class="vm-foot-actions">
+          <button class="btn-mini" onclick="openEdit(${m.id})"><i class="fas fa-edit"></i> Edit</button>
+          <button class="btn-mini danger" onclick="askDelete(${m.id})"><i class="fas fa-trash"></i> Del</button>
+        </div></div></div>`;
+  }
+  function rowHTML(m){
+    return `<tr>
+      <td><strong>${esc(m.movement_date_display)}</strong><br><small>${esc(m.movement_time_display)}</small></td>
+      <td><strong>${esc(m.vehicle_number)}</strong>${m.model_name?`<br><small>${esc(m.model_name)}</small>`:''}</td>
+      <td>${esc(m.driver_name)}</td>
+      <td><span class="vm-badge ${badge(m.shift)}">${esc(m.shift)}</span></td>
+      <td>${esc(m.destination||'-')}${m.purpose?`<br><small>${esc(m.purpose)}</small>`:''}</td>
+      <td>${esc(m.entered_by)}<br><small>Updated ${esc(m.updated_at)}</small></td>
+      <td><button class="btn-mini" onclick="openEdit(${m.id})"><i class="fas fa-edit"></i> Edit</button>
+          <button class="btn-mini danger" onclick="askDelete(${m.id})"><i class="fas fa-trash"></i> Del</button></td></tr>`;
+  }
+  function render(rows){
+    if(rows.length===0){
+      cardsEl.innerHTML='<div class="card empty" style="grid-column:1/-1">No movement records found. Click "New Entry" to add the first one.</div>';
+      listBody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--sidebar-text)">No movement records found.</td></tr>';
+      return;
+    }
+    cardsEl.innerHTML=rows.map(cardHTML).join('');
+    listBody.innerHTML=rows.map(rowHTML).join('');
+  }
+  function buildQuery(){
+    const p=new URLSearchParams();
+    if(document.getElementById('fVehicle').value.trim())p.set('vehicle',document.getElementById('fVehicle').value.trim());
+    if(document.getElementById('fDriver').value.trim())p.set('driver',document.getElementById('fDriver').value.trim());
+    if(document.getElementById('fShift').value)p.set('shift',document.getElementById('fShift').value);
+    if(document.getElementById('fFrom').value)p.set('date_from',document.getElementById('fFrom').value);
+    if(document.getElementById('fTo').value)p.set('date_to',document.getElementById('fTo').value);
+    return p.toString();
+  }
+  async function refresh(){
+    const data=await (await fetch('/fleet/movements/api/live/?'+buildQuery())).json();
+    render(data.rows);
+  }
+  ['fVehicle','fDriver','fShift','fFrom','fTo'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',()=>{if(id!=='fShift')refresh()});
+    document.getElementById(id).addEventListener('change',refresh);
+  });
+  function clearFilters(){['fVehicle','fDriver','fFrom','fTo'].forEach(id=>document.getElementById(id).value='');document.getElementById('fShift').value='';refresh()}
+  function hideModal(id){document.getElementById(id).style.display='none'}
+  function showModal(id){document.getElementById(id).style.display='flex'}
+  function pad(n){return String(n).padStart(2,'0')}
+  function openAdd(){
+    document.getElementById('vmTitle').textContent='New Movement Entry';
+    document.getElementById('movementForm').action="{% url 'fleet:add_vehicle_movement' %}";
+    document.getElementById('movementForm').reset();
+    const d=new Date();
+    document.getElementById('vmDate').value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    document.getElementById('vmTime').value=pad(d.getHours())+':'+pad(d.getMinutes());
+    showModal('movementModal');
+  }
+  function openEdit(id){
+    const m=allMovements.find(x=>x.id===id);if(!m)return;
+    document.getElementById('vmTitle').textContent='Edit Movement Entry';
+    document.getElementById('movementForm').action='/fleet/movements/'+id+'/edit/';
+    document.getElementById('vmVehicle').value=m.vehicle_number;
+    document.getElementById('vmDriver').value=m.driver_name;
+    document.getElementById('vmShift').value=m.shift;
+    document.getElementById('vmDate').value=m.movement_date;
+    document.getElementById('vmTime').value=m.movement_time;
+    document.getElementById('vmDestination').value=m.destination;
+    document.getElementById('vmPurpose').value=m.purpose;
+    showModal('movementModal');
+  }
+  function openAddVehicle(){showModal('addVehModal')}
+  function exportQuery(){
+    const p=new URLSearchParams();
+    if(document.getElementById('fVehicle').value.trim())p.set('vehicle',document.getElementById('fVehicle').value.trim());
+    const ed=document.getElementById('eDriver').value.trim()||document.getElementById('fDriver').value.trim();
+    if(ed)p.set('driver',ed);
+    const ef=document.getElementById('eDateFrom').value||document.getElementById('fFrom').value;
+    if(ef)p.set('date_from',ef);
+    const et=document.getElementById('eDateTo').value||document.getElementById('fTo').value;
+    if(et)p.set('date_to',et);
+    const es=document.getElementById('eShift').value||document.getElementById('fShift').value;
+    if(es)p.set('shift',es);
+    if(document.getElementById('eVType').value)p.set('vehicle_type',document.getElementById('eVType').value);
+    if(document.getElementById('eDest').value.trim())p.set('destination',document.getElementById('eDest').value.trim());
+    return p;
+  }
+  function exportFilteredRows(){
+    return allMovements.filter(m=>{
+      const fv=document.getElementById('fVehicle').value.trim().toLowerCase();
+      if(fv && !String(m.vehicle_number).toLowerCase().includes(fv))return false;
+      const ed=(document.getElementById('eDriver').value.trim()||document.getElementById('fDriver').value.trim()).toLowerCase();
+      if(ed && !String(m.driver_name).toLowerCase().includes(ed))return false;
+      const ef=document.getElementById('eDateFrom').value||document.getElementById('fFrom').value;
+      if(ef && m.movement_date<ef)return false;
+      const et=document.getElementById('eDateTo').value||document.getElementById('fTo').value;
+      if(et && m.movement_date>et)return false;
+      const es=document.getElementById('eShift').value||document.getElementById('fShift').value;
+      if(es && m.shift!==es)return false;
+      const ev=document.getElementById('eVType').value.toLowerCase();
+      if(ev && !String(m.model_name||'').toLowerCase().includes(ev))return false;
+      const de=document.getElementById('eDest').value.trim().toLowerCase();
+      if(de && !String(m.destination||'').toLowerCase().includes(de))return false;
+      return true;
+    });
+  }
+  function updateExportScope(){
+    document.getElementById('exportSummary').value=exportFilteredRows().length+' record(s) with current filter';
+  }
+  function clearExportFilters(){
+    ['eDateFrom','eDateTo','eDriver','eDest'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('eShift').value='';document.getElementById('eVType').value='';
+    updateExportScope();
+  }
+  function openExportModal(){
+    document.getElementById('eDateFrom').value=document.getElementById('fFrom').value;
+    document.getElementById('eDateTo').value=document.getElementById('fTo').value;
+    document.getElementById('eShift').value=document.getElementById('fShift').value;
+    document.getElementById('eDriver').value=document.getElementById('fDriver').value;
+    updateExportScope();
+    showModal('exportModal');
+  }
+  function doExport(){
+    const cols=[...document.querySelectorAll('#exportModal input[type="checkbox"]:checked')].map(c=>c.value).join(',');
+    if(!cols){alert('Please select at least one column.');return}
+    const q=exportQuery();
+    q.set('format',document.getElementById('exportFormat').value);
+    q.set('columns',cols);
+    window.location.href='/fleet/movements/export/?'+q.toString();
+  }
+  ['eDateFrom','eDateTo','eShift','eVType','eDriver','eDest'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',updateExportScope);
+    el.addEventListener('change',updateExportScope);
+  });
+  function askDelete(id){document.getElementById('deleteForm').action='/fleet/movements/'+id+'/delete/';showModal('deleteModal')}
+  function setView(v){
+    localStorage.setItem('vmView',v);
+    const card=document.getElementById('cardView'),list=document.getElementById('listView');
+    const bc=document.getElementById('btnCard'),bl=document.getElementById('btnList');
+    if(v==='list'){card.style.display='none';list.style.display='block';bl.classList.add('active');bc.classList.remove('active')}
+    else{card.style.display='block';list.style.display='none';bc.classList.add('active');bl.classList.remove('active')}
+  }
+  ['movementModal','addVehModal','exportModal','deleteModal'].forEach(id=>{
+    document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)hideModal(id)});
+  });
+  render(allMovements);
+  setView(localStorage.getItem('vmView')||'card');
+</script>
+{% endblock %}

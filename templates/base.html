@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P&M</title>
+    <!-- PWA Web Manifest & Service Worker Registration -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="P&M">
+    <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/static/icons/icon-512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/icons/icon-512.png">
+    <link rel="shortcut icon" href="/static/icons/icon-192.png">
+
+    <script>
+        window.deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.deferredPwaPrompt = e;
+            console.log('PWA beforeinstallprompt captured!');
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                    .then(function(reg) {
+                        console.log('Service Worker registered with scope:', reg.scope);
+                    }).catch(function(err) {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
+        }
+    </script>
+    <!-- Immediate Zero-Flash Theme Resolver: runs before any DOM paint -->
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (!theme) {
+                    theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                }
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.style.backgroundColor = '#0f172a';
+                    document.documentElement.style.color = '#f1f5f9';
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    document.documentElement.style.backgroundColor = '#ebe8f9';
+                    document.documentElement.style.color = '#0f172a';
+                }
+            } catch(e) {}
+        })();
+    </script>
+    <!-- Immediate Zero-Jump Scroll Restoration Controller: runs before DOM paint -->
+    <script>
+        try {
+            if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+            }
+        } catch(e) {}
+    </script>
+    <style>
+        /* Anti-FOUC critical styling & instant layout stabilization */
+        html {
+            background-color: #ebe8f9;
+            color: #0f172a;
+        }
+        html[data-theme="dark"] {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+        }
+        html[data-theme="dark"] body {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+        }
+        /* Custom layout adjustments to replace the old sidebar */
+        .sidebar {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding-left: 96px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .floating-sidebar {
+            position: fixed;
+            left: 14px;
+            top: 68px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(14px);
+            border-radius: 30px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            z-index: 100;
+            width: 68px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            white-space: nowrap;
+            transition: width .4s cubic-bezier(.4, 0, .2, 1), box-shadow .3s;
+            scrollbar-width: none;
+        }
+
+        .floating-sidebar::-webkit-scrollbar {
+            display: none;
+        }
+
+        [data-theme="dark"] .floating-sidebar {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .floating-sidebar:hover {
+            width: 260px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+        }
+
+        .fs-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 25px;
+            transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+            text-decoration: none;
+        }
+
+        .fs-item:hover {
+            transform: translateX(6px);
+        }
+
+        .fs-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s;
+        }
+
+        .fs-item:hover .fs-icon {
+            transform: scale(1.15) rotate(3deg);
+        }
+
+        .fs-text {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text-color);
+            opacity: 0;
+            transform: translateX(-15px);
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+            pointer-events: none;
+        }
+
+        .floating-sidebar:hover .fs-text {
+            opacity: 1;
+            transform: translateX(0);
+            transition-delay: .05s;
+        }
+
+        .fs-item:hover .fs-text {
+            color: var(--primary);
+        }
+
+        .fs-purple {
+            background: rgba(139, 92, 246, .15);
+            color: #8b5cf6;
+        }
+
+        .fs-orange {
+            background: rgba(249, 115, 22, .15);
+            color: #f97316;
+        }
+
+        .fs-green {
+            background: rgba(16, 185, 129, .15);
+            color: #10b981;
+        }
+
+        .fs-blue {
+            background: rgba(37, 99, 235, .15);
+            color: #2563eb;
+        }
+
+        .fs-red {
+            background: rgba(239, 68, 68, .15);
+            color: #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding-left: 1rem !important;
+                width: 100% !important;
+                padding: 1rem !important;
+                padding-bottom: 80px !important;
+            }
+            .floating-sidebar {
+                top: auto !important;
+                bottom: 12px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                flex-direction: row !important;
+                width: 95% !important;
+                max-width: 520px !important;
+                height: 64px !important;
+                border-radius: 20px !important;
+                justify-content: flex-start !important;
+                align-items: center !important;
+                padding: 4px 10px !important;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.16) !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                white-space: nowrap !important;
+                gap: 8px !important;
+                scrollbar-width: none !important;
+                background: rgba(255, 255, 255, 0.97) !important;
+                backdrop-filter: blur(16px) !important;
+                border: 1px solid rgba(226, 232, 240, 0.95) !important;
+                z-index: 1050 !important;
+            }
+            .floating-sidebar::-webkit-scrollbar {
+                display: none !important;
+            }
+            .floating-sidebar:hover {
+                width: 95% !important;
+            }
+            .fs-item {
+                flex-shrink: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 52px !important;
+                padding: 4px 6px !important;
+                border-radius: 12px !important;
+                text-decoration: none !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+            }
+            .fs-item:hover, .fs-item:active {
+                background: rgba(241, 245, 249, 0.9) !important;
+                transform: translateY(-2px) !important;
+            }
+            .fs-icon {
+                width: 30px !important;
+                height: 30px !important;
+                min-width: 30px !important;
+                font-size: 0.82rem !important;
+                border-radius: 50% !important;
+                margin: 0 auto 2px auto !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .fs-text {
+                display: block !important;
+                opacity: 1 !important;
+                transform: none !important;
+                pointer-events: auto !important;
+                font-size: 0.62rem !important;
+                font-weight: 700 !important;
+                color: #334155 !important;
+                white-space: nowrap !important;
+                text-align: center !important;
+                line-height: 1.1 !important;
+                letter-spacing: -0.1px !important;
+            }
+            [data-theme="dark"] .floating-sidebar {
+                background: rgba(15, 23, 42, 0.95) !important;
+                border-color: rgba(51, 65, 85, 0.9) !important;
+            }
+            [data-theme="dark"] .fs-text {
+                color: #cbd5e1 !important;
+            }
+        }
+    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=6">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="P&M Portal">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* GLOBAL MOBILE OPTIMIZATIONS */
+        @media (max-width: 768px) {
+
+            /* App Layout */
+            .app-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                min-height: unset;
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                position: relative;
+            }
+
+            .sidebar .brand {
+                flex-direction: row !important;
+                margin: 0 auto 10px auto;
+                font-size: 1.1rem !important;
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .sidebar .brand img {
+                max-height: 35px !important;
+            }
+
+            /* Hamburger Button */
+            .mobile-menu-btn {
+                display: block !important;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                color: var(--primary);
+                cursor: pointer;
+                padding: 5px;
+            }
+
+            /* Collapsible Menu */
+            .mobile-collapsed {
+                display: none !important;
+            }
+
+            .nav-menu {
+                margin-bottom: 10px;
+            }
+
+            .user-profile-menu {
+                position: relative;
+                margin-top: 0;
+                width: 100%;
+            }
+
+            /* Main Content */
+            .main-content {
+                padding: 10px 10px 110px 10px !important;
+                margin-left: 0 !important;
+            }
+
+            /* Top Header */
+            .top-header {
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 10px;
+                padding: 8px 12px !important;
+                height: auto;
+                border-radius: 12px;
+                margin-bottom: 12px;
+            }
+
+            .top-user-card {
+                padding: 0.35rem 0.65rem !important;
+                gap: 0.5rem !important;
+            }
+            .top-user-avatar {
+                width: 30px !important;
+                height: 30px !important;
+                font-size: 0.9rem !important;
+            }
+            .top-user-name {
+                font-size: 0.85rem !important;
+            }
+            .top-user-sub {
+                font-size: 0.68rem !important;
+            }
+
+            .top-actions-desktop {
+                display: flex !important;
+                gap: 0.6rem !important;
+                align-items: center !important;
+            }
+            .top-actions-desktop .btn {
+                padding: 0.35rem 0.65rem !important;
+                font-size: 0.75rem !important;
+            }
+
+            .grid-container,
+            .stats-grid,
+            .modules-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            /* Flex rows to columns */
+            div[style*="justify-content: space-between"][style*="flex"] {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 10px;
+            }
+
+            div[style*="justify-content: space-between"] h2,
+            div[style*="justify-content: space-between"] a {
+                text-align: center;
+            }
+
+            /* Dashboard Tabs */
+            .premium-tabs-container {
+                justify-content: flex-start !important;
+                overflow-x: auto;
+                padding-bottom: 5px;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .dash-tabs {
+                width: max-content;
+            }
+
+            /* Hide top actions on mobile, show them in hamburger */
+            .top-actions-desktop {
+                display: none !important;
+            }
+
+            .mobile-only-nav {
+                display: block !important;
+            }
+
+            /* Responsive Forms, Grids, Headers & Tables */
+            .header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                text-align: center;
+            }
+
+            .header>div {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .header div[style*="display: flex; gap: 10px"]:not(.view-toggles):not(.view-toggle),
+            .header div[style*="display: flex; gap: 12px"]:not(.view-toggles):not(.view-toggle) {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+
+            .header button:not(.view-btn),
+            .header a,
+            .header select {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+            /* Filter bars & search alignment on mobile */
+            .filter-bar,
+            .filter-bar>div,
+            div[style*="display: flex; gap: 12px; align-items: center;"],
+            div[style*="display: flex; gap: 15px; margin-bottom: 20px;"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                width: 100% !important;
+                gap: 10px !important;
+            }
+
+            .filter-bar *,
+            div[style*="display: flex; gap: 12px; align-items: center;"] *,
+            div[style*="display: flex; gap: 15px; margin-bottom: 20px;"] * {
+                width: 100% !important;
+                box-sizing: border-box;
+                flex: unset !important;
+            }
+
+            .filter-bar input,
+            .filter-bar select {
+                padding: 10px !important;
+            }
+
+            .view-toggle,
+            .view-toggles {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: center !important;
+            }
+
+            .view-toggle button,
+            .view-toggles button {
+                width: auto !important;
+                flex: 1 !important;
+            }
+
+            /* Cards layout */
+            .card-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            .grid-container {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            /* Responsive tables */
+            .table-responsive {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                margin-top: 10px;
+            }
+
+            .data-table {
+                min-width: 700px !important;
+            }
+        }
+
+        .mobile-only-nav {
+            display: none;
+        }
+    </style>
+
+
+</head>
+
+<body>
+    {% if user.is_authenticated and not show_otp and request.resolver_match.url_name != 'auth_view' %}
+    <div class="app-layout">
+        <!-- Sidebar -->
+        {% if user.is_authenticated %}
+        <aside class="sidebar">
+            <div class="brand"
+                style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; font-size: 1.2rem;">
+                {% if system_settings.logo %}
+                <img src="{{ system_settings.logo.url }}" alt="Logo" style="max-height: 50px; border-radius: 6px;">
+                {% endif %}
+                P&M Department
+                <button id="mobileMenuBtn" class="mobile-menu-btn" style="display:none;"
+                    onclick="document.getElementById('sidebarMenuContent').classList.toggle('mobile-collapsed')">☰</button>
+            </div>
+            <div id="sidebarMenuContent" class="mobile-collapsed">
+                <ul class="nav-menu">
+                    <li><a href="{% url 'dashboard' %}"
+                            class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">📊</span> <span>Dashboard</span></a></li>
+                    {% if user.is_superuser or user.system_role == 'MANAGER' or 'attendance_management' in user_modules or 'attendance_hub' in user_modules or 'attendance' in user_modules %}
+                    <li><a href="{% url 'attendance_hub' %}"
+                            class="nav-link {% if 'attendance' in request.path %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">📋</span> <span>Attendance</span></a></li>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER,DEO' or 'chat' in user_modules %}
+                    <li><a href="{% url 'chat_room' %}"
+                            class="nav-link {% if request.resolver_match.url_name == 'chat_room' %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">💬</span> <span>Team Chat <span id="sidebar-unread-badge"
+                                    style="background:#ef4444; color:white; border-radius:10px; padding:2px 6px; font-size:0.7rem; font-weight:700; margin-left:auto; display:none;">0</span></span></a>
+                    </li>
+                    {% endif %}
+                    {% if user.is_superuser or 'manage_logins' in user_modules %}
+                    <li><a href="{% url 'teams' %}"
+                            class="nav-link {% if request.resolver_match.url_name == 'teams' %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">👥</span> <span>Manage Logins</span></a></li>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'camp' in user_modules or 'camp_guard' in user_modules or 'camp_hr' in user_modules or 'camp_manager' in user_modules %}
+                    <li><a href="{% url 'camp_root_view' %}"
+                            class="nav-link {% if 'camp' in request.path %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">🏕️</span> <span>Camp Management</span></a></li>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'mess' in user_modules or 'mess_scanner' in user_modules or 'mess_cook' in user_modules %}
+                    <li><a href="{% url 'mess_root_view' %}"
+                            class="nav-link {% if 'mess' in request.path %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">🍱</span> <span>Mess Hub</span></a></li>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'safety_department' in user_modules %}
+                    <li><a href="{% url 'safety_dashboard_view' %}"
+                            class="nav-link {% if 'safety' in request.path %}active{% endif %}"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">🦺</span> <span>Safety Department</span></a></li>
+                    {% endif %}
+
+
+
+                    <!-- Mobile only links -->
+                    <li class="mobile-only-nav"><a href="#" onclick="toggleTheme()" class="nav-link"
+                            style="display:flex; gap:0.5rem; align-items:flex-start;"><span
+                                style="flex-shrink:0;">🌙</span> <span>Toggle Theme</span></a></li>
+
+                    <li class="mobile-only-nav"><a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}" class="nav-link"
+                            style="display:flex; gap:0.5rem; align-items:flex-start; color: var(--error);"><span
+                                style="flex-shrink:0;">🚪</span> <span>Logout</span></a></li>
+                </ul>
+                <div style="padding: 0.75rem; border-top: 1px solid var(--border); position: relative;">
+                    <!-- User Avatar Button -->
+                    <div onclick="toggleUserMenu()"
+                        style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 10px; cursor: pointer; transition: background 0.2s; user-select: none;">
+                        {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="Profile"
+                            style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink:0; border: 2px solid var(--border);">
+                        {% else %}
+                        <div
+                            style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #0ea5e9); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
+                            {{ user.username|make_list|first|upper }}
+                        </div>
+                        {% endif %}
+                        <div style="flex: 1; min-width: 0;">
+                            <div
+                                style="font-weight: 600; font-size: 0.88rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ user.full_name|default:user.username }}</div>
+                            <div style="font-size: 0.72rem; color: var(--sidebar-text);">{% if user.post %}{{
+                                user.post.name }}{% else %}{{ user.get_system_role_display }}{% endif %}</div>
+                        </div>
+                        <svg id="userMenuChevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="var(--sidebar-text)" stroke-width="2.5"
+                            style="transition: transform 0.2s; flex-shrink:0;">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- Dropdown Menu -->
+                    <div id="userDropdownMenu"
+                        style="display: none; position: absolute; bottom: calc(100% + 8px); left: 0.75rem; right: 0.75rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 -8px 30px rgba(15,23,42,0.12); overflow: hidden; z-index: 200;">
+                            {% if user.is_superuser or user.is_staff or user.enable_social_feed_mode %}
+                            <a href="{% url 'dashboard' %}?view_mode=social"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: white; font-size: 0.88rem; font-weight: 700; background: linear-gradient(135deg, #ec4899, #8b5cf6); transition: background 0.15s; margin-bottom: 6px;">
+                                <span style="font-size: 1rem;">📸</span> Social Feed Mode
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'my_profile' %}"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--text-color); font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                                <span style="font-size: 1rem;">⚙️</span> Account Settings
+                            </a>
+                            <a href="#"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--text-color); font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                                <span style="font-size: 1rem;">📋</span> My Entries
+                            </a>
+                            <a href="#?view=activity"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--text-color); font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                                <span style="font-size: 1rem;">📊</span> My Activity
+                            </a>
+                            <a href="{% url 'change_password' %}"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--text-color); font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                                <span style="font-size: 1rem;">🔑</span> Change Password
+                            </a>
+                            {% if user.is_superuser or user.system_role == 'MANAGER' or user.can_view_user_activity %}
+                            <a href="{% url 'download_system_backup' %}"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: #059669; font-size: 0.88rem; font-weight: 700; background: rgba(16, 185, 129, 0.08); transition: background 0.15s; margin-top: 4px;">
+                                <span style="font-size: 1rem;">💾</span> Full System Backup
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div style="border-top: 1px solid var(--border); padding: 0.5rem;">
+                            <a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}"
+                                style="display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; text-decoration: none; color: var(--error); font-size: 0.88rem; font-weight: 600; transition: background 0.15s;">
+                                <span style="font-size: 1rem;">🚪</span> Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    <script>
+                        function toggleUserMenu() {
+                            const menu = document.getElementById('userDropdownMenu');
+                            const chevron = document.getElementById('userMenuChevron');
+                            const isOpen = menu.style.display !== 'none';
+                            menu.style.display = isOpen ? 'none' : 'block';
+                            chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+                        }
+                        document.addEventListener('click', function (e) {
+                            const menu = document.getElementById('userDropdownMenu');
+                            const chevron = document.getElementById('userMenuChevron');
+                            if (menu && !menu.parentElement.contains(e.target)) {
+                                menu.style.display = 'none';
+                                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                            }
+                        });
+                    </script>
+                </div>
+        </aside>
+        {% endif %}
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="top-header">
+                <a href="{% url 'my_profile' %}" class="top-user-card"
+                    style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; padding: 0.5rem 0.9rem; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: all 0.2s;"
+                    onmouseover="this.style.background='var(--bg-subtle)'"
+                    onmouseout="this.style.background='var(--card-bg)'">
+                    <div class="top-user-avatar"
+                        style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink:0;">
+                        {{ user.full_name|default:user.username|make_list|first|upper }}
+                    </div>
+                    <div style="min-width:0;">
+                        <div class="top-user-name" style="font-weight: 700; font-size: 0.9rem; color: var(--text-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ user.full_name|default:user.username }}</div>
+                        <div class="top-user-sub" style="font-size: 0.72rem; color: var(--sidebar-text);">My Account</div>
+                    </div>
+                </a>
+                <!-- Search removed -->
+
+                <div style="display:flex; gap:0.6rem; align-items:center;">
+                    <!-- Notification Bell (Visible Desktop & Mobile) -->
+                    <div style="position: relative;" id="notifContainer">
+                        <button id="notifBtn"
+                            style="background:none; border:none; cursor:pointer; font-size:1.2rem; position:relative; padding:4px 6px;"
+                            onclick="toggleNotifications()" title="Notifications">
+                            🔔
+                            <span id="notifBadge"
+                                style="display:none; position:absolute; top:-2px; right:-2px; background:red; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:bold; line-height:16px; text-align:center;">0</span>
+                        </button>
+                        <div id="notifDropdown"
+                            style="display:none; position:absolute; right:0; top:40px; width:300px; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000;">
+                            <div
+                                style="padding:10px; border-bottom:1px solid var(--border); font-weight:bold; color:var(--text-color);">
+                                Notifications</div>
+                            <div id="notifList"
+                                style="max-height:300px; overflow-y:auto; padding:10px; font-size:0.85rem; color:var(--sidebar-text);">
+                                Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle Button (Visible Desktop & Mobile) -->
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn"
+                        style="background:var(--bg-subtle, rgba(255,255,255,0.15)); border:1px solid var(--border); cursor:pointer; font-size:1.15rem; padding: 4px 10px; border-radius: 10px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" title="Toggle Light/Dark Theme">🌙</button>
+
+                    <!-- Desktop Only Extra Actions -->
+                    <div class="top-actions-desktop" style="display:flex; gap:0.75rem; align-items:center;">
+                        {% if user.is_superuser or user.is_staff or user.enable_social_feed_mode %}
+                        <a href="{% url 'dashboard' %}?view_mode=social" class="btn" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700; background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(236,72,153,0.3);" title="Switch to Social Feed Mode">
+                            📸 Social Feed Mode
+                        </a>
+                        {% endif %}
+                        {% if user.is_superuser %}
+                        <a href="/admin/" target="_blank" class="btn btn-outline" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700;">Admin</a>
+                        {% endif %}
+                        <a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.82rem; font-weight:700;">Logout</a>
+                    </div>
+                </div>
+            </header>
+
+            <main class="container">
+                <div id="message-container">
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="card alert-message"
+                        style="margin-bottom: 1rem; padding: 1rem; background: {% if message.tags == 'error' %}var(--error){% else %}var(--success){% endif %}; color: white; border: none; transition: opacity 0.5s;">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+
+                <div class="floating-sidebar" id="floatingSidebar">
+                    <div class="fs-item"
+                        onclick="if (typeof switchTab==='function'){switchTab('overview');}else{window.location.href='/?tab=overview';}">
+                        <div class="fs-icon fs-purple"><i class="fas fa-house"></i></div><span
+                            class="fs-text">Dashboard</span>
+                    </div>
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER,DEO' or 'chat' in user_modules %}
+                    <a href="{% url 'chat_room' %}" class="fs-item">
+                        <div class="fs-icon fs-blue"><i class="fas fa-comments"></i></div><span class="fs-text"
+                            style="display:flex; align-items:center; gap:8px;">Team Chat<span id="fs-unread-badge"
+                                style="background:#ef4444; color:white; border-radius:10px; padding:2px 7px; font-size:0.7rem; font-weight:700; display:none; min-width:18px; text-align:center;">0</span></span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or 'manage_logins' in user_modules %}
+                    <a href="{% url 'teams' %}" class="fs-item">
+                        <div class="fs-icon fs-green"><i class="fas fa-users-gear"></i></div><span
+                            class="fs-text">Manage Logins</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role == 'TIME_KEEPER' or 'overtime_management' in user_modules %}
+                    <a href="{% if user.system_role == 'TIME_KEEPER' %}{% url 'overtime_scan' %}{% else %}{% url 'overtime_dashboard' %}{% endif %}" class="fs-item">
+                        <div class="fs-icon fs-purple"><i class="fas fa-business-time"></i></div><span
+                            class="fs-text">Overtime Hub</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'camp' in user_modules or 'camp_guard' in user_modules or 'camp_hr' in user_modules or 'camp_manager' in user_modules %}
+                    <a href="{% url 'camp_root_view' %}" class="fs-item">
+                        <div class="fs-icon fs-blue" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;"><i class="fas fa-campground" style="color:#0284c7;"></i></div><span
+                            class="fs-text">Camp Management</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'mess' in user_modules or 'mess_scanner' in user_modules or 'mess_cook' in user_modules %}
+                    <a href="{% url 'mess_root_view' %}" class="fs-item">
+                        <div class="fs-icon fs-orange" style="background: rgba(234, 88, 12, 0.15); color: #ea580c;"><i class="fas fa-utensils" style="color:#ea580c;"></i></div><span
+                            class="fs-text">Mess Hub</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.system_role in 'MANAGER,PROJECT_MANAGER' or 'safety_department' in user_modules %}
+                    <a href="{% url 'safety_dashboard_view' %}" class="fs-item">
+                        <div class="fs-icon fs-orange" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="fas fa-hard-hat" style="color:#f59e0b;"></i></div><span
+                            class="fs-text">Safety Dept</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or user.can_view_user_activity %}
+                    <a href="{% url 'user_activity' %}" class="fs-item">
+                        <div class="fs-icon fs-purple"><i class="fas fa-user-clock"></i></div><span
+                            class="fs-text">User Activity</span>
+                    </a>
+                    {% endif %}
+                    {% if 'daily_deployment' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/deployment/'">
+                        <div class="fs-icon fs-green"><i class="fas fa-file-lines"></i></div><span class="fs-text">Daily
+                            Deployment</span>
+                    </div>
+                    {% endif %}
+                    {% if 'shift_management' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/shifts/'">
+                        <div class="fs-icon fs-orange"><i class="fas fa-clock"></i></div><span class="fs-text">Shift
+                            Management</span>
+                    </div>
+                    {% endif %}
+                    {% if 'vehicle_movement' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/movements/'">
+                        <div class="fs-icon fs-green"><i class="fas fa-route"></i></div><span class="fs-text">Vehicle
+                            Movements</span>
+                    </div>
+                    {% endif %}
+                    {% if 'tyre_section' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/tyre/'">
+                        <div class="fs-icon fs-orange"><i class="fas fa-circle-notch"></i></div><span
+                            class="fs-text">Tyre Section</span>
+                    </div>
+                    {% endif %}
+                    {% if 'total_vehicles' in user_modules or 'vehicle_profiles' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/profiles/'">
+                        <div class="fs-icon fs-blue"><i class="fas fa-id-card"></i></div><span
+                            class="fs-text">Vehicle Profiles</span>
+                    </div>
+                    {% endif %}
+                    {% if 'breakdown_register' in user_modules or 'breakdown_entry' in user_modules or user.system_role == 'MANAGER' or user.is_superuser %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/breakdowns/'">
+                        <div class="fs-icon fs-red"><i class="fas fa-wrench"></i></div><span
+                            class="fs-text">Breakdown Entry</span>
+                    </div>
+                    {% endif %}
+                    {% if 'lubricants' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/lubrication/'">
+                        <div class="fs-icon fs-purple"><i class="fas fa-oil-can"></i></div><span
+                            class="fs-text">Lubricants</span>
+                    </div>
+                    {% endif %}
+                    {% if 'spare_parts' in user_modules or user.system_role == 'MANAGER' or user.is_superuser %}
+                    <div class="fs-item" onclick="window.location.href='/fleet/spare-parts/'">
+                        <div class="fs-icon fs-orange"><i class="fas fa-cog"></i></div><span
+                            class="fs-text">Spare Parts</span>
+                    </div>
+                    {% endif %}
+                    {% if 'total_employees' in user_modules %}
+                    <div class="fs-item"
+                        onclick="if (typeof switchTab==='function'){setWorkerFilter('all');switchTab('employees');}else{window.location.href='/?tab=employees&filter=all';}">
+                        <div class="fs-icon fs-purple"><i class="fas fa-users"></i></div><span class="fs-text">Total
+                            Employees</span>
+                    </div>
+                    {% endif %}
+                    {% if 'total_employees' in user_modules %}
+                    <div class="fs-item"
+                        onclick="if (typeof switchTab==='function'){setWorkerFilter('foreign');switchTab('employees');}else{window.location.href='/?tab=employees&filter=foreign';}">
+                        <div class="fs-icon fs-red"><i class="fas fa-globe"></i></div><span class="fs-text">Foreign
+                            Workers</span>
+                    </div>
+                    {% endif %}
+                    {% if 'total_employees' in user_modules %}
+                    <div class="fs-item"
+                        onclick="if (typeof switchTab==='function'){setWorkerFilter('national');switchTab('employees');}else{window.location.href='/?tab=employees&filter=national';}">
+                        <div class="fs-icon fs-orange"><i class="fas fa-flag"></i></div><span class="fs-text">National
+                            Workers</span>
+                    </div>
+                    {% endif %}
+                    {% if 'document_expiries' in user_modules %}
+                    <div class="fs-item" onclick="window.location.href='/documents/alerts/'">
+                        <div class="fs-icon fs-red"><i class="fas fa-triangle-exclamation"></i></div><span
+                            class="fs-text">Doc Expiries</span>
+                    </div>
+                    {% endif %}
+                    <a href="{% if request.path|slice:':6' == '/mess/' %}{% url 'logout' %}?next={% url 'mess_login_view' %}{% else %}{% url 'logout' %}{% endif %}" class="fs-item" title="Logout Account">
+                        <div class="fs-icon fs-red" style="background:rgba(239, 68, 68, 0.2);"><i class="fas fa-power-off" style="color:#ef4444;"></i></div>
+                        <span class="fs-text" style="color:#ef4444; font-weight:800;">Logout</span>
+                    </a>
+                </div>
+
+                <div id="base-content-container">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+    {% else %}
+    <!-- Login/Signup Layout -->
+    <div class="container" style="display:flex; justify-content:center; align-items:center; min-height:100vh;">
+        <div style="width: 100%; max-width: 400px;">
+            <div id="message-container-auth">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="card alert-message"
+                    style="margin-bottom: 1rem; padding: 1rem; background: {% if message.tags == 'error' %}var(--error){% else %}var(--success){% endif %}; color: white; border: none; transition: opacity 0.5s;">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        const searchInput = document.getElementById('globalSearchInput');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+        const suggestionsList = document.getElementById('suggestionsList');
+        let debounceTimer;
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+
+                if (query.length < 2) {
+                    searchSuggestions.style.display = 'none';
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch('/api/search-suggestions/?q=' + encodeURIComponent(query))
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.suggestions && data.suggestions.length > 0) {
+                                suggestionsList.innerHTML = '';
+                                data.suggestions.forEach(item => {
+                                    const suggestionEl = document.createElement('a');
+                                    suggestionEl.href = item.url;
+                                    suggestionEl.style.cssText = 'padding: 0.75rem 1.25rem; display: flex; flex-direction: column; text-decoration: none; border-bottom: 1px solid var(--border); transition: background 0.2s;';
+                                    suggestionEl.onmouseover = function () { this.style.background = 'var(--bg-color)'; };
+                                    suggestionEl.onmouseout = function () { this.style.background = 'transparent'; };
+
+                                    suggestionEl.innerHTML = '<span style="font-size: 0.75rem; color: var(--primary); font-weight: 600; text-transform: uppercase;">' + item.type + '</span><span style="font-size: 0.95rem; color: var(--text-color); margin-top: 0.25rem;">' + item.text + '</span>';
+                                    suggestionsList.appendChild(suggestionEl);
+                                });
+                                searchSuggestions.style.display = 'block';
+                            } else {
+                                suggestionsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--sidebar-text); font-size: 0.9rem;">No results found</div>';
+                                searchSuggestions.style.display = 'block';
+                            }
+                        })
+                        .catch(err => console.error("Search API Error:", err));
+                }, 300);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!document.getElementById('globalSearchForm').contains(e.target)) {
+                    searchSuggestions.style.display = 'none';
+                }
+            });
+
+            // Hide dropdown on Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    searchSuggestions.style.display = 'none';
+                }
+            });
+        }
+    </script>
+    <!-- Smart Auto-Sync for Live Updates -->
+    <script>
+        let isTyping = false;
+        document.addEventListener('input', () => {
+            isTyping = true;
+            clearTimeout(window.typingTimer);
+            window.typingTimer = setTimeout(() => { isTyping = false; }, 2000);
+        });
+    </script>
+
+
+    <script>
+        // Theme toggling logic
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const themeBtns = document.querySelectorAll('.theme-toggle-btn, #themeBtn, .theme-toggle');
+            if (current === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                document.documentElement.style.backgroundColor = '#ebe8f9';
+                document.documentElement.style.color = '#0f172a';
+                themeBtns.forEach(btn => { if (btn) btn.innerText = '🌙'; });
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                document.documentElement.style.backgroundColor = '#0f172a';
+                document.documentElement.style.color = '#f1f5f9';
+                themeBtns.forEach(btn => { if (btn) btn.innerText = '☀️'; });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const theme = localStorage.getItem('theme') || 'light';
+            const themeBtns = document.querySelectorAll('.theme-toggle-btn, #themeBtn, .theme-toggle');
+            themeBtns.forEach(btn => { if (btn) btn.innerText = (theme === 'dark') ? '☀️' : '🌙'; });
+        });
+    </script>
+
+    <script id="fade-out-messages">
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                let alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function (alert) {
+                    alert.style.transition = "opacity 0.5s ease";
+                    alert.style.opacity = "0";
+                    setTimeout(() => alert.remove(), 500);
+                });
+            }, 3000); // Disappear after 3 seconds
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const messages = document.querySelectorAll('.messages .alert, .messages li, .alert, .alert-message');
+            messages.forEach(function (msg) {
+                setTimeout(function () {
+                    msg.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    msg.style.opacity = '0';
+                    msg.style.transform = 'translateY(-10px)';
+                    setTimeout(function () {
+                        if (msg.parentNode) msg.parentNode.removeChild(msg);
+                    }, 500);
+                }, 3000);
+            });
+        });
+    </script>
+
+
+    <!-- Toast Container -->
+    <div id="toastContainer"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+    </div>
+
+    <script>
+        let lastNotifIds = JSON.parse(localStorage.getItem('shownNotifIds') || '[]');
+        // Cap to last 500 IDs to avoid bloat
+        if (lastNotifIds.length > 500) lastNotifIds = lastNotifIds.slice(-500);
+
+        function showToast(id, title, message, type, link) {
+            if (!title || title === 'undefined' || !message || message === 'undefined') return;
+            const toast = document.createElement('div');
+            const borderColor = type === 'ERROR' ? '#ef4444' : '#f59e0b';
+            const icon = type === 'ERROR' ? '🚨' : '⚠️';
+
+            toast.style.cssText = 'background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-left: 5px solid ' + borderColor + '; min-width: 320px; max-width: 380px; opacity: 0; transform: translateX(50px); transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; gap: 12px; align-items: flex-start; z-index: 9999;';
+
+            let linkBtn = '<a href="/notification/' + id + '/" onclick="removeToast(this.closest(\'#toastContainer > div\')); event.stopPropagation();" onmouseover="this.style.background=\'rgba(56, 189, 248, 0.2)\'" onmouseout="this.style.background=\'rgba(56, 189, 248, 0.1)\'" style="background:rgba(56, 189, 248, 0.1); color:#38bdf8; border:none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: 0.2s; text-decoration:none;">View Details</a>';
+
+            toast.innerHTML = '<div style="font-size: 1.5rem; margin-top: -2px;">' + icon + '</div>' +
+                '<div style="flex: 1;">' +
+                '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">' +
+                '<strong style="font-size: 0.95rem; letter-spacing: 0.3px; color: #f8fafc;">' + title + '</strong>' +
+                '<button onclick="removeToast(this.parentElement.parentElement.parentElement); event.stopPropagation();" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.2rem; padding:0; line-height:1; margin-left: 10px;">&times;</button>' +
+                '</div>' +
+                '<div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 12px; line-height: 1.4;">' + message + '</div>' +
+                '<div style="display: flex; gap: 8px;">' +
+                '<button onclick="snoozeNotif(' + id + ', this.closest(\'#toastContainer > div\')); event.stopPropagation();" onmouseover="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseout="this.style.background=\'transparent\'" style="background:transparent; color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: 0.2s;">Snooze (24h)</button>' +
+                linkBtn +
+                '</div>' +
+                '</div>';
+
+            document.getElementById('toastContainer').appendChild(toast);
+
+            setTimeout(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; }, 10);
+        }
+
+        function snoozeNotif(id, toastEl) {
+            fetch('/api/notifications/' + id + '/snooze/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            }).then(() => {
+                removeToast(toastEl);
+            });
+        }
+        function removeToast(toast) {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(50px)';
+            setTimeout(() => toast.remove(), 300);
+        }
+
+        function checkNotifications() {
+            fetch('/api/notifications/unread/')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.notifications) return;
+                    const list = document.getElementById('notifList');
+                    const badge = document.getElementById('notifBadge');
+
+                    if (data.notifications.length > 0) {
+                        badge.style.display = 'block';
+                        badge.innerText = data.notifications.length;
+                        list.innerHTML = '';
+                        data.notifications.forEach(n => {
+                            list.innerHTML += '<a href="/notification/' + n.id + '/" style="display:block; padding:10px; border-bottom:1px solid var(--border); text-decoration:none; color:inherit; transition: background 0.2s; border-radius: 4px;" onmouseover="this.style.background=\'var(--bg-subtle)\'" onmouseout="this.style.background=\'transparent\'"><strong style="color:var(--text-color);">' + n.title + '</strong><br><span style="color:var(--sidebar-text); font-size:0.9rem;">' + n.message + '</span><br><small style="opacity:0.6; color:var(--sidebar-text); margin-top:4px; display:inline-block;">' + n.time + '</small></a>';
+
+                            if (!n.is_read && !lastNotifIds.includes(n.id)) {
+                                showToast(n.id, n.title, n.message, n.type, n.link);
+                                lastNotifIds.push(n.id);
+                                localStorage.setItem('shownNotifIds', JSON.stringify(lastNotifIds));
+                            }
+                        });
+                        list.innerHTML += '<div style="text-align:center; padding:10px; border-top:1px solid var(--border);"><a href="/notifications/" style="color:var(--primary); font-size:0.85rem; text-decoration:none; font-weight:bold;">View All Notifications</a></div>';
+                    } else {
+                        badge.style.display = 'none';
+                        list.innerHTML = 'No new notifications.<br><br><div style="text-align:center; padding:10px; border-top:1px solid var(--border);"><a href="/notifications/" style="color:var(--primary); font-size:0.85rem; text-decoration:none; font-weight:bold;">View All History</a></div>';
+                    }
+                }).catch(err => console.log(err));
+        }
+
+        function toggleNotifications() {
+            const drop = document.getElementById('notifDropdown');
+            if (drop.style.display === 'none') {
+                drop.style.display = 'block';
+                fetch('/api/notifications/mark-read/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                }).then(() => {
+                    document.getElementById('notifBadge').style.display = 'none';
+                });
+            } else {
+                drop.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            const container = document.getElementById('notifContainer');
+            const drop = document.getElementById('notifDropdown');
+            if (container && !container.contains(e.target) && drop) { drop.style.display = 'none'; }
+        });
+
+        if (document.getElementById('notifContainer')) {
+            checkNotifications();
+            setInterval(checkNotifications, 60000);
+        }
+
+        // Poll unread chat counts globally
+        function checkChatUnread() {
+            fetch('/api/chat/unread/')
+                .then(r => r.json())
+                .then(data => {
+                    const total = Object.values(data.unread).reduce((a, b) => a + b, 0);
+                    document.querySelectorAll('#sidebar-unread-badge, #fs-unread-badge').forEach(badge => {
+                        if (total > 0) {
+                            badge.innerText = total;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    });
+                }).catch(() => { });
+        }
+        checkChatUnread();
+        setInterval(checkChatUnread, 6000);
+        {% if user.is_authenticated %}
+        // Presence heartbeat (site-wide): keeps current user marked online for Team Chat
+        (function () {
+            function beat() { fetch('/api/chat/heartbeat/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } }).catch(() => { }); }
+            beat();
+            setInterval(beat, 45000);
+        })();
+        {% endif %}
+        
+        // Register PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                    .then(reg => console.log('ServiceWorker registered:', reg.scope))
+                    .catch(err => console.warn('ServiceWorker registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Universal Report Share Modal -->
+    <style>
+        .report-share-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            padding: 16px;
+        }
+        .report-share-container {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            animation: shareModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes shareModalPop {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .share-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border, #e2e8f0);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-subtle, #f8fafc);
+        }
+        .share-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-color, #0f172a);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .share-header p {
+            margin: 2px 0 0;
+            font-size: 0.78rem;
+            color: var(--sidebar-text, #64748b);
+        }
+        .share-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            line-height: 1;
+            color: var(--sidebar-text, #64748b);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: all 0.15s;
+        }
+        .share-close-btn:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .share-body {
+            padding: 20px;
+        }
+        .share-format-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            background: var(--bg-subtle, #f1f5f9);
+            padding: 4px;
+            border-radius: 12px;
+        }
+        .share-format-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 9px;
+            border: none;
+            background: transparent;
+            color: var(--sidebar-text, #64748b);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .share-format-tab.active {
+            background: var(--card-bg, #ffffff);
+            color: var(--primary, #4f46e5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .share-action-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .btn-share-channel {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-share-channel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+        }
+        .btn-share-whatsapp {
+            background: #25D366;
+            color: #ffffff;
+        }
+        .btn-share-whatsapp:hover {
+            background: #1ea952;
+        }
+        .btn-share-download {
+            background: #0284c7;
+            color: #ffffff;
+        }
+        .btn-share-download:hover {
+            background: #0369a1;
+        }
+        .btn-share-email {
+            background: #4f46e5;
+            color: #ffffff;
+        }
+        .btn-share-email:hover {
+            background: #4338ca;
+        }
+        .btn-share-copy {
+            background: var(--bg-subtle, #f1f5f9);
+            color: var(--text-color, #1e293b);
+            border: 1px solid var(--border, #cbd5e1);
+        }
+        .btn-share-copy:hover {
+            background: #e2e8f0;
+        }
+        .share-link-box {
+            background: var(--bg-subtle, #f8fafc);
+            border: 1px dashed var(--border, #cbd5e1);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.75rem;
+            color: var(--sidebar-text, #64748b);
+            word-break: break-all;
+            margin-top: 10px;
+        }
+    </style>
+
+    <div id="universalReportShareModal" class="report-share-overlay" onclick="if(event.target===this)closeReportShareModal()">
+        <div class="report-share-container">
+            <div class="share-header">
+                <div>
+                    <h3><span>📤</span> <span id="shareModalReportTitle">Share Report</span></h3>
+                    <p id="shareModalReportSub">GIAP Gelephu Site Documentation</p>
+                </div>
+                <button type="button" class="share-close-btn" onclick="closeReportShareModal()">&times;</button>
+            </div>
+            
+            <div class="share-body">
+                <div style="background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.75rem; color: #15803d; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.05rem;">⚡</span>
+                    <span><strong>PDF &amp; Link Direct Sharing:</strong> Shares both the real document file and direct portal link to WhatsApp contacts.</span>
+                </div>
+
+                <!-- Interactive Filter & Date Range Bar -->
+                <div id="shareModalFilterSection" style="background: var(--bg-subtle, #f8fafc); border: 1px solid var(--border, #cbd5e1); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                        <span style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--text-color, #1e293b); display: flex; align-items: center; gap: 6px;">
+                            <span>🔍</span> Filter Report Data Before Export / Share:
+                        </span>
+                        <span id="shareModalActiveFilterBadge" style="font-size: 0.7rem; font-weight: 700; background: #2563eb; color: white; padding: 2px 8px; border-radius: 10px;">All Time</span>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                        <button type="button" class="btn-share-preset" onclick="setShareDatePreset('today')" style="padding: 3px 9px; font-size: 0.72rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 600; cursor: pointer;">Today</button>
+                        <button type="button" class="btn-share-preset" onclick="setShareDatePreset('last7')" style="padding: 3px 9px; font-size: 0.72rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 600; cursor: pointer;">Last 7 Days</button>
+                        <button type="button" class="btn-share-preset" onclick="setShareDatePreset('thisMonth')" style="padding: 3px 9px; font-size: 0.72rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 600; cursor: pointer;">This Month</button>
+                        <button type="button" class="btn-share-preset" onclick="setShareDatePreset('all')" style="padding: 3px 9px; font-size: 0.72rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 600; cursor: pointer;">All Time</button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--sidebar-text, #64748b); display: block; margin-bottom: 2px;">From Date</label>
+                            <input type="date" id="shareModalDateFrom" onchange="updateShareModalFilters()" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid var(--border, #cbd5e1); background: var(--card-bg, #fff); color: var(--text-color, #0f172a);">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--sidebar-text, #64748b); display: block; margin-bottom: 2px;">To Date</label>
+                            <input type="date" id="shareModalDateTo" onchange="updateShareModalFilters()" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid var(--border, #cbd5e1); background: var(--card-bg, #fff); color: var(--text-color, #0f172a);">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--sidebar-text, #64748b); display: block; margin-bottom: 2px;">Keyword / Search</label>
+                            <input type="text" id="shareModalSearch" placeholder="Filter text..." oninput="updateShareModalFilters()" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid var(--border, #cbd5e1); background: var(--card-bg, #fff); color: var(--text-color, #0f172a);">
+                        </div>
+                    </div>
+                </div>
+
+                <label style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--sidebar-text, #64748b); margin-bottom: 6px; display: block;">Select File Format to Share:</label>
+                <div class="share-format-tabs">
+                    <button type="button" id="shareTabPdf" class="share-format-tab active" onclick="selectShareFormat('pdf')">
+                        <span>📄</span> PDF Document (.pdf)
+                    </button>
+                    <button type="button" id="shareTabExcel" class="share-format-tab" onclick="selectShareFormat('excel')">
+                        <span>📊</span> Excel (.xlsx)
+                    </button>
+                </div>
+
+                <div class="share-action-grid">
+                    <!-- WhatsApp Direct Share (File + Link) -->
+                    <button type="button" class="btn-share-channel btn-share-whatsapp" onclick="shareToWhatsApp()">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.25rem;">💬</span>
+                            <span>Share Document (File + Link)</span>
+                        </span>
+                        <span style="font-size: 0.78rem; opacity: 0.9; font-weight: 500;">WhatsApp / Native Apps &rarr;</span>
+                    </button>
+
+                    <!-- Direct Download File -->
+                    <button type="button" class="btn-share-channel btn-share-download" onclick="downloadReportCurrent()">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.25rem;">📥</span>
+                            <span>Download Document File</span>
+                        </span>
+                        <span style="font-size: 0.78rem; opacity: 0.9; font-weight: 500;">Direct File &rarr;</span>
+                    </button>
+
+                    <!-- Open Official Document & Print View -->
+                    <button type="button" class="btn-share-channel" onclick="openOfficialPrintView()" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff;">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.25rem;">🖨️</span>
+                            <span>Open Official Document (Print PDF)</span>
+                        </span>
+                        <span style="font-size: 0.78rem; opacity: 0.9; font-weight: 500;">Native Print View &rarr;</span>
+                    </button>
+
+                    <!-- Email Direct Share -->
+                    <button type="button" class="btn-share-channel btn-share-email" onclick="shareToEmail()">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.25rem;">✉️</span>
+                            <span>Share via Email</span>
+                        </span>
+                        <span style="font-size: 0.78rem; opacity: 0.9; font-weight: 500;">Draft Message &rarr;</span>
+                    </button>
+
+                    <!-- Copy Direct Link -->
+                    <button type="button" class="btn-share-channel btn-share-copy" onclick="copyReportLink()">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.15rem;">🔗</span>
+                            <span>Copy Direct Link</span>
+                        </span>
+                        <span style="font-size: 0.78rem; opacity: 0.8; font-weight: 600;">Clipboard &rarr;</span>
+                    </button>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: var(--sidebar-text, #64748b);">Direct Document Link:</span>
+                    <button type="button" onclick="downloadReportCurrent()" style="background: none; border: none; font-size: 0.76rem; font-weight: 700; color: var(--primary, #4f46e5); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <span>⬇️</span> Download File
+                    </button>
+                </div>
+                <div class="share-link-box" id="shareModalLinkPreview">
+                    Generating document link...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Universal PDF Generation and Report Share Scripts -->
+    <script src="{% static 'js/html2pdf.bundle.min.js' %}"></script>
+    <script src="{% static 'js/report_share.js' %}"></script>
+
+    <!-- Universal Exact Scroll & Viewport Restoration Engine (Preserves position across Refresh & Form Saves) -->
+    <script>
+    (function() {
+        const STORAGE_KEY_PREFIX = 'app_exact_scroll_';
+        const NAV_CLICK_KEY = 'app_nav_menu_clicked';
+
+        function getStorageKey() {
+            return STORAGE_KEY_PREFIX + window.location.pathname;
+        }
+
+        let isRestoring = false;
+
+        // Capture and persist exact window and container scroll coordinates
+        function saveExactPosition() {
+            if (isRestoring) return;
+            try {
+                const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+                const currentX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0;
+
+                // Save internal scrollable containers (e.g. tables, lists) that have IDs and non-zero scroll
+                const containerScrolls = {};
+                document.querySelectorAll('[id]').forEach(el => {
+                    if (el.scrollTop > 0 || el.scrollLeft > 0) {
+                        containerScrolls[el.id] = { top: el.scrollTop, left: el.scrollLeft };
+                    }
+                });
+
+                const state = {
+                    y: currentY,
+                    x: currentX,
+                    containers: containerScrolls,
+                    timestamp: Date.now()
+                };
+
+                sessionStorage.setItem(getStorageKey(), JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        // Restore exact position
+        function restoreExactPosition() {
+            try {
+                // If the user intentionally clicked a primary navigation/sidebar menu link to visit this page, start from top
+                const navClickedPath = sessionStorage.getItem(NAV_CLICK_KEY);
+                if (navClickedPath) {
+                    sessionStorage.removeItem(NAV_CLICK_KEY);
+                    if (navClickedPath === window.location.pathname) {
+                        sessionStorage.removeItem(getStorageKey());
+                        return;
+                    }
+                }
+
+                const raw = sessionStorage.getItem(getStorageKey());
+                if (!raw) return;
+
+                const state = JSON.parse(raw);
+                if (!state || typeof state.y !== 'number') return;
+
+                // Only restore if state was saved within the last 2 hours
+                if (Date.now() - state.timestamp > 2 * 60 * 60 * 1000) {
+                    sessionStorage.removeItem(getStorageKey());
+                    return;
+                }
+
+                // If saved position was at the very top (0) and no container scroll, do nothing
+                if (state.y <= 0 && (!state.containers || Object.keys(state.containers).length === 0)) {
+                    return;
+                }
+
+                isRestoring = true;
+
+                const applyScroll = () => {
+                    window.scrollTo({
+                        top: state.y,
+                        left: state.x,
+                        behavior: 'instant'
+                    });
+
+                    if (state.containers && typeof state.containers === 'object') {
+                        for (const [id, pos] of Object.entries(state.containers)) {
+                            const el = document.getElementById(id);
+                            if (el) {
+                                el.scrollTop = pos.top;
+                                el.scrollLeft = pos.left;
+                            }
+                        }
+                    }
+                };
+
+                // Apply immediately
+                applyScroll();
+
+                // Multi-phase re-application as dynamic cards, fonts, and DOM expand
+                requestAnimationFrame(applyScroll);
+                setTimeout(applyScroll, 60);
+                setTimeout(applyScroll, 180);
+                setTimeout(() => {
+                    applyScroll();
+                    setTimeout(() => { isRestoring = false; }, 100);
+                }, 400);
+
+            } catch (e) {
+                isRestoring = false;
+            }
+        }
+
+        // If the user manually interacts with the page (wheel, touch, arrow keys), instantly exit restoring mode
+        const cancelRestoring = () => { isRestoring = false; };
+        window.addEventListener('wheel', cancelRestoring, { passive: true });
+        window.addEventListener('touchstart', cancelRestoring, { passive: true });
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+                cancelRestoring();
+            }
+        }, { passive: true });
+
+        // Throttled scroll listener
+        let scrollRaf = null;
+        window.addEventListener('scroll', function() {
+            if (isRestoring) return;
+            if (scrollRaf) cancelAnimationFrame(scrollRaf);
+            scrollRaf = requestAnimationFrame(saveExactPosition);
+        }, { passive: true });
+
+        // Save position on page unload (Refresh, F5, cross-navigation, tab close)
+        window.addEventListener('beforeunload', saveExactPosition);
+        window.addEventListener('pagehide', saveExactPosition);
+
+        // Save position immediately when ANY form is submitted (Save buttons, POST requests)
+        document.addEventListener('submit', function() {
+            saveExactPosition();
+        }, true);
+
+        // Also save position on any click on save/submit buttons
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('button[type="submit"], input[type="submit"], .btn-save, [data-save-action]');
+            if (btn) {
+                saveExactPosition();
+            }
+
+            // If user clicked a sidebar or main header navigation link to navigate fresh
+            const navLink = e.target.closest('.sidebar a, .nav-menu a, .fs-item, .navbar-nav a');
+            if (navLink && navLink.getAttribute('href') && !navLink.getAttribute('href').startsWith('#') && !navLink.getAttribute('href').startsWith('javascript:')) {
+                try {
+                    const targetUrl = new URL(navLink.href, window.location.origin);
+                    sessionStorage.setItem(NAV_CLICK_KEY, targetUrl.pathname);
+                } catch(err) {}
+            }
+        }, true);
+
+        // Restore on initial load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', restoreExactPosition);
+        } else {
+            restoreExactPosition();
+        }
+        window.addEventListener('load', restoreExactPosition);
+
+        // Global helper for programmatic reload while preserving scroll
+        window.preserveScrollAndReload = function() {
+            saveExactPosition();
+            window.location.reload();
+        };
+    })();
+    </script>
+
+</body>
+
+</html>

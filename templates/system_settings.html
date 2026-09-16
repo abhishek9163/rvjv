@@ -1,0 +1,925 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- jQuery & Select2 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+    /* Styling for Admin Panel Tabs */
+    .admin-tabs {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 2rem;
+        padding-bottom: 8px;
+    }
+    .admin-tab-btn {
+        background: none;
+        border: none;
+        padding: 8px 18px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .admin-tab-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    .admin-tab-btn:hover:not(.active) {
+        background: var(--bg-subtle);
+        color: var(--text-color);
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Grid of Export Cards */
+    .export-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    .export-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .export-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    .export-card-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0 0 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .export-card-desc {
+        font-size: 0.82rem;
+        color: var(--sidebar-text);
+        margin: 0;
+        line-height: 1.4;
+    }
+    .export-card-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .export-form-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+    .export-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 15px;
+    }
+    .export-btn {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .export-btn-excel {
+        background: #10b981;
+        color: white;
+        border: none;
+    }
+    .export-btn-excel:hover {
+        background: #059669;
+    }
+    .export-btn-pdf {
+        background: #ef4444;
+        color: white;
+        border: none;
+    }
+    .export-btn-pdf:hover {
+        background: #dc2626;
+    }
+
+    /* Select2 custom overrides inside Admin Panel */
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        background-color: var(--bg-color) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--text-color) !important;
+        line-height: 38px !important;
+        font-size: 0.85rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+    }
+    .select2-dropdown {
+        background-color: var(--card-bg) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text-color) !important;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--primary) !important;
+        color: white !important;
+    }
+
+    /* Checkbox list for combined audit report */
+    .audit-checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 10px;
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+    .audit-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+    <div>
+        <h1 style="margin:0; font-size:1.8rem; font-weight:800; color:var(--text-color);">🛠️ Admin Control Panel</h1>
+        <p style="margin:4px 0 0 0; color:var(--sidebar-text); font-size:0.9rem;">Manage website properties, advanced thresholds, and run centralized data exports</p>
+    </div>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+</div>
+
+{% if messages %}
+<div style="margin-bottom: 2rem;">
+    {% for message in messages %}
+    <div style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; {% if message.tags == 'success' %}background-color: var(--success); color: white;{% else %}background-color: var(--error); color: white;{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="admin-tabs">
+    <button class="admin-tab-btn active" onclick="switchAdminTab('settings', this)">🌐 General & Advanced Settings</button>
+    <button class="admin-tab-btn" onclick="switchAdminTab('exports', this)">📥 Central Data Exports</button>
+</div>
+
+<!-- TAB 1: SETTINGS -->
+<div id="tab-settings" class="tab-content active">
+    <div class="card" style="max-width: 700px; margin: 0 auto; padding: 2rem;">
+        <h3 style="margin-top:0; font-size:1.2rem; color:var(--text-color); border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:1.5rem;">Global Configurations</h3>
+        
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label style="font-weight: 700; font-size:0.85rem; color:var(--sidebar-text); text-transform:uppercase;">Website Title</label>
+                    <input type="text" name="website_name" class="form-control" value="{{ settings.website_name }}" style="padding: 10px; font-size:0.95rem;" required>
+                    <small style="color: var(--sidebar-text); display: block; margin-top: 0.4rem;">This will be displayed in the sidebar and dashboard headers globally.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size:0.85rem; color:var(--sidebar-text); text-transform:uppercase;">Trash Retention (Days)</label>
+                    <input type="number" name="trash_retention_days" class="form-control" value="{{ settings.trash_retention_days }}" min="1" style="padding: 10px; font-size:0.95rem;" required>
+                    <small style="color: var(--sidebar-text); display: block; margin-top: 0.4rem;">Days before items in trash are permanently deleted.</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size:0.85rem; color:var(--sidebar-text); text-transform:uppercase;">Document Expiry Threshold (Days)</label>
+                    <input type="number" name="doc_expiry_threshold" class="form-control" value="{{ settings.doc_expiry_threshold }}" min="1" style="padding: 10px; font-size:0.95rem;" required>
+                    <small style="color: var(--sidebar-text); display: block; margin-top: 0.4rem;">Default lookahead warning period for expiring documents.</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size:0.85rem; color:var(--sidebar-text); text-transform:uppercase;">Default Shift Duration (Hours)</label>
+                    <input type="number" name="default_working_shift_hours" class="form-control" value="{{ settings.default_working_shift_hours }}" min="1" style="padding: 10px; font-size:0.95rem;" required>
+                    <small style="color: var(--sidebar-text); display: block; margin-top: 0.4rem;">Normal default shift length for duty rosters.</small>
+                </div>
+
+                <div class="form-group" style="display:flex; flex-direction:column; gap:12px; justify-content:center;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; font-size:0.9rem; color:var(--text-color);">
+                        <input type="checkbox" name="enable_low_stock_alerts" value="1" {% if settings.enable_low_stock_alerts %}checked{% endif %}>
+                        Enable Low Stock Alerts
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; font-size:0.9rem; color:var(--text-color);">
+                        <input type="checkbox" name="enable_email_notifications" value="1" {% if settings.enable_email_notifications %}checked{% endif %}>
+                        Enable Global Email Alerts
+                    </label>
+                </div>
+
+                <div class="form-group" style="grid-column: span 2; border-top:1px solid var(--border); padding-top:1.5rem; margin-top:0.5rem;">
+                    <label style="font-weight: 700; font-size:0.85rem; color:var(--sidebar-text); text-transform:uppercase;">Upload New Logo Image</label>
+                    <input type="file" name="logo" class="form-control" accept="image/*" style="padding: 8px;">
+                    {% if settings.logo %}
+                    <div style="margin-top: 1rem; display: flex; align-items: center; gap: 1.5rem; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <img src="{{ settings.logo.url }}" alt="Logo" style="max-height: 50px; border-radius: 6px; box-shadow: var(--shadow-sm);">
+                        <div>
+                            <label style="color: var(--error); display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">
+                                <input type="checkbox" name="delete_logo" value="1">
+                                Delete Current Logo
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight:700; margin-top:2rem; border:none; border-radius:8px; cursor:pointer;">💾 Save Configurations</button>
+        </form>
+    </div>
+</div>
+
+<!-- TAB 2: EXPORTS -->
+<div id="tab-exports" class="tab-content">
+    
+    <!-- 💾 FULL SYSTEM DATABASE & MEDIA BACKUP (ZIP ARCHIVE) -->
+    <div style="background: linear-gradient(135deg, rgba(5, 150, 105, 0.08), rgba(16, 185, 129, 0.12)); border: 2px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: #059669; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                📦 Data Protection & Disaster Recovery
+            </div>
+            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-color);">
+                💾 Complete Server Database &amp; Media Backup (.ZIP)
+            </h3>
+            <p style="margin: 4px 0 0 0; color: var(--sidebar-text); font-size: 0.85rem;">
+                Download a live encrypted ZIP snapshot containing <code>db.sqlite3</code>, all uploaded documents/images (<code>media/</code>), and master employee records.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'download_system_backup' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #059669, #10b981); border: none; font-weight: 800; font-size: 0.95rem; padding: 10px 20px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                <i class="fas fa-cloud-arrow-down"></i> Download System Backup
+            </a>
+        </div>
+    </div>
+
+    <!-- 👑 TOP HERO: MASTER EXECUTIVE ALL-IN-ONE WORKBOOK (ADMIN SUPER EXPORT) -->
+    <div style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.08), rgba(59, 130, 246, 0.12)); border: 2px solid rgba(59, 130, 246, 0.35); border-radius: 14px; padding: 1.75rem; margin-bottom: 2rem; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 1.25rem;">
+            <div>
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--primary); color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    👑 Admin Super Power
+                </div>
+                <h3 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-color);">
+                    🚀 Master Executive All-in-One Multi-Sheet Workbook
+                </h3>
+                <p style="margin: 4px 0 0 0; color: var(--sidebar-text); font-size: 0.88rem;">
+                    Download a single comprehensive multi-tab Excel spreadsheet containing all department datasets compiled together.
+                </p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="toggleAllAuditModules(true)" class="btn btn-sm btn-outline" style="font-size: 0.78rem; padding: 4px 10px;">✅ Select All</button>
+                <button type="button" onclick="toggleAllAuditModules(false)" class="btn btn-sm btn-outline" style="font-size: 0.78rem; padding: 4px 10px;">❌ Clear All</button>
+            </div>
+        </div>
+
+        <!-- Global Filters for Master Workbook -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 1.25rem; background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
+            <div>
+                <label class="export-form-label">Global Date From</label>
+                <input type="date" id="audit_date_from" class="form-control" style="font-size: 0.85rem; padding: 6px 10px;">
+            </div>
+            <div>
+                <label class="export-form-label">Global Date To</label>
+                <input type="date" id="audit_date_to" class="form-control" style="font-size: 0.85rem; padding: 6px 10px;">
+            </div>
+            <div style="grid-column: span 2;">
+                <label class="export-form-label">Report Document Title</label>
+                <input type="text" id="audit_title" class="form-control" value="P&M Corporate Executive Master Audit Report" style="font-size: 0.85rem; padding: 6px 10px;">
+            </div>
+        </div>
+
+        <!-- Module Checkboxes Grid -->
+        <div style="margin-bottom: 1.5rem;">
+            <div class="export-form-label" style="margin-bottom: 8px;">Select Modules to Include in Master Workbook:</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_deployment" checked>
+                    <span>📋 Daily Deployment Register</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_lubricants" checked>
+                    <span>🛢️ Lubricants Consumed Ledger</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_tyre" checked>
+                    <span>🛞 Tyre Fitment & Debit Notes</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_spares" checked>
+                    <span>⚙️ Spare Parts Stock Ledger</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_vehicles" checked>
+                    <span>🚜 Machinery & Vehicle Fleet</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_emp" checked>
+                    <span>👥 Workforce & Employees</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_docs" checked>
+                    <span>⚠️ Expiries & Compliance Alerts</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-color);">
+                    <input type="checkbox" class="audit-module-cb" id="audit_mod_movements" checked>
+                    <span>🗺️ Vehicle Movements Logs</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Master Export Actions -->
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="button" onclick="triggerCombinedAudit('excel')" id="btn-master-excel" class="export-btn export-btn-excel" style="padding: 12px 24px; font-size: 0.95rem; border-radius: 10px; flex: 2; min-width: 260px;">
+                <i class="fas fa-file-excel"></i> Download Master Excel Workbook (.xlsx)
+            </button>
+            <button type="button" onclick="triggerCombinedAudit('pdf')" id="btn-master-pdf" class="export-btn export-btn-pdf" style="padding: 12px 24px; font-size: 0.95rem; border-radius: 10px; flex: 1; min-width: 220px;">
+                <i class="fas fa-file-pdf"></i> Generate Executive PDF Dossier
+            </button>
+        </div>
+    </div>
+
+    <!-- SECTION TITLE: MODULAR EXPORTS -->
+    <div style="margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-color);">
+            📑 Individual Module Export Cards (With Dedicated Advanced Filters)
+        </h3>
+        <p style="margin: 4px 0 0 0; color: var(--sidebar-text); font-size: 0.85rem;">
+            Export filtered subsets of specific operational modules with full column and date criteria.
+        </p>
+    </div>
+
+    <!-- GRID OF MODULE EXPORT CARDS -->
+    <div class="export-grid">
+        
+        <!-- 1. DAILY DEPLOYMENT & OPERATOR ALLOCATION -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">📋 Daily Deployment & Captain Allocation</h4>
+                <p class="export-card-desc">Download complete daily operator, driver, vehicle, and work order deployment log registers</p>
+                <form action="{% url 'export_allocation_excel' %}" method="GET" id="form-export-deployment">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="date_from" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="date_to" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                            <div>
+                                <div class="export-form-label">Shift</div>
+                                <select name="shift" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                    <option value="All">All Shifts</option>
+                                    <option value="Day">Day</option>
+                                    <option value="Night">Night</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="export-form-label">Category</div>
+                                <select name="category" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                    <option value="All">All Categories</option>
+                                    {% for c in machinery_categories %}
+                                    <option value="{{ c }}">{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Location / Zone</div>
+                            <select name="zone" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="All">All Locations & Zones</option>
+                                {% for loc in locations %}
+                                <option value="{{ loc }}">{{ loc }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Driver / Operator</div>
+                            <select name="driver" class="form-control select2" style="width:100%;">
+                                <option value="All">-- All Operators / Drivers --</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.name }}">{{ emp.name }} ({{ emp.emp_id|default:"No ID" }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Filter Vehicle</div>
+                            <select name="q" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Vehicles / Machinery --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.regn }}">{{ v.regn }} - {{ v.model_name|default:"Equipment" }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-deployment" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Export</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'export_allocation_pdf' %}', 'form-export-deployment')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 2. LUBRICANTS & OILS CONSUMED -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">🛢️ Lubricants & Oils Consumed</h4>
+                <p class="export-card-desc">Download log ledger of engine oils, hydraulic oils, greases, rates, and manpower costs</p>
+                <form action="{% url 'fleet:api_export_lubrication' %}" method="GET" id="form-export-lubricants">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="start_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="end_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Select Vehicle</div>
+                            <select name="vehicle_id" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Machinery --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}">{{ v.regn }} ({{ v.model_name|default:"Equipment" }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Oil / Particulars</div>
+                            <select name="oil_type" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Oil Types --</option>
+                                {% for o in oil_types %}
+                                <option value="{{ o }}">{{ o }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                            <div>
+                                <div class="export-form-label">Vendor</div>
+                                <select name="vendor" class="form-control select2" style="width:100%;">
+                                    <option value="">-- All Vendors --</option>
+                                    {% for ven in vendors %}
+                                    <option value="{{ ven }}">{{ ven }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <div class="export-form-label">Location</div>
+                                <select name="location" class="form-control select2" style="width:100%;">
+                                    <option value="">-- All Locations --</option>
+                                    {% for loc in locations %}
+                                    <option value="{{ loc }}">{{ loc }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Work Order No</div>
+                            <input type="text" name="work_order_no" class="form-control" placeholder="Search WO No..." style="font-size:0.8rem; padding:6px;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-lubricants" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Export</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'fleet:api_export_lubrication_pdf' %}', 'form-export-lubricants')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 3. TYRE SECTION FITMENT & DEBIT NOTES -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">🛞 Tyre Section Fitment & Debit Notes</h4>
+                <p class="export-card-desc">Export logs of tyre punctures, patches, nozzles, fitting costs, and vendor debit note registers</p>
+                <form action="{% url 'fleet:api_export_tyre' %}" method="GET" id="form-export-tyres">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="start_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="end_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Select Vehicle</div>
+                            <select name="vehicle_id" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Machinery --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}">{{ v.regn }} ({{ v.model_name|default:"Equipment" }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Vendor / Billing Party</div>
+                            <select name="vendor" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Vendors --</option>
+                                {% for ven in vendors %}
+                                <option value="{{ ven }}">{{ ven }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                            <div>
+                                <div class="export-form-label">Location</div>
+                                <select name="location" class="form-control select2" style="width:100%;">
+                                    <option value="">-- All Locations --</option>
+                                    {% for loc in locations %}
+                                    <option value="{{ loc }}">{{ loc }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <div class="export-form-label">Work Order No</div>
+                                <input type="text" name="work_order_no" class="form-control" placeholder="Search WO..." style="font-size:0.8rem; padding:6px;">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-tyres" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Export</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'fleet:api_export_tyre_pdf' %}', 'form-export-tyres')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 4. SPARE PARTS INVENTORY & TRANSACTIONS -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">⚙️ Spare Parts Inventory & Stock Ledger</h4>
+                <p class="export-card-desc">Download complete audit list of spare parts transactions, stock IN purchases, and fitted OUT issues</p>
+                <form action="{% url 'fleet:export_spare_parts' %}" method="GET" id="form-export-spares">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="start_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="end_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Transaction Type</div>
+                            <select name="transaction_type" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="">All Transactions (STOCK IN & OUT)</option>
+                                <option value="IN">STOCK IN (Purchased / Received)</option>
+                                <option value="OUT">STOCK OUT (Issued / Fitted to Machine)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Filter Part / SKU</div>
+                            <select name="part_id" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Spare Parts --</option>
+                                {% for p in parts %}
+                                <option value="{{ p.id }}">{{ p.part_number }} - {{ p.part_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Assigned Vehicle</div>
+                            <select name="vehicle_id" class="form-control select2" style="width:100%;">
+                                <option value="">-- All Machinery --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}">{{ v.regn }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Supplier / Vendor</div>
+                            <input type="text" name="vendor_name" class="form-control" placeholder="Search supplier or vendor..." style="font-size:0.8rem; padding:6px;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-spares" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Export</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'fleet:export_spare_parts_pdf' %}', 'form-export-spares')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 5. MACHINERY & VEHICLE MASTER FLEET -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">🚜 Machinery & Vehicle Master Fleet</h4>
+                <p class="export-card-desc">Download complete master catalog of machinery including owned in-house and hired subcontractor equipment</p>
+                <form action="{% url 'fleet:export_vehicles_excel' %}" method="GET" id="form-export-vehicles">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Ownership Type</div>
+                            <select name="type" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="all">All Vehicles (Inhouse Owned + Hired)</option>
+                                <option value="inhouse">Inhouse Owned Machinery</option>
+                                <option value="hired">Hired / Subcontractor Machinery</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Department / Category</div>
+                            <select name="department" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="ALL">All Departments</option>
+                                {% for d in departments %}
+                                <option value="{{ d.name }}">{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Operating Status</div>
+                            <select name="status" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="ALL">All Statuses</option>
+                                <option value="Operational">Operational / Active</option>
+                                <option value="Breakdown">Breakdown</option>
+                                <option value="Maintenance">Under Maintenance</option>
+                                <option value="Idle">Idle / Standby</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-vehicles" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Catalog</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'fleet:export_vehicles_pdf' %}', 'form-export-vehicles')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 6. EMPLOYEES & WORKFORCE DIRECTORY -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">👥 Workforce & Employees Master Directory</h4>
+                <p class="export-card-desc">Download complete directory of company employees, operators, work permits, and contact registers</p>
+                <form action="{% url 'export_employees_excel' %}" method="GET" id="form-export-employees">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Worker Type / Nationality</div>
+                            <select name="worker_type" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="all">All Employees (National + Foreign)</option>
+                                <option value="national">National / Bhutanese</option>
+                                <option value="foreign">Foreign / Indian / Expats</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Department</div>
+                            <select name="department" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="">All Departments</option>
+                                {% for d in departments %}
+                                <option value="{{ d.name }}">{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Employee Status</div>
+                            <select name="status" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="all">All Statuses</option>
+                                <option value="Active">Active Duty</option>
+                                <option value="Inactive">Inactive / Resigned</option>
+                                <option value="On Leave">On Leave</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-employees" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Directory</button>
+                <a href="#" onclick="triggerPdfExport('{% url 'export_employees_pdf' %}', 'form-export-employees')" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</a>
+            </div>
+        </div>
+
+        <!-- 7. VEHICLE MOVEMENTS & TRANSIT REGISTER -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">🗺️ Vehicle Movements & Transit Register</h4>
+                <p class="export-card-desc">Export logs tracking machinery trips, site transits, destinations, and shift movements</p>
+                <form action="{% url 'fleet:movements_export' %}" method="GET" id="form-export-movements">
+                    <input type="hidden" name="format" id="movements_export_format" value="excel">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="start_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="end_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Vehicle Registration No</div>
+                            <input type="text" name="vehicle_number" class="form-control" placeholder="e.g. BP-2-A0388" style="font-size:0.8rem; padding:6px;">
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                            <div>
+                                <div class="export-form-label">Shift</div>
+                                <select name="shift" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                    <option value="">All Shifts</option>
+                                    <option value="Day">Day</option>
+                                    <option value="Night">Night</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="export-form-label">Destination</div>
+                                <input type="text" name="destination" class="form-control" placeholder="Destination..." style="font-size:0.8rem; padding:6px;">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions">
+                <button type="submit" form="form-export-movements" onclick="document.getElementById('movements_export_format').value='excel';" class="export-btn export-btn-excel"><i class="fas fa-file-excel"></i> Excel Export</button>
+                <button type="submit" form="form-export-movements" onclick="document.getElementById('movements_export_format').value='pdf'; form.target='_blank';" class="export-btn export-btn-pdf"><i class="fas fa-file-pdf"></i> PDF / Print</button>
+            </div>
+        </div>
+
+        <!-- 8. SHIFT ROSTERS & WORK LOGS -->
+        <div class="export-card">
+            <div>
+                <h4 class="export-card-title">⏰ Shift Rosters & Work Logs</h4>
+                <p class="export-card-desc">Export employee shift rosters, working hours, and duty history sheets</p>
+                <form action="{% url 'export_shifts' %}" method="GET" id="form-export-shifts">
+                    <div class="export-card-filters">
+                        <div>
+                            <div class="export-form-label">Date Range</div>
+                            <div style="display:flex; gap:6px;">
+                                <input type="date" name="start_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                                <input type="date" name="end_date" class="form-control" style="flex:1; padding:6px; font-size:0.8rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="export-form-label">Shift Type</div>
+                            <select name="shift_type" class="form-control" style="font-size:0.8rem; padding:6px;">
+                                <option value="">All Shifts</option>
+                                <option value="Day">Day Shift</option>
+                                <option value="Night">Night Shift</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="export-actions" style="margin-top: auto;">
+                <button type="submit" form="form-export-shifts" class="export-btn export-btn-excel" style="width: 100%;"><i class="fas fa-file-excel"></i> Export Excel Roster</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%',
+            dropdownParent: $('#tab-exports')
+        });
+    });
+
+    function switchAdminTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.style.display = 'none';
+            el.classList.remove('active');
+        });
+        document.querySelectorAll('.admin-tab-btn').forEach(el => {
+            el.classList.remove('active');
+        });
+        
+        document.getElementById('tab-' + tabId).style.display = 'block';
+        document.getElementById('tab-' + tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function toggleAllAuditModules(checked) {
+        document.querySelectorAll('.audit-module-cb').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+
+    function triggerPdfExport(pdfUrl, formId) {
+        const form = document.getElementById(formId);
+        const originalAction = form.action;
+        const originalTarget = form.target;
+        
+        form.action = pdfUrl;
+        form.target = '_blank';
+        form.submit();
+        
+        form.action = originalAction;
+        form.target = originalTarget;
+    }
+
+    function triggerCombinedAudit(format) {
+        const modules = {};
+        
+        if (document.getElementById('audit_mod_deployment').checked) modules['deployment'] = {};
+        if (document.getElementById('audit_mod_lubricants').checked) modules['lubricants'] = {};
+        if (document.getElementById('audit_mod_tyre').checked) modules['tyre'] = {};
+        if (document.getElementById('audit_mod_spares').checked) modules['spares'] = {};
+        if (document.getElementById('audit_mod_vehicles').checked) modules['vehicles'] = {};
+        if (document.getElementById('audit_mod_emp').checked) modules['employees'] = {};
+        if (document.getElementById('audit_mod_docs').checked) modules['documents'] = {};
+        if (document.getElementById('audit_mod_movements').checked) modules['movements'] = {};
+
+        if (Object.keys(modules).length === 0) {
+            alert('Please select at least one module to include in the report.');
+            return;
+        }
+
+        const reportTitle = document.getElementById('audit_title').value.trim() || 'P&M Corporate Executive Report';
+        const startDate = document.getElementById('audit_date_from').value;
+        const endDate = document.getElementById('audit_date_to').value;
+
+        // Button feedback
+        const btnId = (format === 'excel') ? 'btn-master-excel' : 'btn-master-pdf';
+        const btn = document.getElementById(btnId);
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Report...';
+
+        if (format === 'pdf') {
+            // For PDF, open in new tab via POST form or blob
+            fetch('{% url "export_portal_data" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    format: 'pdf',
+                    modules: modules,
+                    report_title: reportTitle,
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            })
+            .then(res => res.text())
+            .then(html => {
+                const win = window.open('', '_blank');
+                win.document.write(html);
+                win.document.close();
+            })
+            .catch(err => alert('PDF generation error: ' + err.message))
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+            return;
+        }
+
+        // Excel format download
+        fetch('{% url "export_portal_data" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                format: 'excel',
+                modules: modules,
+                report_title: reportTitle,
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Report generation failed');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const cleanTitle = reportTitle.replace(/[^A-Za-z0-9_]/g, '_');
+            a.download = cleanTitle + '_' + new Date().toISOString().split('T')[0] + '.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(err => alert(err.message))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,990 @@
+{% extends 'base.html' %}
+
+{% block title %}Shift Management - P&M Portal
+
+<!-- Edit Modals -->
+{% for emp in employees %}
+<div id="editEmployeeModal_{{ emp.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+            <div class="card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <h3>Edit Employee Details</h3>
+                <form action="{% url 'edit_employee_action' emp.id %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div><label>Name</label><input type="text" name="name" class="form-control" value="{{ emp.name|default:'' }}"></div>
+                        <div><label>Employee ID</label><input type="text" name="emp_id" class="form-control" value="{{ emp.emp_id|default:'' }}"></div>
+                        <div><label>Nationality</label><input type="text" name="nationality" class="form-control" value="{{ emp.nationality|default:'' }}"></div>
+                        <div><label>Designation</label><input type="text" name="designation" class="form-control" value="{{ emp.designation|default:'' }}"></div>
+                        <div><label>Department</label><input type="text" name="department" class="form-control" value="{{ emp.department|default:'' }}"></div>
+                        <div><label>Joining Date</label><input type="date" name="joining_date" class="form-control" value="{{ emp.joining_date|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Work Permit Number</label><input type="text" name="work_permit_no" class="form-control" value="{{ emp.work_permit_no|default:'' }}"></div>
+                        <div><label>Valid upto (Expiry)</label><input type="date" name="work_permit_expiry" class="form-control" value="{{ emp.work_permit_expiry|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Passport/ID Details</label><input type="text" name="passport_details" class="form-control" value="{{ emp.passport_details|default:'' }}"></div>
+                        <div><label>Contact Number</label><input type="text" name="contact_info" class="form-control" value="{{ emp.contact_info|default:'' }}"></div>
+                        <div><label>Employment Status</label>
+                            <select name="status" class="form-control">
+                                <option value="Active" {% if emp.status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="On Leave" {% if emp.status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                                <option value="Terminated" {% if emp.status == 'Terminated' %}selected{% endif %}>Terminated</option>
+                            </select>
+                        </div>
+                        <div><label>Contractor / Agency</label><input type="text" name="contractor_agency" class="form-control" value="{{ emp.contractor_agency|default:'' }}"></div>
+                        <div style="grid-column: 1/-1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <label>Document Type</label>
+            <select name="document_type" class="form-control">
+                <option value="General Document" {% if emp.document_type == 'General Document' %}selected{% endif %}>General Document</option>
+                <option value="Passport" {% if emp.document_type == 'Passport' %}selected{% endif %}>Passport</option>
+                <option value="Work Permit" {% if emp.document_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
+                <option value="Medical Certificate" {% if emp.document_type == 'Medical Certificate' %}selected{% endif %}>Medical Certificate</option>
+                <option value="ID Card" {% if emp.document_type == 'ID Card' %}selected{% endif %}>ID Card</option>
+                <option value="Contract" {% if emp.document_type == 'Contract' %}selected{% endif %}>Contract</option>
+                <option value="Driving License" {% if emp.document_type == 'Driving License' %}selected{% endif %}>Driving License</option>
+            </select>
+        </div>
+        <div>
+            <label>Document Upload</label>
+            <input type="file" name="document_upload" class="form-control">
+            {% if emp.document_upload %}<small>Current: <a href="{{ emp.document_upload.url }}" target="_blank">View {{ emp.document_type|default:'Document' }}</a></small>{% endif %}
+        </div>
+    </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Update Employee</button>
+                        <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'editEmployeeModal_{{ emp.id }}')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block content %}
+<!-- Hidden inputs for live-poll JS -->
+<input type="hidden" id="emp-latest-id" value="{{ latest_emp_id }}">
+<input type="hidden" id="emp-total-count" value="{{ total_emps }}">
+
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+</div>
+
+<div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h2 style="margin: 0; color: var(--text-color);">Shift Management (Manpower)</h2>
+        <p style="margin: 5px 0 0; color: var(--text-secondary);">Manage Day/Night shifts and roles for P&M Department employees.</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div class="view-toggles" style="background: var(--bg-subtle); padding: 5px; border-radius: 8px; display: flex; gap: 5px;">
+            <button class="view-btn active" id="btn-grid" onclick="switchView('grid')" title="Grid View" style="border:none; padding:8px 12px; border-radius:6px; cursor:pointer; background:var(--card-bg); box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                <i class="fas fa-th-large"></i> Grid
+            </button>
+            <button class="view-btn" id="btn-list" onclick="switchView('list')" title="List View" style="border:none; padding:8px 12px; border-radius:6px; cursor:pointer; background:transparent;">
+                <i class="fas fa-list"></i> List
+            </button>
+        </div>
+        
+        <button class="btn btn-outline" onclick="document.getElementById('importShiftModal').style.display='flex'" style="background:var(--success); color:white; border:none; padding:10px 15px; border-radius:8px; font-weight:600; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <i class="fas fa-file-excel"></i> Bulk Upload Shifts
+        </button>
+        <button type="button" onclick="openShiftsExportModal()" class="btn btn-outline" style="background:#8b5cf6; color:white; border:none; padding:10px 15px; border-radius:8px; font-weight:600; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <i class="fas fa-download"></i> Advanced Report
+        </button>
+    </div>
+</div>
+
+<!-- Live Filters -->
+<div class="filter-bar" style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
+    <div class="filter-group" style="flex: 2;">
+        <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-secondary);"><i class="fas fa-search"></i> Search Employee</label>
+        <input type="text" id="liveSearchInput" class="form-control" placeholder="Search by name, ID, designation..." style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--border);">
+    </div>
+    <div class="filter-group" style="flex: 1;">
+        <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-secondary);"><i class="fas fa-filter"></i> Filter by Shift</label>
+        <select id="shiftFilter" class="form-control" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--border);">
+            <option value="">All Shifts</option>
+            <option value="Day">Day Shift</option>
+            <option value="Night">Night Shift</option>
+            
+            <option value="Unassigned">Unassigned</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <button onclick="clearLiveFilters()" class="btn btn-outline" style="padding: 0.75rem 1.5rem; border-radius:8px;">Clear Filters</button>
+    </div>
+</div>
+
+
+<!-- Bulk Action Toolbar -->
+<div class="bulk-action-bar" style="background: var(--card-bg); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+    <div>
+        <input type="checkbox" id="bulk-select-all" onclick="toggleAllCheckboxes(this)" style="transform: scale(1.2); margin-right: 10px; cursor: pointer;">
+        <label for="bulk-select-all" style="font-weight: 600; color: var(--text-primary); cursor: pointer;">Select All</label>
+        <span id="bulk-count" style="margin-left: 15px; color: var(--text-secondary); font-size: 0.9rem;">0 selected</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button onclick="bulkUpdateShift('Day')" class="btn btn-outline" style="background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <i class="fas fa-sun"></i> Set Day Shift
+        </button>
+        <button onclick="bulkUpdateShift('Night')" class="btn btn-outline" style="background: #6366f1; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <i class="fas fa-moon"></i> Set Night Shift
+        </button>
+    </div>
+</div>
+
+<!-- Grid View -->
+<div id="grid-view">
+    <div class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        {% for emp in employees %}
+        
+        {% if emp.current_shift == 'Night' %}
+            <div id="emp-card-{{ emp.id }}" class="card grid-item-card" data-shift="Night" style="background: #1e293b; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 5px solid #6366f1; color: #f8fafc; position: relative; overflow: hidden;">
+                <!-- Night Icon watermark -->
+                <i class="fas fa-moon" style="position: absolute; right: -15px; bottom: -20px; font-size: 100px; color: rgba(255,255,255,0.03); transform: rotate(-15deg);"></i>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.2rem; color: #f8fafc; display:flex; align-items:center;"><input type="checkbox" class="bulk-shift-checkbox" value="{{ emp.id }}" style="margin-right:10px; transform:scale(1.3); accent-color:#6366f1; cursor:pointer;" onchange="updateBulkCount()"> {{ emp.name }}</h3>
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">{{ emp.emp_id|default:"No ID" }}</div>
+                    </div>
+                    <span style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 0 10px rgba(99,102,241,0.2);">
+                        <i class="fas fa-moon"></i> NIGHT SHIFT
+                    </span>
+                </div>
+                
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; position: relative; z-index: 1;">
+                    <strong style="color: #cbd5e1;">Designation:</strong> <span style="color: #f1f5f9;">{{ emp.designation|default:"N/A" }}</span>
+                </div>
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; position: relative; z-index: 1;">
+                    <strong style="color: #cbd5e1;">Vehicle:</strong> <span style="color: #67e8f9; font-weight: 600;">{% if emp.assigned_vehicle %}🚛 {{ emp.assigned_vehicle.name }} ({{ emp.assigned_vehicle.number }}){% else %}-{% endif %}</span>
+                </div>
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; min-height: 40px; position: relative; z-index: 1;">
+                    <strong style="color: #cbd5e1;">Role/Remarks:</strong> <span style="color: #f1f5f9;">{{ emp.shift_remarks|default:"-" }}</span>
+                </div>
+                <div style="font-size: 0.78rem; margin-bottom: 1rem; color: #a5b4fc; position: relative; z-index: 1;">
+                    👤 Entered By: <span style="font-weight: 600;">{% if emp.entered_by %}{{ emp.entered_by.full_name|default:emp.entered_by.username }}{% else %}System{% endif %}</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px; position: relative; z-index: 1;">
+                    <button onclick="openShiftModal('{{ emp.id }}', '{{ emp.name|escapejs }}', 'Night', '{{ emp.shift_remarks|default:''|escapejs }}', '{{ emp.emp_id|default:''|escapejs }}', '{{ emp.designation|default:''|escapejs }}', '{{ emp.assigned_vehicle.id|default:'' }}')" style="flex: 1; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-clock"></i> Shift
+                    </button>
+                    <button onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'" style="flex: 1; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-user-edit"></i> Edit
+                    </button>
+                </div>
+            </div>
+            
+        {% else %}
+            <div id="emp-card-{{ emp.id }}" class="card grid-item-card" data-shift="Day" style="background: #fffbeb; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15); border-top: 5px solid #f59e0b; color: #1e293b; position: relative; overflow: hidden;">
+                <!-- Day Icon watermark -->
+                <i class="fas fa-sun" style="position: absolute; right: -20px; bottom: -20px; font-size: 110px; color: rgba(245, 158, 11, 0.05);"></i>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.2rem; color: #1e293b; display:flex; align-items:center;"><input type="checkbox" class="bulk-shift-checkbox" value="{{ emp.id }}" style="margin-right:10px; transform:scale(1.3); accent-color:#f59e0b; cursor:pointer;" onchange="updateBulkCount()"> {{ emp.name }}</h3>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ emp.emp_id|default:"No ID" }}</div>
+                    </div>
+                    <span style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                        <i class="fas fa-sun"></i> DAY SHIFT
+                    </span>
+                </div>
+                
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; position: relative; z-index: 1;">
+                    <strong style="color: #475569;">Designation:</strong> <span style="color: #0f172a;">{{ emp.designation|default:"N/A" }}</span>
+                </div>
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; position: relative; z-index: 1;">
+                    <strong style="color: #475569;">Vehicle:</strong> <span style="color: #b45309; font-weight: 600;">{% if emp.assigned_vehicle %}🚛 {{ emp.assigned_vehicle.name }} ({{ emp.assigned_vehicle.number }}){% else %}-{% endif %}</span>
+                </div>
+                <div style="font-size: 0.95rem; margin-bottom: 0.5rem; min-height: 40px; position: relative; z-index: 1;">
+                    <strong style="color: #475569;">Role/Remarks:</strong> <span style="color: #0f172a;">{{ emp.shift_remarks|default:"-" }}</span>
+                </div>
+                <div style="font-size: 0.78rem; margin-bottom: 1rem; color: #b45309; position: relative; z-index: 1;">
+                    👤 Entered By: <span style="font-weight: 600;">{% if emp.entered_by %}{{ emp.entered_by.full_name|default:emp.entered_by.username }}{% else %}System{% endif %}</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px; position: relative; z-index: 1;">
+                    <button onclick="openShiftModal('{{ emp.id }}', '{{ emp.name|escapejs }}', 'Day', '{{ emp.shift_remarks|default:''|escapejs }}', '{{ emp.emp_id|default:''|escapejs }}', '{{ emp.designation|default:''|escapejs }}', '{{ emp.assigned_vehicle.id|default:'' }}')" style="flex: 1; border-radius: 8px; background: white; border: 1px solid #fcd34d; color: #d97706; padding: 8px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-clock"></i> Shift
+                    </button>
+                    <button onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'" style="flex: 1; border-radius: 8px; background: white; border: 1px solid #cbd5e1; color: #1e293b; padding: 8px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-user-edit"></i> Edit
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);">
+            No employees found.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- List View -->
+<div id="list-view" style="display: none;">
+    <div class="card" style="background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: var(--bg-subtle); color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border); width:40px;"></th>
+                          <th style="padding: 1rem; border-bottom: 2px solid var(--border);">SL.NO</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">NAME</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">EMPLOYMENT ID</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">DESIGNATION</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">CURRENT SHIFT</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">ASSIGNED VEHICLE</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">ROLE / REMARKS</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border);">ENTERED BY</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid var(--border); text-align: center;">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="shift-tbody">
+                    {% for emp in employees %}
+                    {% if emp.current_shift == 'Night' %}
+                        <tr id="shift-row-{{ emp.id }}" class="list-item-row" data-shift="Night" style="background-color: #f1f5f9; border-bottom: 2px solid white; border-left: 4px solid #6366f1;">
+                            <td style="padding: 1rem;"><input type="checkbox" class="bulk-shift-checkbox" value="{{ emp.id }}" style="transform:scale(1.3); cursor:pointer;" onchange="updateBulkCount()"></td>
+                              <td style="padding: 1rem; color: #64748b; font-weight: bold;">{{ forloop.counter }}</td>
+                            <td style="padding: 1rem; font-weight: bold; color: #0f172a;">{{ emp.name }}</td>
+                            <td style="padding: 1rem; color: #475569;">{{ emp.emp_id|default:"N/A" }}</td>
+                            <td style="padding: 1rem; color: #1e293b;">{{ emp.designation|default:"N/A" }}</td>
+                            <td style="padding: 1rem;">
+                                <span id="shift-badge-{{ emp.id }}" style="background: #1e293b; color: #818cf8; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
+                                    <i class="fas fa-moon"></i> NIGHT
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; color: #67e8f9; font-weight: 600;">{% if emp.assigned_vehicle %}🚛 {{ emp.assigned_vehicle.name }} ({{ emp.assigned_vehicle.number }}){% else %}-{% endif %}</td>
+                            <td style="padding: 1rem; color: #1e293b;">{{ emp.shift_remarks|default:"-" }}</td>
+                            <td id="entered-by-{{ emp.id }}" style="padding: 1rem; color: #1e293b; font-weight: 500; font-size:0.85rem;">{% if emp.entered_by %}👤 {{ emp.entered_by.full_name|default:emp.entered_by.username }}{% else %}👤 System{% endif %}</td>
+                            <td style="padding: 1rem; text-align: center;">
+                                <div style="display: flex; gap: 5px; justify-content: center;">
+                                    <button onclick="openShiftModal('{{ emp.id }}', '{{ emp.name|escapejs }}', 'Night', '{{ emp.shift_remarks|default:''|escapejs }}', '{{ emp.emp_id|default:''|escapejs }}', '{{ emp.designation|default:''|escapejs }}', '{{ emp.assigned_vehicle.id|default:'' }}')" style="background: white; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #4f46e5; font-weight: bold; font-size: 0.85rem;" title="Change Shift">
+                                        <i class="fas fa-clock"></i> Shift
+                                    </button>
+                                    <button onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'" style="background: white; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #1e293b; font-weight: bold; font-size: 0.85rem;" title="Edit Details">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr id="shift-row-{{ emp.id }}" class="list-item-row" data-shift="Day" style="background-color: #fffbeb; border-bottom: 2px solid white; border-left: 4px solid #f59e0b;">
+                            <td style="padding: 1rem;"><input type="checkbox" class="bulk-shift-checkbox" value="{{ emp.id }}" style="transform:scale(1.3); cursor:pointer;" onchange="updateBulkCount()"></td>
+                              <td style="padding: 1rem; color: #92400e; font-weight: bold;">{{ forloop.counter }}</td>
+                            <td style="padding: 1rem; font-weight: bold; color: #78350f;">{{ emp.name }}</td>
+                            <td style="padding: 1rem; color: #92400e;">{{ emp.emp_id|default:"N/A" }}</td>
+                            <td style="padding: 1rem; color: #78350f;">{{ emp.designation|default:"N/A" }}</td>
+                            <td style="padding: 1rem;">
+                                <span id="shift-badge-{{ emp.id }}" style="background: white; color: #d97706; border: 1px solid #fcd34d; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
+                                    <i class="fas fa-sun"></i> DAY
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; color: #b45309; font-weight: 600;">{% if emp.assigned_vehicle %}🚛 {{ emp.assigned_vehicle.name }} ({{ emp.assigned_vehicle.number }}){% else %}-{% endif %}</td>
+                            <td style="padding: 1rem; color: #78350f;">{{ emp.shift_remarks|default:"-" }}</td>
+                            <td id="entered-by-{{ emp.id }}" style="padding: 1rem; color: #78350f; font-weight: 500; font-size:0.85rem;">{% if emp.entered_by %}👤 {{ emp.entered_by.full_name|default:emp.entered_by.username }}{% else %}👤 System{% endif %}</td>
+                            <td style="padding: 1rem; text-align: center;">
+                                <div style="display: flex; gap: 5px; justify-content: center;">
+                                    <button onclick="openShiftModal('{{ emp.id }}', '{{ emp.name|escapejs }}', 'Day', '{{ emp.shift_remarks|default:''|escapejs }}', '{{ emp.emp_id|default:''|escapejs }}', '{{ emp.designation|default:''|escapejs }}', '{{ emp.assigned_vehicle.id|default:'' }}')" style="background: white; border: 1px solid #fcd34d; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #d97706; font-weight: bold; font-size: 0.85rem;" title="Change Shift">
+                                        <i class="fas fa-clock"></i> Shift
+                                    </button>
+                                    <button onclick="document.getElementById('editEmployeeModal_{{ emp.id }}').style.display='flex'" style="background: white; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #1e293b; font-weight: bold; font-size: 0.85rem;" title="Edit Details">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="padding: 2rem; text-align: center; color: var(--text-secondary);">No employees found in the system. Please add employees first.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- Import Shifts Modal -->
+<div id="importShiftModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 450px; border-radius: 20px; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; border-radius: 20px 20px 0 0;">
+            <h3 style="margin: 0; color: var(--text-color);">Upload Shifts Excel</h3>
+            <button type="button" onclick="document.getElementById('importShiftModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+        <form action="{% url 'import_shifts' %}" method="POST" enctype="multipart/form-data" style="padding: 2rem;">
+            {% csrf_token %}
+            <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                Columns like EMP_ID, CURRENT_SHIFT (Day/Night) and ROLE_REMARKS will be read.
+                <br><br>
+                <a href="{% url 'download_shift_template' %}" style="color: var(--primary); text-decoration: none; font-weight: bold;">
+                    <i class="fas fa-download"></i> Download Sample Excel Format
+                </a>
+            </p>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <input type="file" name="excel_file" accept=".xlsx, .xls, .csv" required class="form-control" style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+            </div>
+            <button type="submit" class="btn" style="width:100%; padding:1rem; background: var(--success); color: white; font-weight: bold; border-radius: 8px;">Upload Shifts Data</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Shift Modal -->
+
+<div id="shiftModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 450px; border-radius: 20px; background: var(--card-bg);">
+        <div style="padding: 1.5rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; border-radius: 20px 20px 0 0;">
+            <h3 style="margin: 0; color: var(--text-color);">Update Shift: <span id="modalEmpName" style="color: var(--primary);"></span></h3>
+            <button onclick="document.getElementById('shiftModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+        <form action="{% url 'update_shift' %}" method="POST" style="padding: 2rem;">
+            {% csrf_token %}
+            <input type="hidden" name="employee_id" id="modalEmpId">
+            
+            <div style="background: rgba(0,0,0,0.03); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Employment ID:</span>
+                    <strong id="modalEmpIdStr" style="color: var(--text-primary);"></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Designation:</span>
+                    <strong id="modalEmpDesignation" style="color: var(--text-primary);"></strong>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Select Shift</label>
+                <select name="shift" id="modalShift" class="form-control" style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                    <option value="Day">Day Shift</option>
+                    <option value="Night">Night Shift</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Assigned Vehicle / Machinery</label>
+                <select name="vehicle_id" id="modalVehicle" class="form-control" style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                    <option value="">-- No Vehicle Assigned --</option>
+                    {% for veh in vehicles %}
+                    <option value="{{ veh.id }}">{{ veh.regn|default:veh.dno }} — {{ veh.dno }}{% if veh.model_name %} ({{ veh.model_name }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Role / Remarks</label>
+                <input type="text" name="remarks" id="modalRemarks" class="form-control" placeholder="e.g., Helps in issuing maintenance Spare parts" style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:1rem; font-weight: bold; border-radius: 8px;">Save Shift Details</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// View Toggle Logic
+function switchView(viewName) {
+    localStorage.setItem('shiftsViewPref', viewName);
+    if(viewName === 'grid') {
+        document.getElementById('grid-view').style.display = 'block';
+        document.getElementById('list-view').style.display = 'none';
+        document.getElementById('btn-grid').style.background = 'var(--card-bg)';
+        document.getElementById('btn-grid').style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        document.getElementById('btn-list').style.background = 'transparent';
+        document.getElementById('btn-list').style.boxShadow = 'none';
+    } else {
+        document.getElementById('grid-view').style.display = 'none';
+        document.getElementById('list-view').style.display = 'block';
+        document.getElementById('btn-list').style.background = 'var(--card-bg)';
+        document.getElementById('btn-list').style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        document.getElementById('btn-grid').style.background = 'transparent';
+        document.getElementById('btn-grid').style.boxShadow = 'none';
+    }
+}
+
+// Modal Logic
+function openShiftModal(id, name, shift, remarks, empIdStr, designation, vehicleId) {
+    document.getElementById('modalEmpId').value = id;
+    document.getElementById('modalEmpName').innerText = name;
+    
+    // Check if fields exist before setting text (backwards compatibility)
+    const elIdStr = document.getElementById('modalEmpIdStr');
+    const elDesig = document.getElementById('modalEmpDesignation');
+    if(elIdStr) elIdStr.innerText = empIdStr || 'N/A';
+    if(elDesig) elDesig.innerText = designation || 'N/A';
+    
+    document.getElementById('modalShift').value = shift;
+    document.getElementById('modalRemarks').value = remarks;
+    
+    const elVehicle = document.getElementById('modalVehicle');
+    if (elVehicle) {
+        elVehicle.value = vehicleId || '';
+    }
+    
+    document.getElementById('shiftModal').style.display = 'flex';
+}
+
+// Live Filter Logic
+function filterData() {
+    const searchStr = document.getElementById('liveSearchInput').value.toLowerCase();
+    const shiftVal = document.getElementById('shiftFilter').value;
+    
+    // Filter Grid Cards
+    const cards = document.querySelectorAll('.grid-item-card');
+    cards.forEach(card => {
+        const textContent = card.innerText.toLowerCase();
+        const shift = card.getAttribute('data-shift');
+        
+        let match = true;
+        if (searchStr && !textContent.includes(searchStr)) match = false;
+        if (shiftVal && shift !== shiftVal) match = false;
+        
+        card.style.display = match ? 'block' : 'none';
+    });
+    
+    // Filter List Rows
+    const rows = document.querySelectorAll('.list-item-row');
+    rows.forEach(row => {
+        const textContent = row.innerText.toLowerCase();
+        const shift = row.getAttribute('data-shift');
+        
+        let match = true;
+        if (searchStr && !textContent.includes(searchStr)) match = false;
+        if (shiftVal && shift !== shiftVal) match = false;
+        
+        row.style.display = match ? 'table-row' : 'none';
+    });
+}
+
+document.getElementById('liveSearchInput').addEventListener('input', filterData);
+document.getElementById('shiftFilter').addEventListener('change', filterData);
+
+function clearLiveFilters() {
+    document.getElementById('liveSearchInput').value = '';
+    document.getElementById('shiftFilter').value = '';
+    filterData();
+}
+
+function toggleAllCheckboxes(source) {
+    const checkboxes = document.querySelectorAll('.bulk-shift-checkbox');
+    checkboxes.forEach(cb => {
+        // only check visible ones (respecting the search/filter)
+        const item = cb.closest('.grid-item-card') || cb.closest('.list-item-row');
+        if(item && item.style.display !== 'none') {
+            cb.checked = source.checked;
+        } else {
+            cb.checked = false; // clear hidden
+        }
+    });
+    updateBulkCount();
+}
+
+function updateBulkCount() {
+    const count = document.querySelectorAll('.bulk-shift-checkbox:checked').length;
+    document.getElementById('bulk-count').textContent = count + ' selected';
+    const master = document.getElementById('bulk-select-all');
+    if(count === 0) master.checked = false;
+}
+
+function bulkUpdateShift(shiftType) {
+    const selected = Array.from(document.querySelectorAll('.bulk-shift-checkbox:checked')).map(cb => cb.value);
+    if(selected.length === 0) {
+        alert("Please select at least one employee.");
+        return;
+    }
+    
+    if(!confirm("Are you sure you want to change shift to " + shiftType + " for " + selected.length + " employees?")) return;
+    
+    const payload = { employee_ids: selected, shift: shiftType };
+    
+    // Show loading toast — always store reference so we can remove it
+    const tempToast = document.createElement('div');
+    tempToast.id = 'shifts-updating-toast';
+    tempToast.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Updating Shifts...';
+    tempToast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#38bdf8; color:white; padding:12px 20px; border-radius:8px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:10000;';
+    document.body.appendChild(tempToast);
+
+    fetch('/api/shifts/bulk-update/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getSafeCsrfToken()
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Server error ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        // Always remove toast first
+        const t = document.getElementById('shifts-updating-toast');
+        if (t) t.remove();
+
+        if(data.status === 'success') {
+            window.location.reload();
+        } else {
+            alert("Error: " + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        const t = document.getElementById('shifts-updating-toast');
+        if (t) t.remove();
+        console.error(err);
+        alert("Error updating shifts: " + err.message);
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const pref = localStorage.getItem('shiftsViewPref') || 'grid';
+    switchView(pref);
+});
+
+function closeModalAndPrevent(event, modalId) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    document.getElementById(modalId).style.display = 'none';
+}
+
+</script>
+
+
+<style>
+    tr.list-item-row:hover {
+        background-color: var(--bg-subtle) !important;
+    }
+</style>
+
+<!-- Advanced Shifts Export Modal -->
+<div id="shiftsExportModal" class="adv-exp-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div class="adv-exp-content" style="background:white; border-radius:12px; width:100%; max-width:600px; padding:0; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="adv-exp-header" style="background:#f8fafc; padding:20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0; font-size:1.25rem; color:#1e293b;"><i class="fa-solid fa-file-export" style="color: #8b5cf6; margin-right:8px;"></i> Export Shifts Report</h2>
+            <span style="font-size:1.5rem; cursor:pointer; color:#64748b;" onclick="closeShiftsExportModal()">&times;</span>
+        </div>
+        
+        <div class="adv-exp-body" style="padding:20px;">
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                    Report Title:
+                </label>
+                <input type="text" id="shift-export-title" class="form-control" value="Employee Shifts Report" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+            </div>
+
+            <div style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                        Filter by Employment Status:
+                    </label>
+                    <select id="shift-emp-status" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                        <option value="all">All Employees</option>
+                        <option value="Active">Active Only</option>
+                        <option value="On Leave">On Leave</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                        Filter by Shift:
+                    </label>
+                    <select id="shift-emp-shift" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                        <option value="all">All Shifts</option>
+                        <option value="Day">Day Shift</option>
+                        <option value="Night">Night Shift</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                    Filter by Designation (Leave blank for all):
+                </label>
+                <select id="shift-emp-designation" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                    <option value="">All Designations</option>
+                    {% for desig in designations %}
+                        <option value="{{ desig }}">{{ desig }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                        Date From:
+                    </label>
+                    <input type="date" id="shift-date-from" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">
+                        Date To:
+                    </label>
+                    <input type="date" id="shift-date-to" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; font-size: 0.95rem; color: #1e293b; display: block; margin-bottom:8px;">Select Columns to Export:</label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <label><input type="checkbox" class="shift-col" value="SL.NO" checked> S.No</label>
+                    <label><input type="checkbox" class="shift-col" value="EMPLOYMENT ID" checked> Employment ID</label>
+                    <label><input type="checkbox" class="shift-col" value="NAME" checked> Name</label>
+                    <label><input type="checkbox" class="shift-col" value="DESIGNATION" checked> Designation</label>
+                    <label><input type="checkbox" class="shift-col" value="CURRENT SHIFT" checked> Current Shift</label>
+                    <label><input type="checkbox" class="shift-col" value="ROLE / REMARKS" checked> Remarks</label>
+                </div>
+            </div>
+        </div>
+        <div class="adv-exp-footer" style="padding:20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:15px;">
+            <button onclick="runShiftsExport('excel')" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;"><i class="fa-solid fa-file-excel"></i> Generate Excel</button>
+            <button onclick="runShiftsExport('pdf')" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;"><i class="fa-solid fa-file-pdf"></i> Generate PDF</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openShiftsExportModal() { document.getElementById('shiftsExportModal').style.display = 'flex'; }
+function closeShiftsExportModal() { document.getElementById('shiftsExportModal').style.display = 'none'; }
+
+function getSafeCsrfToken() {
+    if (typeof getCookie === 'function') {
+        const token = getCookie('csrftoken');
+        if (token) return token;
+    }
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) return input.value;
+    return '{{ csrf_token }}';
+}
+
+function runShiftsExport(format) {
+    const elTitle = document.getElementById('shift-export-title');
+    const elStatus = document.getElementById('shift-emp-status');
+    const elShift = document.getElementById('shift-emp-shift');
+    const elDesig = document.getElementById('shift-emp-designation');
+    const elFrom = document.getElementById('shift-date-from');
+    const elTo = document.getElementById('shift-date-to');
+    
+    const payload = {
+        format: format,
+        report_title: elTitle ? elTitle.value : 'Shifts Report',
+        status: elStatus ? elStatus.value : 'all',
+        shift: elShift ? elShift.value : 'all',
+        designation: elDesig ? elDesig.value : '',
+        date_from: elFrom ? elFrom.value : '',
+        date_to: elTo ? elTo.value : '',
+        columns: Array.from(document.querySelectorAll('.shift-col:checked')).map(cb => cb.value)
+    };
+    
+    if (payload.columns.length === 0) {
+        alert("Please select at least one column.");
+        return;
+    }
+    
+    
+    const tempToast = document.createElement('div');
+    tempToast.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Building ' + format.toUpperCase() + ' Report...';
+    tempToast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#10b981; color:white; padding:12px 20px; border-radius:8px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:10000; transition:opacity 0.3s;';
+    document.body.appendChild(tempToast);
+    setTimeout(() => {
+        tempToast.style.opacity = '0';
+        setTimeout(() => tempToast.remove(), 300);
+    }, 3000);
+
+    
+    fetch('/api/shifts/export/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getSafeCsrfToken()
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(async response => {
+        if (!response.ok) throw new Error('Export failed with status ' + response.status);
+        if (format === 'excel') {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (payload.report_title.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else {
+            const htmlText = await response.text();
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.write(htmlText);
+                win.document.close();
+            } else {
+                alert('Pop-up blocked! Please allow pop-ups.');
+            }
+        }
+        closeShiftsExportModal();
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Error generating report: ' + err.message);
+    });
+}
+
+function toggleAllCheckboxes(source) {
+    const checkboxes = document.querySelectorAll('.bulk-shift-checkbox');
+    checkboxes.forEach(cb => {
+        // only check visible ones (respecting the search/filter)
+        const item = cb.closest('.grid-item-card') || cb.closest('.list-item-row');
+        if(item && item.style.display !== 'none') {
+            cb.checked = source.checked;
+        } else {
+            cb.checked = false; // clear hidden
+        }
+    });
+    updateBulkCount();
+}
+
+function updateBulkCount() {
+    const count = document.querySelectorAll('.bulk-shift-checkbox:checked').length;
+    document.getElementById('bulk-count').textContent = count + ' selected';
+    const master = document.getElementById('bulk-select-all');
+    if(count === 0) master.checked = false;
+}
+
+function bulkUpdateShift(shiftType) {
+    const selected = Array.from(document.querySelectorAll('.bulk-shift-checkbox:checked')).map(cb => cb.value);
+    if(selected.length === 0) {
+        alert("Please select at least one employee.");
+        return;
+    }
+    
+    if(!confirm("Are you sure you want to change shift to " + shiftType + " for " + selected.length + " employees?")) return;
+    
+    const payload = { employee_ids: selected, shift: shiftType };
+    
+    const tempToast = document.createElement('div');
+    tempToast.id = 'shifts-updating-toast';
+    tempToast.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Updating Shifts...';
+    tempToast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#38bdf8; color:white; padding:12px 20px; border-radius:8px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:10000;';
+    document.body.appendChild(tempToast);
+    
+    fetch('/api/shifts/bulk-update/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getSafeCsrfToken()
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Server error ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        const t = document.getElementById('shifts-updating-toast');
+        if (t) t.remove();
+        if(data.status === 'success') {
+            window.location.reload();
+        } else {
+            alert("Error: " + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        const t = document.getElementById('shifts-updating-toast');
+        if (t) t.remove();
+        console.error(err);
+        alert("Error updating shifts: " + err.message);
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const pref = localStorage.getItem('shiftsViewPref') || 'grid';
+    switchView(pref);
+});
+
+function closeModalAndPrevent(event, modalId) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// ---- LIVE DATA: In-place AJAX update for shift changes ----
+(function() {
+    // Store a snapshot of the current shift state keyed by emp id
+    let snapshot = {};
+    let lastServerTs = Date.now() / 1000;
+
+    // Build initial snapshot from current DOM
+    document.querySelectorAll('[id^="shift-row-"]').forEach(row => {
+        const empId = row.id.replace('shift-row-', '');
+        const badge = document.getElementById('shift-badge-' + empId);
+        if (badge) snapshot[empId] = badge.textContent.trim().includes('NIGHT') ? 'Night' : 'Day';
+    });
+
+    function fetchUpdates() {
+        fetch('/api/live/shifts/?since_ts=' + lastServerTs)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.rows) return;
+                let updatedCount = 0;
+
+                data.rows.forEach(emp => {
+                    const prev = snapshot[emp.id];
+                    if (prev === undefined) return; // new employee, handled separately
+                    if (prev === emp.current_shift) return; // no change
+
+                    // Shift changed — update DOM
+                    snapshot[emp.id] = emp.current_shift;
+                    updatedCount++;
+                    const isNight = emp.current_shift === 'Night';
+
+                    // ── List view row: change background + left border ──
+                    const row = document.getElementById('shift-row-' + emp.id);
+                    if (row) {
+                        if (isNight) {
+                            row.style.backgroundColor = '#f1f5f9';
+                            row.style.borderLeft = '4px solid #6366f1';
+                            row.setAttribute('data-shift', 'Night');
+                        } else {
+                            row.style.backgroundColor = '#fffbeb';
+                            row.style.borderLeft = '4px solid #f59e0b';
+                            row.setAttribute('data-shift', 'Day');
+                        }
+                        row.style.animation = 'fadeInRow 0.5s ease';
+                    }
+
+                    // ── Shift badge ──
+                    const badge = document.getElementById('shift-badge-' + emp.id);
+                    if (badge) {
+                        badge.innerHTML = isNight
+                            ? '<i class="fas fa-moon"></i> NIGHT'
+                            : '<i class="fas fa-sun"></i> DAY';
+                        if (isNight) {
+                            badge.style.background = '#1e293b';
+                            badge.style.color = '#818cf8';
+                            badge.style.border = 'none';
+                        } else {
+                            badge.style.background = 'white';
+                            badge.style.color = '#d97706';
+                            badge.style.border = '1px solid #fcd34d';
+                        }
+                    }
+
+                    // ── Entered by ──
+                    const enteredEl = document.getElementById('entered-by-' + emp.id);
+                    if (enteredEl) enteredEl.textContent = '👤 ' + emp.entered_by;
+
+                    // ── Grid card ──
+                    const card = document.getElementById('emp-card-' + emp.id);
+                    if (card) {
+                        if (isNight) {
+                            card.style.background = '#1e293b';
+                            card.style.borderTop = '5px solid #6366f1';
+                            card.setAttribute('data-shift', 'Night');
+                        } else {
+                            card.style.background = '#fffbeb';
+                            card.style.borderTop = '5px solid #f59e0b';
+                            card.setAttribute('data-shift', 'Day');
+                        }
+                    }
+                });
+
+                if (updatedCount > 0) {
+                    lastServerTs = data.server_ts || (Date.now() / 1000);
+                    showLiveBadge(updatedCount + ' shift(s) updated live ✓');
+                }
+            })
+            .catch(() => {});
+    }
+
+    function showLiveBadge(msg) {
+        let badge = document.getElementById('shifts-live-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'shifts-live-badge';
+            badge.style.cssText = 'position:fixed;top:16px;right:16px;background:#0f172a;color:white;padding:8px 18px;border-radius:20px;font-size:0.82rem;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(15,23,42,0.4);transition:opacity 0.3s;';
+            document.body.appendChild(badge);
+        }
+        badge.textContent = msg;
+        badge.style.opacity = '1';
+        badge.style.display = 'block';
+        setTimeout(() => { badge.style.opacity = '0'; setTimeout(() => { badge.style.display = 'none'; }, 300); }, 3000);
+    }
+
+    setInterval(fetchUpdates, 5000);
+})();
+</script>
+
+
+
+
+<!-- Edit Modals -->
+{% for emp in employees %}
+<div id="editEmployeeModal_{{ emp.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+            <div class="card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <h3>Edit Employee Details</h3>
+                <form action="{% url 'edit_employee_action' emp.id %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div><label>Name</label><input type="text" name="name" class="form-control" value="{{ emp.name|default:'' }}"></div>
+                        <div><label>Employee ID</label><input type="text" name="emp_id" class="form-control" value="{{ emp.emp_id|default:'' }}"></div>
+                        <div><label>Nationality</label><input type="text" name="nationality" class="form-control" value="{{ emp.nationality|default:'' }}"></div>
+                        <div><label>Designation</label><input type="text" name="designation" class="form-control" value="{{ emp.designation|default:'' }}"></div>
+                        <div><label>Department</label><input type="text" name="department" class="form-control" value="{{ emp.department|default:'' }}"></div>
+                        <div><label>Joining Date</label><input type="date" name="joining_date" class="form-control" value="{{ emp.joining_date|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Work Permit Number</label><input type="text" name="work_permit_no" class="form-control" value="{{ emp.work_permit_no|default:'' }}"></div>
+                        <div><label>Valid upto (Expiry)</label><input type="date" name="work_permit_expiry" class="form-control" value="{{ emp.work_permit_expiry|date:'Y-m-d'|default:'' }}"></div>
+                        <div><label>Passport/ID Details</label><input type="text" name="passport_details" class="form-control" value="{{ emp.passport_details|default:'' }}"></div>
+                        <div><label>Contact Number</label><input type="text" name="contact_info" class="form-control" value="{{ emp.contact_info|default:'' }}"></div>
+                        <div><label>Employment Status</label>
+                            <select name="status" class="form-control">
+                                <option value="Active" {% if emp.status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="On Leave" {% if emp.status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                                <option value="Terminated" {% if emp.status == 'Terminated' %}selected{% endif %}>Terminated</option>
+                            </select>
+                        </div>
+                        <div><label>Contractor / Agency</label><input type="text" name="contractor_agency" class="form-control" value="{{ emp.contractor_agency|default:'' }}"></div>
+                        <div style="grid-column: 1/-1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <label>Document Type</label>
+            <select name="document_type" class="form-control">
+                <option value="General Document" {% if emp.document_type == 'General Document' %}selected{% endif %}>General Document</option>
+                <option value="Passport" {% if emp.document_type == 'Passport' %}selected{% endif %}>Passport</option>
+                <option value="Work Permit" {% if emp.document_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
+                <option value="Medical Certificate" {% if emp.document_type == 'Medical Certificate' %}selected{% endif %}>Medical Certificate</option>
+                <option value="ID Card" {% if emp.document_type == 'ID Card' %}selected{% endif %}>ID Card</option>
+                <option value="Contract" {% if emp.document_type == 'Contract' %}selected{% endif %}>Contract</option>
+                <option value="Driving License" {% if emp.document_type == 'Driving License' %}selected{% endif %}>Driving License</option>
+            </select>
+        </div>
+        <div>
+            <label>Document Upload</label>
+            <input type="file" name="document_upload" class="form-control">
+            {% if emp.document_upload %}<small>Current: <a href="{{ emp.document_upload.url }}" target="_blank">View {{ emp.document_type|default:'Document' }}</a></small>{% endif %}
+        </div>
+    </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Update Employee</button>
+                        <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModalAndPrevent(event, 'editEmployeeModal_{{ emp.id }}')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+{% endfor %}
+
+<!-- Live update banner (hidden by default) -->
+<div id="shifts-live-banner" style="display:none; position:fixed; bottom:24px; right:24px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; padding:14px 22px; border-radius:14px; box-shadow:0 8px 30px rgba(99,102,241,0.4); z-index:9999; align-items:center; gap:14px; font-weight:600; font-size:0.95rem; animation: slideUp 0.4s ease;">
+    <span>🔔 <span class="shifts-banner-count">New employee or shift data added</span></span>
+    <button onclick="location.reload()" style="background:white; color:#4f46e5; border:none; padding:7px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem;">Reload</button>
+    <button onclick="document.getElementById('shifts-live-banner').style.display='none'" style="background:transparent; color:rgba(255,255,255,0.7); border:none; font-size:1.3rem; cursor:pointer; padding:0 4px;">×</button>
+</div>
+<style>
+@keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
+

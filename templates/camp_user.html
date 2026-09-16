@@ -1,0 +1,715 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🏕️ My Camp Resident Portal{% endblock %}
+
+{% block content %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+    .camp-user-container { max-width: 800px; margin: 0 auto; padding: 16px; }
+    
+    @media (max-width: 640px) {
+        .camp-user-container { padding: 10px; }
+        .camp-user-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+        .action-btn-row { flex-direction: column !important; }
+        .action-btn-row a, .action-btn-row button { width: 100% !important; text-align: center; justify-content: center; }
+    }
+
+    .profile-card {
+        background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border-radius: 20px;
+        padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    }
+    .profile-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px;
+    }
+    .profile-item {
+        background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px);
+        padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .profile-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.75; font-weight: 700; }
+    .profile-val { font-size: 0.95rem; font-weight: 800; margin-top: 2px; }
+
+    .status-card {
+        background: white; border-radius: 20px; border: 1px solid #e2e8f0; padding: 22px;
+        margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+
+    /* Live Movement Glow */
+    @keyframes pulseInside {
+        0% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
+        50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.7); }
+        100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
+    }
+    @keyframes pulseOutside {
+        0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+        50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.7); }
+        100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+    }
+    .badge-inside {
+        background: #dcfce7; color: #15803d; border: 2px solid #86efac; animation: pulseInside 2.5s infinite;
+    }
+    .badge-outside {
+        background: #fee2e2; color: #b91c1c; border: 2px solid #fca5a5; animation: pulseOutside 2.5s infinite;
+    }
+    .badge-leave {
+        background: #fef3c7; color: #b45309; border: 2px solid #fde68a;
+    }
+
+    .action-btn {
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        padding: 14px 20px; border-radius: 14px; font-weight: 700; text-decoration: none;
+        transition: all 0.2s; font-size: 0.95rem; cursor: pointer; border: none;
+    }
+    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+
+    /* Pass Card */
+    .pass-card {
+        background: #ffffff; border: 2px dashed #9333ea; border-radius: 20px;
+        padding: 24px; text-align: center; margin-bottom: 20px; position: relative;
+    /* Dark Mode Theme Support */
+    [data-theme="dark"] .camp-user-container { color: #f1f5f9; }
+    [data-theme="dark"] .status-card,
+    [data-theme="dark"] .pass-card {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+    }
+    [data-theme="dark"] .status-card h2,
+    [data-theme="dark"] .status-card h3,
+    [data-theme="dark"] .pass-card h2,
+    [data-theme="dark"] .pass-card h3 {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .status-card p,
+    [data-theme="dark"] .pass-card p {
+        color: #94a3b8 !important;
+    }
+</style>
+
+<div class="camp-user-container">
+    <!-- Resident Profile Card -->
+    <div class="profile-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">
+                        🏕️ Camp Resident
+                    </span>
+                    <button onclick="toggleTheme()" type="button" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; border-radius: 50px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+                        <span id="campUserThemeIcon">🌙</span> Mode
+                    </button>
+                </div>
+                <h1 style="font-size: 1.6rem; font-weight: 800; margin: 0 0 2px 0;">
+                    {{ emp.name }}
+                </h1>
+                <p style="margin: 0; opacity: 0.85; font-size: 0.9rem;">
+                    {{ emp.designation|default:"Worker / Staff" }} &bull; {{ emp.department|default:"Operations" }}
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.8rem; opacity: 0.75; display: block;">TODAY'S DATE</span>
+                <span style="font-size: 1.1rem; font-weight: 800;">{{ today_date|date:"d M Y" }}</span>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-item">
+                <div class="profile-label">Employee Code</div>
+                <div class="profile-val" style="color: #93c5fd;">
+                    {% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:"04d" }}{% else %}{{ emp.emp_id }}{% endif %}
+                </div>
+            </div>
+            <div class="profile-item">
+                <div class="profile-label">Camp Room / Block</div>
+                <div class="profile-val" style="color: #fde047;">
+                    {{ emp.camp_room|default:"Room Not Assigned" }}
+                </div>
+            </div>
+            <div class="profile-item">
+                <div class="profile-label">Assigned Shift</div>
+                <div class="profile-val">
+                    {{ emp.current_shift|default:"Day" }} Shift
+                </div>
+            </div>
+            <div class="profile-item">
+                <div class="profile-label">Designated Mess</div>
+                <div class="profile-val">
+                    {{ emp.assigned_mess.name|default:"Main Mess Hall" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Camp Status Card -->
+    <div class="status-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>📍</span> Current Camp Location Status
+            </h3>
+            <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">
+                Gate Security Auto-Sync
+            </span>
+        </div>
+
+        <div id="user_status_box" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px; border-radius: 16px; transition: all 0.5s;
+            {% if emp.camp_status == 'INSIDE' %}background: #f0fdf4; border: 1px solid #bbf7d0;
+            {% elif emp.camp_status == 'OUTSIDE' %}background: #fef2f2; border: 1px solid #fecaca;
+            {% else %}background: #fffbeb; border: 1px solid #fde68a;{% endif %}">
+            <div>
+                <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 4px;">
+                    YOU ARE CURRENTLY
+                </span>
+                <div id="user_status_badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 50px; font-weight: 800; font-size: 1.15rem; transition: all 0.3s;"
+                    class="{% if emp.camp_status == 'INSIDE' %}badge-inside{% elif emp.camp_status == 'OUTSIDE' %}badge-outside{% else %}badge-leave{% endif %}">
+                    {% if emp.camp_status == 'INSIDE' %}
+                        <span>🟢</span> INSIDE CAMP
+                    {% elif emp.camp_status == 'OUTSIDE' %}
+                        <span>🔴</span> OUTSIDE CAMP (ON-DUTY)
+                    {% else %}
+                        <span>🏖️</span> ON LEAVE
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <span style="font-size: 0.78rem; color: #64748b; display: block;">LAST GATE MOVEMENT</span>
+                {% if last_movement %}
+                    <span id="user_last_move_text" style="font-weight: 800; color: #1e293b; font-size: 0.95rem; display: block;">
+                        {{ last_movement.get_direction_display }} ({{ last_movement.timestamp|date:"I:i A" }})
+                    </span>
+                    <span id="user_last_move_sub" style="font-size: 0.75rem; color: #64748b;">
+                        {{ last_movement.gate_name }} &bull; {{ last_movement.get_purpose_display }}
+                    </span>
+                {% else %}
+                    <span id="user_last_move_text" style="font-weight: 800; color: #1e293b; font-size: 0.95rem; display: block;">No recent gate logs</span>
+                    <span id="user_last_move_sub" style="font-size: 0.75rem; color: #64748b;">Waiting for first punch</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Gate Punch Action Buttons -->
+        <div class="action-btn-row" style="display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap;">
+            <button type="button" id="btnMainScanGate" onclick="openGateCameraScanner()" class="action-btn" style="background: #0284c7; color: white; flex: 1.2; border: none; cursor: pointer;">
+                <span>📷</span> <span id="btnMainScanText">{% if emp.camp_status == 'INSIDE' %}Scan QR to Exit (Punch OUT){% else %}Scan QR to Enter (Punch IN){% endif %}</span>
+            </button>
+            <button type="button" id="btnQuickTogglePunch" onclick="handleQuickTogglePunch()" class="action-btn" style="background: {% if emp.camp_status == 'INSIDE' %}#dc2626{% else %}#16a34a{% endif %}; color: white; flex: 1; border: none; cursor: pointer;">
+                <span>🚪</span> <span id="btnQuickToggleText">{% if emp.camp_status == 'INSIDE' %}1-Tap Exit Camp{% else %}1-Tap Enter Camp{% endif %}</span>
+            </button>
+            <a href="{% url 'mess_user_view' %}" class="action-btn" style="background: #ea580c; color: white; flex: 0.9;">
+                <span>🍱</span> Mess Portal
+            </a>
+        </div>
+    </div>
+
+    <!-- Worker Digital Gate Pass QR Code Card (For Guard Camera Scan) -->
+    <div class="status-card" style="text-align: center; border: 2px solid #0284c7; background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span> My Digital Gate Pass
+            </h3>
+            <span style="background: #0284c7; color: white; padding: 4px 12px; border-radius: 50px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase;">
+                Official Camp Pass
+            </span>
+        </div>
+        <p style="margin: 0 0 16px 0; color: #475569; font-size: 0.88rem; font-weight: 600;">
+            Show this QR code to the Security Guard at the camp gate for verification.
+        </p>
+
+        <div style="background: #ffffff; padding: 16px; border-radius: 18px; border: 3px solid #0284c7; display: inline-block; box-shadow: 0 8px 25px rgba(2, 132, 199, 0.18); margin-bottom: 12px;">
+            <div id="userGateQrCode" style="display: flex; justify-content: center;"></div>
+        </div>
+
+        <div style="font-weight: 900; font-size: 1.25rem; color: #0f172a; margin-top: 4px;">
+            {{ emp.name }}
+        </div>
+        <div style="font-size: 0.95rem; font-weight: 800; color: #0284c7; font-family: monospace;">
+            ID: {% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:'04d' }}{% else %}{{ emp.emp_id }}{% endif %}
+        </div>
+        <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+            <span style="background: #e2e8f0; color: #334155; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">
+                🏢 {{ emp.department|default:"Operations" }}
+            </span>
+            <span style="background: #fef08a; color: #854d0e; padding: 3px 10px; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">
+                🚪 Room: {{ emp.camp_room|default:"Unassigned" }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Today's Mess Status & Meal Window -->
+    <div class="status-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>🍲</span> Active Meal Window &amp; Kitchen Status
+            </h3>
+            <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem;">
+                {{ active_meal }} WINDOW ({{ timing_text }})
+            </span>
+        </div>
+
+        <div id="kitchen_status_box" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 14px; transition: all 0.5s;
+            {% if current_status.status == 'READY' %}background: linear-gradient(135deg, #10b981, #059669); color: white;
+            {% elif current_status.status == '5MIN' %}background: linear-gradient(135deg, #f59e0b, #d97706); color: white;
+            {% else %}background: linear-gradient(135deg, #64748b, #475569); color: white;{% endif %}">
+            <div>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 700; display: block;">
+                    KITCHEN STATUS
+                </span>
+                <span id="kitchen_status_text" style="font-size: 1.25rem; font-weight: 800;">
+                    {% if current_status.status == 'READY' %}
+                        ✅ {{ active_meal }} IS READY &amp; SERVING!
+                    {% elif current_status.status == '5MIN' %}
+                        ⏳ {{ active_meal }} READY IN 5 MINUTES!
+                    {% else %}
+                        🍳 {{ active_meal }} IS BEING COOKED
+                    {% endif %}
+                </span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.75rem; opacity: 0.85; display: block;">UPDATED BY COOK</span>
+                <span id="kitchen_status_time" style="font-weight: 700; font-size: 0.85rem;">
+                    {{ current_status.updated_at|date:"I:i A"|default:"Recently" }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Today's Meal Pass (If Scanned) -->
+        {% if today_pass %}
+        <div class="pass-card" style="margin-top: 18px;">
+            <div style="display: inline-block; background: #22c55e; color: white; padding: 6px 18px; border-radius: 50px; font-weight: 800; font-size: 0.85rem; margin-bottom: 10px;">
+                ✅ MEAL PASS CLAIMED
+            </div>
+            <h2 style="font-size: 2.2rem; font-weight: 900; letter-spacing: 4px; color: #1e293b; margin: 4px 0;">
+                {{ today_pass.pass_code|default:"PASS-OK" }}
+            </h2>
+            <p style="margin: 0; color: #64748b; font-size: 0.85rem; font-weight: 600;">
+                Verified on {{ today_pass.date }} at {{ today_pass.timestamp|date:"I:i A" }} &bull; {{ today_pass.meal_type }}
+            </p>
+        </div>
+        {% else %}
+        <div style="margin-top: 16px; text-align: center; padding: 18px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 14px;">
+            <p style="margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; font-weight: 600;">
+                Haven't claimed your {{ active_meal }} pass yet?
+            </p>
+            <a href="{% url 'mess_claim_pass_view' emp.assigned_mess.id|default:1 %}" 
+               class="btn" style="background: #16a34a; color: white; border-radius: 10px; padding: 10px 18px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <span>📲</span> Claim {{ active_meal }} Pass
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Today's Camp Mess Menu -->
+    {% if menu %}
+    <div class="status-card">
+        <h3 style="margin: 0 0 14px 0; font-size: 1.1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+            <span>📋</span> Today's Menu ({{ today_date|date:"d M Y" }})
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: #0284c7; text-transform: uppercase;">🍳 Breakfast</span>
+                <p style="margin: 6px 0 0 0; font-weight: 600; color: #334155; font-size: 0.9rem;">
+                    {{ menu.breakfast|default:"Regular Breakfast" }}
+                </p>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: #16a34a; text-transform: uppercase;">🍛 Lunch</span>
+                <p style="margin: 6px 0 0 0; font-weight: 600; color: #334155; font-size: 0.9rem;">
+                    {{ menu.lunch|default:"Standard Meal" }}
+                </p>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: #9333ea; text-transform: uppercase;">🍲 Dinner</span>
+                <p style="margin: 6px 0 0 0; font-weight: 600; color: #334155; font-size: 0.9rem;">
+                    {{ menu.dinner|default:"Standard Meal" }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Camp Help & Security Desk Footer -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; text-align: center; color: #64748b; font-size: 0.85rem;">
+        <p style="margin: 0; font-weight: 600;">
+            🛡️ Camp Security Gate Desk &bull; 24x7 Assistance &bull; Main Gate Extension #101
+        </p>
+    </div>
+</div>
+
+<script>
+    // Live Auto-Sync for Resident Portal (Status changes when Guard scans at Gate)
+    async function pollUserCampLive() {
+        try {
+            const res = await fetch("{% url 'api_camp_live_stats' %}");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.status !== 'success') return;
+
+            // 1. Update User Camp Status Live
+            const u = data.user_status;
+            if (u) {
+                const box = document.getElementById('user_status_box');
+                const badge = document.getElementById('user_status_badge');
+
+                if (badge && box) {
+                    if (u.camp_status === 'INSIDE') {
+                        badge.className = 'badge-inside';
+                        badge.innerHTML = '<span>🟢</span> INSIDE CAMP';
+                        box.style.background = '#f0fdf4';
+                        box.style.borderColor = '#bbf7d0';
+                    } else if (u.camp_status === 'OUTSIDE') {
+                        badge.className = 'badge-outside';
+                        badge.innerHTML = '<span>🔴</span> OUTSIDE CAMP (ON-DUTY)';
+                        box.style.background = '#fef2f2';
+                        box.style.borderColor = '#fecaca';
+                    } else {
+                        badge.className = 'badge-leave';
+                        badge.innerHTML = '<span>🏖️</span> ON LEAVE';
+                        box.style.background = '#fffbeb';
+                        box.style.borderColor = '#fde68a';
+                    }
+                }
+                if (typeof updateQuickActionButtons === 'function') {
+                    updateQuickActionButtons(u.camp_status);
+                }
+
+                // Last movement update
+                if (u.last_movement) {
+                    const elTxt = document.getElementById('user_last_move_text');
+                    const elSub = document.getElementById('user_last_move_sub');
+                    if (elTxt && u.last_movement.direction) {
+                        elTxt.innerText = `${u.last_movement.direction} (${u.last_movement.time})`;
+                    }
+                    if (elSub && u.last_movement.gate) {
+                        elSub.innerText = `${u.last_movement.gate} • ${u.last_movement.purpose}`;
+                    }
+                }
+            }
+
+            // 2. Update Kitchen Cooking Status Live
+            const k = data.kitchen;
+            if (k) {
+                const kBox = document.getElementById('kitchen_status_box');
+                const kTxt = document.getElementById('kitchen_status_text');
+                const kTime = document.getElementById('kitchen_status_time');
+
+                if (kBox && kTxt) {
+                    if (k.status === 'READY') {
+                        kBox.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                        kTxt.innerHTML = `✅ ${k.active_meal} IS READY &amp; SERVING!`;
+                    } else if (k.status === '5MIN') {
+                        kBox.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                        kTxt.innerHTML = `⏳ ${k.active_meal} READY IN 5 MINUTES!`;
+                    } else {
+                        kBox.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+                        kTxt.innerHTML = `🍳 ${k.active_meal} IS BEING COOKED`;
+                    }
+                }
+                if (kTime && k.updated_at) {
+                    kTime.innerText = k.updated_at;
+                }
+            }
+
+        } catch(e) {
+            console.warn("Resident portal sync error:", e);
+        }
+    }
+
+    // Initialize Worker Digital Gate Pass QR Code
+    try {
+        const empCode = "{% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:'04d' }}{% else %}{{ emp.emp_id }}{% endif %}";
+        const qrContainer = document.getElementById("userGateQrCode");
+        if (qrContainer && typeof QRCode !== 'undefined') {
+            new QRCode(qrContainer, {
+                text: empCode,
+                width: 200,
+                height: 200,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    } catch(err) {
+        console.warn("Failed to render Gate Pass QR:", err);
+    }
+
+    // Poll every 3.5 seconds
+    setInterval(pollUserCampLive, 3500);
+
+    // Gate Wall Camera Scanner & Quick Punch Logic
+    let gateHtml5QrCode = null;
+    let modalGateDirection = "{{ emp.camp_status }}" === "INSIDE" ? "OUT" : "IN";
+    let isProcessingGateScan = false;
+
+    function updateQuickActionButtons(status) {
+        const isInside = status === 'INSIDE';
+        const scanTxt = document.getElementById('btnMainScanText');
+        const quickTxt = document.getElementById('btnQuickToggleText');
+        const quickBtn = document.getElementById('btnQuickTogglePunch');
+
+        if (scanTxt) scanTxt.innerText = isInside ? "Scan QR to Exit (Punch OUT)" : "Scan QR to Enter (Punch IN)";
+        if (quickTxt) quickTxt.innerText = isInside ? "1-Tap Exit Camp" : "1-Tap Enter Camp";
+        if (quickBtn) quickBtn.style.background = isInside ? "#dc2626" : "#16a34a";
+        modalGateDirection = isInside ? "OUT" : "IN";
+    }
+
+    function handleQuickTogglePunch() {
+        const badge = document.getElementById('user_status_badge');
+        const isCurrentlyInside = badge ? badge.innerText.includes('INSIDE') : ("{{ emp.camp_status }}" === "INSIDE");
+        const dir = isCurrentlyInside ? "OUT" : "IN";
+        const dirLabel = isCurrentlyInside ? "🔴 Exit Camp (OUT)" : "🟢 Enter Camp (IN)";
+
+        if (!confirm(`Do you want to register ${dirLabel}?`)) return;
+
+        const empIdentifier = "{% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:'04d' }}{% else %}{{ emp.emp_id }}{% endif %}";
+
+        fetch("{% url 'camp_gate_self_punch_view' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                emp_identifier: empIdentifier,
+                direction: dir,
+                purpose: 'SHIFT_DUTY'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'SUCCESS') {
+                updateQuickActionButtons(dir === 'OUT' ? 'OUTSIDE' : 'INSIDE');
+                if (typeof pollUserCampLive === 'function') {
+                    pollUserCampLive();
+                }
+                alert(`✅ Successfully Registered: ${dir === 'OUT' ? '🔴 EXITED CAMP' : '🟢 ENTERED CAMP'}!`);
+            } else {
+                alert(`⚠️ ${data.msg || 'Failed to record movement'}`);
+            }
+        })
+        .catch(err => alert(`⚠️ Error: ${err}`));
+    }
+
+    function setModalGateDir(dir) {
+        modalGateDirection = dir;
+        let bIn = document.getElementById('modalBtnDirIn');
+        let bOut = document.getElementById('modalBtnDirOut');
+        if (!bIn || !bOut) return;
+        if (dir === 'IN') {
+            bIn.style.background = '#16a34a';
+            bIn.style.color = 'white';
+            bIn.style.border = '2px solid #15803d';
+            bOut.style.background = '#fef2f2';
+            bOut.style.color = '#dc2626';
+            bOut.style.border = '2px solid #fca5a5';
+        } else {
+            bOut.style.background = '#dc2626';
+            bOut.style.color = 'white';
+            bOut.style.border = '2px solid #b91c1c';
+            bIn.style.background = '#f0fdf4';
+            bIn.style.color = '#16a34a';
+            bIn.style.border = '2px solid #86efac';
+        }
+    }
+
+    function openGateCameraScanner(forcedDir) {
+        if (forcedDir) {
+            modalGateDirection = forcedDir;
+        } else {
+            const badge = document.getElementById('user_status_badge');
+            const isCurrentlyInside = badge ? badge.innerText.includes('INSIDE') : ("{{ emp.camp_status }}" === "INSIDE");
+            modalGateDirection = isCurrentlyInside ? "OUT" : "IN";
+        }
+
+        document.getElementById('gateScannerModal').style.display = 'flex';
+        document.getElementById('gateCamLoading').style.display = 'block';
+        document.getElementById('gateScanResultBanner').style.display = 'none';
+        isProcessingGateScan = false;
+        setModalGateDir(modalGateDirection);
+
+        if (!gateHtml5QrCode) {
+            gateHtml5QrCode = new Html5Qrcode("gate-qr-reader");
+        }
+
+        gateHtml5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            onGateQrDetected,
+            (errMsg) => {}
+        ).then(() => {
+            document.getElementById('gateCamLoading').style.display = 'none';
+        }).catch(err => {
+            document.getElementById('gateCamLoading').innerHTML = `
+                <div style="font-size: 2rem;">⚠️</div>
+                <div style="font-weight: 800; color: #ef4444; margin-top: 6px;">Camera Access Blocked / Unavailable</div>
+                <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">Please allow camera permission in browser or use 1-Tap Exit/Enter button.</div>
+            `;
+        });
+    }
+
+    function closeGateCameraScanner() {
+        if (gateHtml5QrCode) {
+            gateHtml5QrCode.stop().then(() => {
+                document.getElementById('gateScannerModal').style.display = 'none';
+                isProcessingGateScan = false;
+            }).catch(() => {
+                document.getElementById('gateScannerModal').style.display = 'none';
+                isProcessingGateScan = false;
+            });
+        } else {
+            document.getElementById('gateScannerModal').style.display = 'none';
+            isProcessingGateScan = false;
+        }
+    }
+
+    function onGateQrDetected(decodedText) {
+        if (isProcessingGateScan) return;
+        isProcessingGateScan = true;
+
+        // CRITICAL FIX: Instantly stop the camera scanner so no extra frames trigger a second punch!
+        if (gateHtml5QrCode) {
+            try {
+                gateHtml5QrCode.stop().then(() => {
+                    console.log("Scanner stopped safely.");
+                }).catch(e => {});
+            } catch(e) {}
+        }
+
+        // Audio beep feedback
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        } catch(e) {}
+
+        let resBanner = document.getElementById('gateScanResultBanner');
+        resBanner.style.display = 'block';
+        resBanner.style.background = '#e0f2fe';
+        resBanner.style.color = '#0284c7';
+        resBanner.innerText = `⏳ Registering ${modalGateDirection === 'IN' ? '🟢 ENTRY (IN)' : '🔴 EXIT (OUT)'}...`;
+
+        const empIdentifier = "{% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:'04d' }}{% else %}{{ emp.emp_id }}{% endif %}";
+
+        fetch("{% url 'camp_gate_self_punch_view' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                emp_identifier: empIdentifier,
+                direction: modalGateDirection,
+                purpose: 'SHIFT_DUTY',
+                qr_content: decodedText
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'SUCCESS') {
+                const isExit = data.direction === 'OUT' || modalGateDirection === 'OUT';
+                resBanner.style.background = isExit ? '#fee2e2' : '#dcfce7';
+                resBanner.style.color = isExit ? '#b91c1c' : '#15803d';
+                resBanner.innerHTML = `✅ Successfully Recorded: ${isExit ? '🔴 EXITED CAMP (OUT)' : '🟢 ENTERED CAMP (IN)'}!`;
+
+                // Update UI badge directly and immediately!
+                const badge = document.getElementById('user_status_badge');
+                const box = document.getElementById('user_status_box');
+                const elTxt = document.getElementById('user_last_move_text');
+                if (badge && box) {
+                    if (isExit) {
+                        badge.className = 'badge-outside';
+                        badge.innerHTML = '<span>🔴</span> OUTSIDE CAMP (ON-DUTY)';
+                        box.style.background = '#fef2f2';
+                        box.style.borderColor = '#fecaca';
+                    } else {
+                        badge.className = 'badge-inside';
+                        badge.innerHTML = '<span>🟢</span> INSIDE CAMP';
+                        box.style.background = '#f0fdf4';
+                        box.style.borderColor = '#bbf7d0';
+                    }
+                }
+                if (elTxt && data.time) {
+                    elTxt.innerText = `${isExit ? '🔴 Exit / Out' : '🟢 Entry / In'} (${data.time})`;
+                }
+
+                updateQuickActionButtons(isExit ? 'OUTSIDE' : 'INSIDE');
+
+                setTimeout(() => {
+                    document.getElementById('gateScannerModal').style.display = 'none';
+                    isProcessingGateScan = false;
+                    if (typeof pollUserCampLive === 'function') {
+                        pollUserCampLive();
+                    }
+                }, 1600);
+            } else {
+                resBanner.style.background = '#fee2e2';
+                resBanner.style.color = '#b91c1c';
+                resBanner.innerText = `⚠️ ${data.msg || 'Error recording movement'}`;
+                setTimeout(() => { isProcessingGateScan = false; }, 2500);
+            }
+        })
+        .catch(err => {
+            resBanner.style.background = '#fee2e2';
+            resBanner.style.color = '#b91c1c';
+            resBanner.innerText = `⚠️ Network error: ${err}`;
+            setTimeout(() => { isProcessingGateScan = false; }, 2500);
+        });
+    }
+</script>
+
+<!-- GATE CAMERA SCANNER MODAL -->
+<div id="gateScannerModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); z-index: 100000; justify-content: center; align-items: center; padding: 16px;">
+    <div style="background: white; border-radius: 24px; max-width: 440px; width: 100%; padding: 22px; box-shadow: 0 25px 60px rgba(0,0,0,0.4); text-align: center; border: 2px solid #0284c7; position: relative;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="text-align: left;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                    <span>📷</span> Scan Gate Wall Poster
+                </h3>
+                <span style="font-size: 0.78rem; color: #64748b; font-weight: 600;">Point mobile camera at Gate QR Code</span>
+            </div>
+            <button type="button" onclick="closeGateCameraScanner()" style="background: #f1f5f9; border: none; border-radius: 50%; width: 34px; height: 34px; font-weight: 800; font-size: 1.1rem; cursor: pointer; color: #64748b;">✕</button>
+        </div>
+
+        <!-- Direction Selection Buttons -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button type="button" id="modalBtnDirIn" onclick="setModalGateDir('IN')" style="flex: 1; padding: 12px 10px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: 2px solid #16a34a; background: #f0fdf4; color: #16a34a; transition: all 0.2s;">
+                🟢 MARK IN (Entering)
+            </button>
+            <button type="button" id="modalBtnDirOut" onclick="setModalGateDir('OUT')" style="flex: 1; padding: 12px 10px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: 2px solid #dc2626; background: #fef2f2; color: #dc2626; transition: all 0.2s;">
+                🔴 MARK OUT (Leaving)
+            </button>
+        </div>
+
+        <!-- Camera Viewfinder -->
+        <div style="width: 100%; border-radius: 16px; overflow: hidden; background: #0f172a; min-height: 240px; position: relative; border: 2px dashed #38bdf8;">
+            <div id="gate-qr-reader" style="width: 100%;"></div>
+            <div id="gateCamLoading" style="color: #94a3b8; padding: 40px 10px;">
+                <div style="font-size: 2.2rem; margin-bottom: 8px;">📷</div>
+                <div style="font-weight: 700; color: #f1f5f9; font-size: 0.95rem;">Starting Camera...</div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">Please allow camera permission when prompted</div>
+            </div>
+        </div>
+
+        <!-- Result Banner -->
+        <div id="gateScanResultBanner" style="display: none; margin-top: 14px; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.95rem;"></div>
+
+        <!-- Alternative link -->
+        <div style="margin-top: 14px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            <a href="{% url 'camp_gate_self_punch_view' %}?emp_id={% if '@' in emp.emp_id %}EMP-{{ emp.id|stringformat:'04d' }}{% else %}{{ emp.emp_id }}{% endif %}" style="color: #0284c7; text-decoration: none; font-size: 0.82rem; font-weight: 700;">
+                ✏️ Camera not working? Tap here to enter manually
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

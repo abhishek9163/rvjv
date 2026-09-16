@@ -1,0 +1,1134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}P&M Attendance Management | Rigsar-Vajra JV{% endblock %}
+
+{% block content %}
+<style>
+    .att-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-bottom: 40px;
+        max-width: 100%;
+    }
+    
+    /* Top Header */
+    .att-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .att-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .att-top-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* KPI Stats Grid */
+    .att-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+    }
+    .att-stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        transition: all 0.2s ease;
+    }
+    .att-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .att-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .att-stat-val {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1.2;
+    }
+    .att-stat-lbl {
+        font-size: 0.72rem;
+        color: var(--sidebar-text);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+    }
+
+    /* Visual 2-Shift Breakdown Box */
+    .shift-breakdown-box {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .shift-pill-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        color: var(--text-color);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+    .shift-pill-filter:hover, .shift-pill-filter.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .shift-pill-count {
+        background: rgba(0,0,0,0.12);
+        padding: 1px 7px;
+        border-radius: 10px;
+        font-size: 0.72rem;
+    }
+    .shift-pill-filter.active .shift-pill-count {
+        background: rgba(255,255,255,0.25);
+    }
+
+    /* Filters Card */
+    .att-filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .att-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .f-field label {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--sidebar-text);
+        margin-bottom: 4px;
+    }
+    .att-input, .att-select {
+        width: 100%;
+        height: 38px !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--border) !important;
+        background: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        font-size: 0.82rem !important;
+        font-weight: 600;
+        padding: 6px 10px !important;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .att-input:focus, .att-select:focus {
+        border-color: var(--primary) !important;
+    }
+
+    /* Table Container */
+    .att-table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+    .att-table-header {
+        padding: 12px 16px;
+        background: var(--bg-color);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .att-table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+    table.att-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.83rem;
+        white-space: nowrap;
+    }
+    table.att-table th {
+        background: var(--bg-color);
+        color: var(--sidebar-text);
+        font-weight: 800;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+    }
+    table.att-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-color);
+        vertical-align: middle;
+        transition: background 0.15s ease;
+    }
+    table.att-table tr:hover td {
+        background: rgba(79, 70, 229, 0.03);
+    }
+    table.att-table tr.row-just-saved td {
+        background: rgba(16, 185, 129, 0.09) !important;
+    }
+
+    /* Status Pills - Instant Click (No Save Tick Button) */
+    .status-btn-group {
+        display: inline-flex;
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 3px;
+    }
+    .stat-pill {
+        border: none;
+        background: transparent;
+        color: var(--sidebar-text);
+        font-weight: 800;
+        font-size: 0.72rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        min-width: 28px;
+        text-align: center;
+    }
+    .stat-pill:hover {
+        background: rgba(0,0,0,0.06);
+        color: var(--text-color);
+    }
+    .stat-pill.active-P { background: #10b981 !important; color: white !important; box-shadow: 0 2px 6px rgba(16,185,129,0.35); }
+    .stat-pill.active-A { background: #ef4444 !important; color: white !important; box-shadow: 0 2px 6px rgba(239,68,68,0.35); }
+    .stat-pill.active-L { background: #f59e0b !important; color: white !important; box-shadow: 0 2px 6px rgba(245,158,11,0.35); }
+    .stat-pill.active-HD { background: #6366f1 !important; color: white !important; box-shadow: 0 2px 6px rgba(99,102,241,0.35); }
+    .stat-pill.active-H { background: #64748b !important; color: white !important; }
+
+    /* Live Toast Notification */
+    .live-save-toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #1e293b;
+        color: white;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 10000;
+        transform: translateY(120%);
+        transition: transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        pointer-events: none;
+    }
+    .live-save-toast.show {
+        transform: translateY(0);
+    }
+</style>
+
+<div class="att-container">
+    <!-- Top Header -->
+    <div class="att-header">
+        <div>
+            <h1 class="att-title">
+                <i class="fa-solid fa-calendar-check text-primary"></i>
+                P&M Attendance Register
+            </h1>
+            <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--sidebar-text);">
+                Instant Live Marking (2 Shifts: Morning 7am-7pm &bull; Night 7pm-7am), QR Scanning & Muster Roll
+            </p>
+        </div>
+
+        <div class="att-top-actions">
+            <a href="{% url 'attendance_scan' %}" class="btn btn-outline" style="background: linear-gradient(135deg,#10b981,#059669); color: white; border: none; padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-radius: 8px; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-qrcode"></i> QR Scanner
+            </a>
+            <a href="{% url 'attendance_muster_roll' %}?dept={{ dept_filter }}" class="btn btn-outline" style="background: var(--card-bg); color: var(--primary); border: 1px solid var(--primary); padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-radius: 8px; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-calendar-alt"></i> Monthly Muster Roll
+            </a>
+            <button type="button" onclick="openAttendanceExportModal()" class="btn btn-primary" style="padding: 7px 16px; font-size: 0.82rem; font-weight: 800; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(37,99,235,0.25);">
+                <i class="fas fa-file-export"></i> Export Builder
+            </button>
+        </div>
+    </div>
+
+    <!-- Live KPI Stats Grid -->
+    <div class="att-stats-grid">
+        <div class="att-stat-card">
+            <div class="att-stat-icon" style="background: rgba(79, 70, 229, 0.12); color: #4f46e5;">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <div class="att-stat-val" id="stat-total-val">{{ stats.total_employees }}</div>
+                <div class="att-stat-lbl">Total P&M Staff</div>
+            </div>
+        </div>
+
+        <div class="att-stat-card">
+            <div class="att-stat-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+                <div class="att-stat-val" style="color: #10b981;" id="stat-present-val">{{ stats.present_count }}</div>
+                <div class="att-stat-lbl">Present (<span id="stat-pct-val">{{ stats.attendance_pct }}</span>%)</div>
+            </div>
+        </div>
+
+        <div class="att-stat-card">
+            <div class="att-stat-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                <i class="fa-solid fa-user-xmark"></i>
+            </div>
+            <div>
+                <div class="att-stat-val" style="color: #ef4444;" id="stat-absent-val">{{ stats.absent_count }}</div>
+                <div class="att-stat-lbl">Absent Today</div>
+            </div>
+        </div>
+
+        <div class="att-stat-card">
+            <div class="att-stat-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+            <div>
+                <div class="att-stat-val" style="color: #f59e0b;" id="stat-leave-val">{{ stats.leave_count }}</div>
+                <div class="att-stat-lbl">On Leave</div>
+            </div>
+        </div>
+
+        <div class="att-stat-card">
+            <div class="att-stat-icon" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                <i class="fa-solid fa-business-time"></i>
+            </div>
+            <div>
+                <div class="att-stat-val" style="color: #6366f1;" id="stat-halfday-val">{{ stats.half_day_count }}</div>
+                <div class="att-stat-lbl">Half Day</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2-Shift Breakdown Box (Morning & Night) -->
+    <div class="shift-breakdown-box">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-clock text-primary" style="font-size: 1.1rem;"></i>
+            <div>
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-color);">Shift Breakdown</span>
+                <span style="font-size: 0.72rem; color: var(--sidebar-text); margin-left: 6px;">(Click shift pill to filter list)</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <div class="shift-pill-filter active" onclick="filterByShiftPill('all', this)">
+                All Shifts <span class="shift-pill-count" id="pill-cnt-all">{{ stats.total_employees }}</span>
+            </div>
+            <div class="shift-pill-filter" onclick="filterByShiftPill('morning', this)">
+                ☀️ Morning Shift (7:00 AM - 7:00 PM) <span class="shift-pill-count" id="pill-cnt-morning">{{ stats.shift_morning }}</span>
+            </div>
+            <div class="shift-pill-filter" onclick="filterByShiftPill('night', this)">
+                🌙 Night Shift (7:00 PM - 7:00 AM) <span class="shift-pill-count" id="pill-cnt-night">{{ stats.shift_night }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Live Search Card -->
+    <div class="att-filter-card">
+        <div class="att-filter-grid">
+            <!-- Date Picker -->
+            <div class="f-field">
+                <label><i class="fas fa-calendar"></i> Attendance Date</label>
+                <input type="date" id="filter-date" class="att-input" value="{{ selected_date_str }}" onchange="changeAttendanceDate(this.value)">
+            </div>
+
+            <!-- Department Filter -->
+            <div class="f-field">
+                <label><i class="fas fa-building"></i> Department Scope</label>
+                <select id="filter-dept" class="att-select" onchange="runInstantLiveFilter()">
+                    <option value="pnm" {% if dept_filter == 'pnm' or dept_filter == 'all' %}selected{% endif %}>All P&M Departments</option>
+                    {% for d in all_departments %}
+                    <option value="{{ d }}" {% if dept_filter == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="f-field">
+                <label><i class="fas fa-bolt"></i> Status Filter</label>
+                <select id="filter-status" class="att-select" onchange="runInstantLiveFilter()">
+                    <option value="all">All Statuses</option>
+                    <option value="Present">Present Only</option>
+                    <option value="Absent">Absent Only</option>
+                    <option value="On Leave">On Leave</option>
+                    <option value="Half Day">Half Day</option>
+                    <option value="Not Marked">Not Marked</option>
+                </select>
+            </div>
+
+            <!-- Live Search Input (Instant on type, no enter needed!) -->
+            <div class="f-field" style="grid-column: span 2;">
+                <label><i class="fas fa-search"></i> Instant Live Search (Real-Time)</label>
+                <div style="position: relative;">
+                    <input type="text" id="att-search-input" placeholder="Type employee name, ID, designation, department..." class="att-input" style="padding-left: 32px !important;" autocomplete="off">
+                    <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--sidebar-text); font-size: 0.8rem;"></i>
+                    <button type="button" id="clear-search-btn" onclick="clearSearchInput()" style="display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--sidebar-text); cursor: pointer; font-size: 0.85rem;">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Sheet Table -->
+    <div class="att-table-card">
+        <div class="att-table-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="check-all-emps" onchange="toggleSelectAll(this)" style="width: 17px; height: 17px; cursor: pointer;">
+                <span style="font-weight: 800; color: var(--text-color); font-size: 0.92rem;">
+                    Daily Register &bull; {{ selected_date|date:"l, d F Y" }}
+                </span>
+                <span id="filter-results-count" style="background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 800;">
+                    Showing {{ emp_attendance_list|length }} / {{ emp_attendance_list|length }} employees
+                </span>
+                <span id="selected-count-badge" style="display: none; background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 800;">
+                    0 selected
+                </span>
+            </div>
+
+            <!-- Bulk Toolbar -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" onclick="bulkMarkStatus('Present')" class="btn btn-outline" style="background: #10b981; color: white; border: none; padding: 6px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 7px;">
+                    <i class="fas fa-check-double"></i> Mark All Present
+                </button>
+                <button type="button" onclick="openBulkShiftModal()" class="btn btn-outline" style="background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border); padding: 6px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 7px;">
+                    <i class="fas fa-clock"></i> Assign Shift
+                </button>
+            </div>
+        </div>
+
+        <div class="att-table-responsive">
+            <table class="att-table" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th style="width: 35px;"></th>
+                        <th style="width: 45px;">SL</th>
+                        <th>EMPLOYEE INFO</th>
+                        <th>DESIGNATION & DEPT</th>
+                        <th style="width: 200px;">ASSIGNED SHIFT (2 SHIFTS)</th>
+                        <th style="width: 220px; text-align: center;">ATTENDANCE (CLICK TO MARK)</th>
+                        <th style="width: 140px;">IN / OUT TIME</th>
+                        <th>REMARKS</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTbody">
+                    {% for item in emp_attendance_list %}
+                    <tr id="att-row-{{ item.employee.id }}" 
+                        class="att-data-row"
+                        data-search="{{ item.searchable }}"
+                        data-dept="{{ item.employee.department|default:''|lower }}"
+                        data-shift="{% if 'night' in item.shift|lower %}night{% else %}morning{% endif %}"
+                        data-status="{{ item.status }}">
+                        <td>
+                            <input type="checkbox" class="emp-row-check" value="{{ item.employee.id }}" onchange="updateSelectedCount()" style="cursor: pointer;">
+                        </td>
+                        <td class="row-sl-number" style="font-weight: 700; color: var(--sidebar-text);">{{ forloop.counter }}</td>
+                        <td>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <div style="width: 34px; height: 34px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; border: 1px solid #bfdbfe;">
+                                    {{ item.employee.name|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: var(--text-color);">{{ item.employee.name }}</div>
+                                    <div style="font-size: 0.72rem; color: var(--sidebar-text);">ID: <b style="color:var(--primary);">{{ item.employee.emp_id|default:"-" }}</b></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-color);">{{ item.employee.designation|default:"-" }}</div>
+                            <div style="font-size: 0.72rem; color: var(--sidebar-text);">{{ item.employee.department|default:"-" }}</div>
+                        </td>
+                        <td>
+                            <select id="shift-select-{{ item.employee.id }}" class="att-select" style="width: 100%; height: 32px !important; font-size: 0.78rem !important; padding: 4px 8px !important;" onchange="autoSaveRow('{{ item.employee.id }}')">
+                                <option value="Morning Shift (07:00 AM - 07:00 PM)" {% if 'night' not in item.shift|lower %}selected{% endif %}>☀️ Morning (7:00 AM - 7:00 PM)</option>
+                                <option value="Night Shift (07:00 PM - 07:00 AM)" {% if 'night' in item.shift|lower %}selected{% endif %}>🌙 Night (7:00 PM - 7:00 AM)</option>
+                            </select>
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="status-btn-group" id="status-group-{{ item.employee.id }}">
+                                <button type="button" class="stat-pill {% if item.status == 'Present' %}active-P{% endif %}" onclick="instantMarkStatus('{{ item.employee.id }}', 'Present')">P</button>
+                                <button type="button" class="stat-pill {% if item.status == 'Absent' %}active-A{% endif %}" onclick="instantMarkStatus('{{ item.employee.id }}', 'Absent')">A</button>
+                                <button type="button" class="stat-pill {% if item.status == 'On Leave' %}active-L{% endif %}" onclick="instantMarkStatus('{{ item.employee.id }}', 'On Leave')">L</button>
+                                <button type="button" class="stat-pill {% if item.status == 'Half Day' %}active-HD{% endif %}" onclick="instantMarkStatus('{{ item.employee.id }}', 'Half Day')">HD</button>
+                                <button type="button" class="stat-pill {% if item.status == 'Holiday' %}active-H{% endif %}" onclick="instantMarkStatus('{{ item.employee.id }}', 'Holiday')">OFF</button>
+                            </div>
+                            <input type="hidden" id="status-val-{{ item.employee.id }}" value="{{ item.status }}">
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" id="in-time-{{ item.employee.id }}" value="{{ item.in_time }}" placeholder="07:00 AM" class="att-input" style="width: 65px; height: 30px !important; font-size: 0.72rem !important; padding: 2px 5px !important;" onchange="autoSaveRow('{{ item.employee.id }}')">
+                                <span style="color:var(--sidebar-text);">-</span>
+                                <input type="text" id="out-time-{{ item.employee.id }}" value="{{ item.out_time }}" placeholder="07:00 PM" class="att-input" style="width: 65px; height: 30px !important; font-size: 0.72rem !important; padding: 2px 5px !important;" onchange="autoSaveRow('{{ item.employee.id }}')">
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" id="remarks-{{ item.employee.id }}" value="{{ item.remarks }}" placeholder="Note..." class="att-input" style="width: 100%; height: 30px !important; font-size: 0.74rem !important; padding: 2px 6px !important;" onchange="autoSaveRow('{{ item.employee.id }}')">
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="emptyRowState">
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--sidebar-text);">
+                            <i class="fas fa-users-slash" style="font-size: 2rem; opacity: 0.3; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-weight: 700;">No employees found for this department scope.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="no-search-results-row" style="display: none;">
+                        <td colspan="8" style="text-align: center; padding: 35px; color: var(--sidebar-text);">
+                            <i class="fas fa-search" style="font-size: 1.8rem; opacity: 0.3; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-weight: 700;">No matching employees found for your search.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- EXACT MATCHING CUSTOM EXPORT BUILDER MODAL (LIKE DASHBOARD / EMPLOYEES) -->
+<!-- ========================================================================= -->
+<div id="attendanceExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 92%; max-width: 680px; border-radius: 18px; background: var(--card-bg); padding: 0; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: 1px solid var(--border); overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; background: var(--bg-color); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-color); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders" style="color: #2563eb;"></i> Attendance Custom Export Builder
+            </h3>
+            <button type="button" onclick="closeAttendanceExportModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);line-height:1;">&times;</button>
+        </div>
+        
+        <div style="padding: 1.5rem; max-height: 75vh; overflow-y: auto;">
+            <!-- Report Title Heading -->
+            <div style="margin-bottom: 15px; background: var(--bg-color); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);">
+                <label style="font-weight: 700; font-size: 0.82rem; color: var(--text-color); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                    <i class="fa-solid fa-pen-to-square text-primary"></i> Custom Report Title (Heading):
+                </label>
+                <input type="text" id="att-exp-modal-title" class="att-input" value="P&M Department Attendance Register Report">
+            </div>
+
+            <!-- Report Type (Daily Register vs Monthly Muster) -->
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 800; font-size: 0.75rem; text-transform: uppercase; color: var(--sidebar-text); display: block; margin-bottom: 6px;">Report Type</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label style="border: 2px solid var(--primary); padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; background: rgba(37,99,235,0.06);" id="lblDailyRadio">
+                        <input type="radio" name="attExportMode" value="daily" checked onchange="toggleAttExportMode()">
+                        Daily Register
+                    </label>
+                    <label style="border: 1px solid var(--border); padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem;" id="lblMusterRadio">
+                        <input type="radio" name="attExportMode" value="muster" onchange="toggleAttExportMode()">
+                        Monthly Muster Roll (1..31 Days)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Filters Box -->
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px;">
+                <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; color: var(--text-color);">
+                    <i class="fas fa-filter text-primary"></i> Filters to Apply:
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.82rem;">
+                    <!-- Date or Month -->
+                    <div id="modalDailyDateCol">
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Date:</label>
+                        <input type="date" id="att-exp-modal-date" class="att-input" value="{{ selected_date_str }}">
+                    </div>
+                    <div id="modalMusterMonthCol" style="display: none;">
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Month &amp; Year:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <select id="att-exp-modal-month" class="att-select" style="flex: 1;">
+                                <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                                <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+                                <option value="7">Jul</option><option value="8">Aug</option><option value="9" selected>Sep</option>
+                                <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                            </select>
+                            <select id="att-exp-modal-year" class="att-select" style="width: 80px;">
+                                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Department:</label>
+                        <select id="att-exp-modal-dept" class="att-select">
+                            <option value="pnm">All P&amp;M Departments</option>
+                            {% for d in all_departments %}
+                            <option value="{{ d }}">{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Designation:</label>
+                        <select id="att-exp-modal-desig" class="att-select">
+                            <option value="all">All Designations</option>
+                            {% for des in all_designations %}
+                            <option value="{{ des }}">{{ des }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Shift:</label>
+                        <select id="att-exp-modal-shift" class="att-select">
+                            <option value="all">All Shifts</option>
+                            <option value="Morning Shift (07:00 AM - 07:00 PM)">☀️ Morning (7:00 AM - 7:00 PM)</option>
+                            <option value="Night Shift (07:00 PM - 07:00 AM)">🌙 Night (7:00 PM - 7:00 AM)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--sidebar-text); font-weight: 700; display: block; margin-bottom: 4px;">Attendance Status:</label>
+                        <select id="att-exp-modal-status" class="att-select">
+                            <option value="all">All Statuses</option>
+                            <option value="Present">Present Only</option>
+                            <option value="Absent">Absent Only</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Selection -->
+            <div id="columnSelectionWrap">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-color);">
+                        Select Columns to Include:
+                    </label>
+                    <div style="font-size: 0.75rem; display: flex; gap: 8px;">
+                        <a href="javascript:void(0)" onclick="toggleAllAttCols(true)" style="color: var(--primary); text-decoration: underline; font-weight: 700;">Select All</a>
+                        <span>•</span>
+                        <a href="javascript:void(0)" onclick="toggleAllAttCols(false)" style="color: var(--sidebar-text); text-decoration: underline; font-weight: 700;">Deselect All</a>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.82rem; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="SL.NO" checked> Sl No</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="EMPLOYEE ID" checked> Employee ID</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="NAME" checked> Name</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="DESIGNATION" checked> Designation</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="DEPARTMENT" checked> Department</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="SHIFT" checked> Shift</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="STATUS" checked> Status</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="IN TIME" checked> In Time</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="OUT TIME" checked> Out Time</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="REMARKS" checked> Remarks</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="att-exp-col" value="SIGNATURE" checked> Signature</label>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 1rem 1.5rem; background: var(--bg-color); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 18px 18px;">
+            <button type="button" onclick="closeAttendanceExportModal()" class="btn btn-outline" style="padding: 8px 16px; font-weight: 700;">Cancel</button>
+            <button type="button" onclick="runAttendanceCustomExport('excel')" style="background: #10b981; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-file-excel"></i> Generate Excel
+            </button>
+            <button type="button" onclick="runAttendanceCustomExport('pdf')" style="background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-file-pdf"></i> Generate PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Shift Modal (2 Shifts) -->
+<div id="bulkShiftModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 440px; border-radius: 16px; background: var(--card-bg); padding: 0;">
+        <div style="padding: 1.25rem 1.5rem; background: var(--bg-color); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-radius: 16px 16px 0 0;">
+            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-color); font-weight: 800;">
+                <i class="fas fa-clock text-primary"></i> Bulk Shift Assignment
+            </h3>
+            <button type="button" onclick="closeBulkShiftModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div style="padding: 1.5rem;">
+            <p style="font-size: 0.82rem; color: var(--sidebar-text); margin-top: 0;">
+                Assign shift to checked employees or all visible P&M staff for <b>{{ selected_date|date:"d M Y" }}</b>.
+            </p>
+            <div style="margin-bottom: 1rem;">
+                <label style="font-weight: 800; font-size: 0.78rem; text-transform: uppercase; color: var(--sidebar-text); display: block; margin-bottom: 4px;">Select Shift:</label>
+                <select id="modal-bulk-shift" class="att-select" style="width: 100%;">
+                    <option value="Morning Shift (07:00 AM - 07:00 PM)">☀️ Morning Shift (7:00 AM - 7:00 PM)</option>
+                    <option value="Night Shift (07:00 PM - 07:00 AM)">🌙 Night Shift (7:00 PM - 7:00 AM)</option>
+                </select>
+            </div>
+        </div>
+        <div style="padding: 1rem 1.5rem; background: var(--bg-color); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 16px 16px;">
+            <button type="button" onclick="closeBulkShiftModal()" class="btn btn-outline" style="padding: 8px 16px;">Cancel</button>
+            <button type="button" onclick="applyBulkShift()" class="btn btn-primary" style="padding: 8px 18px; font-weight: 800;">Apply Shift</button>
+        </div>
+    </div>
+</div>
+
+<!-- Live Save Toast -->
+<div id="liveSaveToast" class="live-save-toast">
+    <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.1rem;"></i>
+    <span id="liveSaveMsg">Attendance Saved Live</span>
+</div>
+
+<script>
+    let activeShiftPill = 'all';
+
+    function getSafeCsrfToken() {
+        if (typeof getCookie === 'function') {
+            const t = getCookie('csrftoken');
+            if (t) return t;
+        }
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        return '{{ csrf_token }}';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('liveSaveToast');
+        if (!toast) return;
+        document.getElementById('liveSaveMsg').innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // --- INSTANT CLIENT-SIDE LIVE SEARCH ON EVERY KEYSTROKE (ZERO ENTER REQUIRED) ---
+    function runInstantLiveFilter() {
+        const searchInput = document.getElementById('att-search-input');
+        const query = (searchInput?.value || '').toLowerCase().trim();
+        const deptFilter = (document.getElementById('filter-dept')?.value || 'pnm').toLowerCase();
+        const statusFilter = document.getElementById('filter-status')?.value || 'all';
+        const clearBtn = document.getElementById('clear-search-btn');
+
+        if (clearBtn) {
+            clearBtn.style.display = query ? 'block' : 'none';
+        }
+
+        const rows = document.querySelectorAll('.att-data-row');
+        let visibleCount = 0;
+
+        rows.forEach(tr => {
+            const searchable = tr.getAttribute('data-search') || '';
+            const rowDept = tr.getAttribute('data-dept') || '';
+            const rowShift = tr.getAttribute('data-shift') || '';
+            const rowStatus = tr.getAttribute('data-status') || '';
+
+            let match = true;
+
+            // 1. Text Query Search
+            if (query && !searchable.includes(query)) {
+                match = false;
+            }
+
+            // 2. Department Scope
+            if (deptFilter === 'pnm') {
+                if (!rowDept.includes('plant') && !rowDept.includes('workshop') && !rowDept.includes('scania') && !rowDept.includes('maintenance')) {
+                    match = false;
+                }
+            } else if (deptFilter !== 'all' && !rowDept.includes(deptFilter)) {
+                match = false;
+            }
+
+            // 3. Shift Pill Filter (Morning vs Night vs All)
+            if (activeShiftPill !== 'all') {
+                if (rowShift !== activeShiftPill) {
+                    match = false;
+                }
+            }
+
+            // 4. Attendance Status Filter
+            if (statusFilter !== 'all' && rowStatus !== statusFilter) {
+                match = false;
+            }
+
+            if (match) {
+                tr.style.display = '';
+                visibleCount++;
+            } else {
+                tr.style.display = 'none';
+            }
+        });
+
+        // Toggle No Search Results State
+        const noResRow = document.getElementById('no-search-results-row');
+        if (noResRow) {
+            noResRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+
+        // Update Visible Counter Badge
+        const counterBadge = document.getElementById('filter-results-count');
+        if (counterBadge) {
+            counterBadge.innerText = `Showing ${visibleCount} / ${rows.length} employees`;
+        }
+    }
+
+    function clearSearchInput() {
+        const inp = document.getElementById('att-search-input');
+        if (inp) {
+            inp.value = '';
+            runInstantLiveFilter();
+            inp.focus();
+        }
+    }
+
+    function filterByShiftPill(shiftCode, el) {
+        activeShiftPill = shiftCode;
+        document.querySelectorAll('.shift-pill-filter').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        runInstantLiveFilter();
+    }
+
+    function changeAttendanceDate(dateVal) {
+        window.location.href = `{% url 'attendance_hub' %}?date=${dateVal}&dept=${document.getElementById('filter-dept').value}`;
+    }
+
+    // --- INSTANT CLICK-TO-SAVE (NO TICK BUTTON) ---
+    function instantMarkStatus(empId, status) {
+        document.getElementById('status-val-' + empId).value = status;
+        
+        const row = document.getElementById('att-row-' + empId);
+        if (row) {
+            row.setAttribute('data-status', status);
+            const curSearch = row.getAttribute('data-search') || '';
+            row.setAttribute('data-search', curSearch + ' ' + status.toLowerCase());
+        }
+
+        // Update Pill Visuals Immediately
+        const grp = document.getElementById('status-group-' + empId);
+        if (grp) {
+            grp.querySelectorAll('.stat-pill').forEach(btn => {
+                btn.className = 'stat-pill';
+                if (status === 'Present' && btn.textContent === 'P') btn.classList.add('active-P');
+                else if (status === 'Absent' && btn.textContent === 'A') btn.classList.add('active-A');
+                else if (status === 'On Leave' && btn.textContent === 'L') btn.classList.add('active-L');
+                else if (status === 'Half Day' && btn.textContent === 'HD') btn.classList.add('active-HD');
+                else if (status === 'Holiday' && btn.textContent === 'OFF') btn.classList.add('active-H');
+            });
+        }
+
+        // Live KPI Recalculate
+        recalculateLiveKpis();
+
+        // Background AJAX Auto-Save
+        autoSaveRow(empId, status);
+    }
+
+    function autoSaveRow(empId, explicitStatus = null) {
+        const status = explicitStatus || document.getElementById('status-val-' + empId).value;
+        const shift = document.getElementById('shift-select-' + empId).value;
+        const inTime = document.getElementById('in-time-' + empId).value;
+        const outTime = document.getElementById('out-time-' + empId).value;
+        const remarks = document.getElementById('remarks-' + empId).value;
+        const row = document.getElementById('att-row-' + empId);
+
+        if (row) {
+            row.setAttribute('data-status', status);
+            row.setAttribute('data-shift', shift.toLowerCase().includes('night') ? 'night' : 'morning');
+        }
+
+        recalculateLiveKpis();
+
+        const formData = new URLSearchParams();
+        formData.append('emp_id', empId);
+        formData.append('date', '{{ selected_date_str }}');
+        formData.append('status', status);
+        formData.append('shift', shift);
+        formData.append('in_time', inTime);
+        formData.append('out_time', outTime);
+        formData.append('remarks', remarks);
+        formData.append('csrfmiddlewaretoken', getSafeCsrfToken());
+
+        fetch('/api/attendance/mark-single/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getSafeCsrfToken(),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData.toString()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (row) {
+                    row.classList.add('row-just-saved');
+                    setTimeout(() => row.classList.remove('row-just-saved'), 900);
+                }
+                showToast(data.message || 'Attendance Updated Live');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Save error:', err);
+        });
+    }
+
+    function recalculateLiveKpis() {
+        const rows = document.querySelectorAll('.att-data-row');
+        let presentCount = 0;
+        let absentCount = 0;
+        let leaveCount = 0;
+        let halfDayCount = 0;
+        let shiftMorningCnt = 0;
+        let shiftNightCnt = 0;
+
+        rows.forEach(r => {
+            const st = r.getAttribute('data-status') || '';
+            const sh = r.getAttribute('data-shift') || '';
+
+            if (st === 'Present') presentCount++;
+            else if (st === 'Absent') absentCount++;
+            else if (st === 'On Leave') leaveCount++;
+            else if (st === 'Half Day') halfDayCount++;
+
+            if (sh === 'night') shiftNightCnt++;
+            else shiftMorningCnt++;
+        });
+
+        const total = rows.length;
+        const presentEquivalent = presentCount + (halfDayCount * 0.5);
+        const pct = total > 0 ? (presentEquivalent / total * 100).toFixed(1) : 0;
+
+        if (document.getElementById('stat-total-val')) document.getElementById('stat-total-val').innerText = total;
+        if (document.getElementById('stat-present-val')) document.getElementById('stat-present-val').innerText = presentCount;
+        if (document.getElementById('stat-pct-val')) document.getElementById('stat-pct-val').innerText = pct;
+        if (document.getElementById('stat-absent-val')) document.getElementById('stat-absent-val').innerText = absentCount;
+        if (document.getElementById('stat-leave-val')) document.getElementById('stat-leave-val').innerText = leaveCount;
+        if (document.getElementById('stat-halfday-val')) document.getElementById('stat-halfday-val').innerText = halfDayCount;
+
+        if (document.getElementById('pill-cnt-all')) document.getElementById('pill-cnt-all').innerText = total;
+        if (document.getElementById('pill-cnt-morning')) document.getElementById('pill-cnt-morning').innerText = shiftMorningCnt;
+        if (document.getElementById('pill-cnt-night')) document.getElementById('pill-cnt-night').innerText = shiftNightCnt;
+    }
+
+    // --- SELECTION & BULK ACTIONS ---
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.emp-row-check').forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = master.checked;
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('.emp-row-check:checked');
+        const badge = document.getElementById('selected-count-badge');
+        if (checked.length > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = checked.length + ' selected';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    function getSelectedEmpIds() {
+        return Array.from(document.querySelectorAll('.emp-row-check:checked')).map(cb => cb.value);
+    }
+
+    function bulkMarkStatus(status) {
+        const empIds = getSelectedEmpIds();
+        const countText = empIds.length > 0 ? (empIds.length + ' selected employees') : 'all visible P&M staff';
+        if (!confirm('Mark ' + countText + ' as ' + status + ' for {{ selected_date|date:"d M Y" }}?')) {
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('date', '{{ selected_date_str }}');
+        formData.append('dept', '{{ dept_filter }}');
+        formData.append('status', status);
+        empIds.forEach(id => formData.append('emp_ids[]', id));
+        formData.append('csrfmiddlewaretoken', getSafeCsrfToken());
+
+        fetch('/api/attendance/bulk-mark/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getSafeCsrfToken(),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData.toString()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+
+    function openBulkShiftModal() {
+        document.getElementById('bulkShiftModal').style.display = 'flex';
+    }
+    function closeBulkShiftModal() {
+        document.getElementById('bulkShiftModal').style.display = 'none';
+    }
+
+    function applyBulkShift() {
+        const shift = document.getElementById('modal-bulk-shift').value;
+        const empIds = getSelectedEmpIds();
+        
+        const formData = new URLSearchParams();
+        formData.append('shift', shift);
+        formData.append('date', '{{ selected_date_str }}');
+        empIds.forEach(id => formData.append('emp_ids[]', id));
+        formData.append('csrfmiddlewaretoken', getSafeCsrfToken());
+
+        fetch('/api/attendance/assign-shift/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getSafeCsrfToken(),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData.toString()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message);
+                closeBulkShiftModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+
+    // --- CUSTOM EXPORT BUILDER FUNCTIONS ---
+    function openAttendanceExportModal() {
+        // Sync filters from page into modal
+        const curDept = document.getElementById('filter-dept')?.value || 'pnm';
+        const curStatus = document.getElementById('filter-status')?.value || 'all';
+        if (document.getElementById('att-exp-modal-dept')) document.getElementById('att-exp-modal-dept').value = curDept;
+        if (document.getElementById('att-exp-modal-status')) document.getElementById('att-exp-modal-status').value = curStatus;
+        if (document.getElementById('att-exp-modal-shift')) {
+            if (activeShiftPill === 'morning') document.getElementById('att-exp-modal-shift').value = 'Morning Shift (07:00 AM - 07:00 PM)';
+            else if (activeShiftPill === 'night') document.getElementById('att-exp-modal-shift').value = 'Night Shift (07:00 PM - 07:00 AM)';
+            else document.getElementById('att-exp-modal-shift').value = 'all';
+        }
+
+        document.getElementById('attendanceExportModal').style.display = 'flex';
+    }
+
+    function closeAttendanceExportModal() {
+        document.getElementById('attendanceExportModal').style.display = 'none';
+    }
+
+    function toggleAttExportMode() {
+        const mode = document.querySelector('input[name="attExportMode"]:checked').value;
+        const dailyCol = document.getElementById('modalDailyDateCol');
+        const musterCol = document.getElementById('modalMusterMonthCol');
+        const colsWrap = document.getElementById('columnSelectionWrap');
+        const titleInp = document.getElementById('att-exp-modal-title');
+
+        if (mode === 'daily') {
+            dailyCol.style.display = 'block';
+            musterCol.style.display = 'none';
+            colsWrap.style.display = 'block';
+            titleInp.value = 'P&M Department Daily Attendance Register Report';
+        } else {
+            dailyCol.style.display = 'none';
+            musterCol.style.display = 'block';
+            colsWrap.style.display = 'none';
+            titleInp.value = 'P&M Department Monthly Muster Roll Report';
+        }
+    }
+
+    function toggleAllAttCols(checked) {
+        document.querySelectorAll('.att-exp-col').forEach(cb => cb.checked = checked);
+    }
+
+    function runAttendanceCustomExport(format) {
+        const mode = document.querySelector('input[name="attExportMode"]:checked').value;
+        const dept = document.getElementById('att-exp-modal-dept').value;
+        const desig = document.getElementById('att-exp-modal-desig') ? document.getElementById('att-exp-modal-desig').value : 'all';
+        const shift = document.getElementById('att-exp-modal-shift').value;
+        const status = document.getElementById('att-exp-modal-status').value;
+        const title = encodeURIComponent(document.getElementById('att-exp-modal-title').value.trim());
+
+        // Gather checked columns for Daily export
+        const checkedCols = [];
+        document.querySelectorAll('.att-exp-col:checked').forEach(cb => {
+            checkedCols.push(cb.value);
+        });
+        const colsParam = encodeURIComponent(checkedCols.join(','));
+
+        let url = '';
+        if (mode === 'daily') {
+            const date = document.getElementById('att-exp-modal-date').value;
+            if (format === 'excel') {
+                url = `{% url 'export_attendance_daily_excel' %}?date=${date}&dept=${encodeURIComponent(dept)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}&designation=${encodeURIComponent(desig)}&title=${title}&cols=${colsParam}`;
+            } else {
+                url = `{% url 'export_attendance_pdf' %}?mode=daily&date=${date}&dept=${encodeURIComponent(dept)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}&designation=${encodeURIComponent(desig)}&title=${title}&cols=${colsParam}`;
+            }
+        } else {
+            const month = document.getElementById('att-exp-modal-month').value;
+            const year = document.getElementById('att-exp-modal-year').value;
+            if (format === 'excel') {
+                url = `{% url 'export_attendance_muster_excel' %}?month=${month}&year=${year}&dept=${encodeURIComponent(dept)}&shift=${encodeURIComponent(shift)}&designation=${encodeURIComponent(desig)}&title=${title}`;
+            } else {
+                url = `{% url 'export_attendance_pdf' %}?mode=muster&month=${month}&year=${year}&dept=${encodeURIComponent(dept)}&shift=${encodeURIComponent(shift)}&designation=${encodeURIComponent(desig)}&title=${title}`;
+            }
+        }
+
+        if (format === 'pdf') {
+            window.open(url, '_blank');
+        } else {
+            window.location.href = url;
+        }
+        closeAttendanceExportModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Direct event listener for instant typing search
+        const searchBox = document.getElementById('att-search-input');
+        if (searchBox) {
+            searchBox.addEventListener('input', runInstantLiveFilter);
+            searchBox.addEventListener('keyup', runInstantLiveFilter);
+        }
+        recalculateLiveKpis();
+    });
+</script>
+{% endblock %}

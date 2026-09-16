@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Record Details (Normal View){% endblock %}
+
+{% block content %}
+<style>
+    .normal-post-wrap {
+        max-width: 860px;
+        margin: 1.5rem auto 3rem auto;
+        padding: 0 1rem;
+    }
+    .normal-post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .normal-post-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+    .normal-post-banner {
+        padding: 14px 20px;
+        background: var(--bg-subtle, #f8fafc);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .module-badge-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 800;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: {{ post.badge_color|default:'#0284c7' }};
+    }
+    .view-mode-pill {
+        font-size: 0.74rem;
+        font-weight: 700;
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+        padding: 3px 9px;
+        border-radius: 12px;
+    }
+    .normal-post-body {
+        padding: 24px;
+    }
+    .post-main-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-color);
+        margin: 0 0 10px 0;
+        line-height: 1.3;
+    }
+    .post-meta-sub {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        color: var(--sidebar-text);
+        font-size: 0.86rem;
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+    }
+    .officer-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--bg-subtle, #f1f5f9);
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        color: var(--text-color);
+        border: 1px solid var(--border);
+    }
+    .record-fields-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+    }
+    .record-fields-table tr {
+        border-bottom: 1px solid var(--border);
+    }
+    .record-fields-table tr:last-child {
+        border-bottom: none;
+    }
+    .record-fields-table th {
+        width: 32%;
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        background: rgba(0,0,0,0.015);
+    }
+    .record-fields-table td {
+        padding: 12px 14px;
+        font-size: 0.92rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+    .normal-post-footer {
+        padding: 16px 24px;
+        background: var(--bg-subtle, #f8fafc);
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .comments-box {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px dashed var(--border);
+    }
+    .comment-item {
+        background: var(--bg-subtle, #f1f5f9);
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 0.88rem;
+    }
+</style>
+
+<div class="normal-post-wrap">
+
+    <!-- Top Navigation -->
+    <div class="normal-post-header">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+            <span>←</span> Back to Dashboard
+        </a>
+        <span class="view-mode-pill">📄 Normal Record View Mode</span>
+    </div>
+
+    <!-- Main Card -->
+    <div class="normal-post-card" style="border-top: 5px solid {{ post.badge_color|default:'#0284c7' }};">
+        
+        <!-- Header Banner -->
+        <div class="normal-post-banner">
+            <span class="module-badge-tag">
+                <span>{{ post.icon }}</span> SECTION: {{ post.module_name }}
+            </span>
+            <span style="font-weight: 700; font-size: 0.82rem; color: var(--sidebar-text);">
+                {{ post.record_id }}
+            </span>
+        </div>
+
+        <!-- Body -->
+        <div class="normal-post-body">
+            <h1 class="post-main-title">{{ post.title }}</h1>
+            
+            <div class="post-meta-sub">
+                <span>🕒 <strong>{{ post.date_time }}</strong></span>
+                <span class="officer-tag">
+                    <span>✍️</span> Logged by: <strong>{{ post.submitter_name }}</strong> ({{ post.submitter_role }})
+                </span>
+            </div>
+
+            <!-- Standard ERP Data Table -->
+            <table class="record-fields-table">
+                <tbody>
+                    {% for label, val in post.fields %}
+                    <tr>
+                        <th>{{ label }}</th>
+                        <td>{{ val|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Comments (if any) -->
+            {% if post.comments %}
+            <div class="comments-box">
+                <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-color);">
+                    💬 Team Notes &amp; Comments ({{ post.comments|length }})
+                </h4>
+                {% for c in post.comments %}
+                <div class="comment-item">
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.82rem; margin-bottom: 2px;">
+                        <span>{{ c.user_name }}</span>
+                        <span style="color: var(--sidebar-text); font-weight: 400;">{{ c.time }}</span>
+                    </div>
+                    <div style="color: var(--text-color);">{{ c.comment_text }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Card Footer Navigation -->
+        <div class="normal-post-footer">
+            <a href="{% url 'dashboard' %}" class="btn" style="background: var(--bg-subtle); color: var(--text-color); border: 1px solid var(--border); font-weight: 600; border-radius: 10px; padding: 8px 16px;">
+                Close
+            </a>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                {% if user.is_superuser or user.system_role == 'MANAGER' or user.system_role == 'PROJECT_MANAGER' %}
+                {% if post.submitter_user_id %}
+                <a href="{% url 'chat_room' %}?user_id={{ post.submitter_user_id }}&post_tag={{ post.key }}&msg=Hi%20{{ post.submitter_name|urlencode }}%2C%20regarding%20{{ post.record_id }}%20({{ post.title|urlencode }})%3A%20" 
+                   class="btn" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5; font-weight: 700; border-radius: 10px; padding: 8px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <span>💬</span> Query Officer in Chat
+                </a>
+                {% endif %}
+                {% endif %}
+
+                {% if post.module_url %}
+                <a href="{{ post.module_url }}" class="btn btn-primary" style="font-weight: 700; border-radius: 10px; padding: 8px 18px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+                    <span>{{ post.icon }}</span> {{ post.module_url_label|default:"Open Module" }} &rarr;
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

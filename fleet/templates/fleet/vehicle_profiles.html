@@ -1,0 +1,2508 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Include Chart.js for Fleet Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid" style="max-width: 1400px; margin: 1.5rem auto; padding: 0 1rem; font-family: 'Inter', sans-serif;">
+
+    <!-- Top Navigation Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <a href="/" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 600; padding: 4px 10px; font-size: 0.8rem;">
+                    &larr; Dashboard
+                </a>
+                <span style="color: #94a3b8;">/</span>
+                <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Fleet Directory</span>
+            </div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.6rem; display: flex; align-items: center; gap: 10px;">
+                <span>🚗</span> Vehicle Profiles &amp; Fleet 360°
+            </h2>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 0.88rem;">
+                Real-time 360° vehicle dossier aggregating repairs, lubrication, tyres, spares, gate movements, deployments &amp; documents.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" onclick="toggleAnalyticsSection()" id="btnToggleAnalytics" class="btn btn-outline-primary" style="border-radius: 10px; font-weight: 700; font-size: 0.85rem; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa fa-chart-pie"></i> <span id="analyticsBtnText">📊 Fleet Analytics</span>
+            </button>
+            <button type="button" onclick="openExportReportsModal()" class="btn btn-outline-success" style="border-radius: 10px; font-weight: 700; font-size: 0.85rem; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa fa-file-export"></i> <span>📥 Export &amp; Reports</span>
+            </button>
+            {% if can_log_breakdown %}
+            <button type="button" onclick="openAddBreakdownModal()" class="btn btn-danger" style="border-radius: 10px; font-weight: 700; font-size: 0.85rem; padding: 8px 14px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(220,38,38,0.2);">
+                <i class="fa fa-wrench"></i> + Log Breakdown
+            </button>
+            <a href="{% url 'fleet:breakdown_register' %}" class="btn btn-outline-danger" style="border-radius: 10px; font-weight: 700; font-size: 0.85rem; padding: 8px 14px;">
+                <i class="fa fa-tools"></i> Workshop Register ({{ workshop_total }})
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- FLEET ACTIVITY HISTORY SECTION                                       -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="fleetHistorySection" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 18px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+
+        <!-- Header -->
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);">
+            <div>
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                    📋 Fleet Activity History Log
+                </h3>
+                <p style="margin: 3px 0 0; font-size: 0.8rem; color: #64748b;">
+                    Unified history from all modules — Breakdowns, Lubrication, Spare Parts, Tyres, Movements
+                    {% if date_from or date_to %}<span style="color: #dc2626; font-weight: 700;"> · Filtered: {{ date_from|default:"Start" }} to {{ date_to|default:"Today" }}</span>{% endif %}
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span id="historyCount" style="background: #2563eb; color: white; font-size: 0.78rem; font-weight: 800; padding: 4px 12px; border-radius: 20px;">{{ activity_total }} Records</span>
+                <button type="button" onclick="toggleHistorySection()" id="btnToggleHistory" style="background: #1e40af; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.82rem; padding: 7px 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-history"></i> <span id="historyBtnText">Show History</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Collapsible Body -->
+        <div id="historyBody" style="display: none;">
+            <!-- Inline Filters Toolbar -->
+            <div style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #f8fafc;">
+                
+                <!-- Type Filter Tabs -->
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button class="hist-type-btn active" data-type="all" onclick="histFilterType('all')">🌟 All ({{ activity_total }})</button>
+                    <button class="hist-type-btn" data-type="Breakdown" onclick="histFilterType('Breakdown')">🔧 Breakdowns</button>
+                    <button class="hist-type-btn" data-type="Lubrication" onclick="histFilterType('Lubrication')">🛢️ Lubrication</button>
+                    <button class="hist-type-btn" data-type="Spare Part" onclick="histFilterType('Spare Part')">⚙️ Spare Parts</button>
+                    <button class="hist-type-btn" data-type="Tyre" onclick="histFilterType('Tyre')">🚗 Tyres</button>
+                    <button class="hist-type-btn" data-type="Movement" onclick="histFilterType('Movement')">🚚 Movements</button>
+                </div>
+
+                <!-- Vehicle / Keyword Search -->
+                <div style="position: relative; flex: 1; min-width: 200px; max-width: 320px;">
+                    <i class="fa fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.8rem;"></i>
+                    <input type="text" id="histSearchInput" placeholder="Search vehicle, detail..." 
+                           style="width: 100%; padding: 6px 10px 6px 32px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.82rem; outline: none;"
+                           oninput="histFilterLive()">
+                </div>
+
+                <!-- Results Counter -->
+                <span id="histResultsLabel" style="font-size: 0.78rem; font-weight: 700; color: #64748b; white-space: nowrap;"></span>
+
+                <!-- Export filtered history -->
+                <div style="margin-left: auto; display: flex; gap: 6px;">
+                    <button onclick="exportHistoryCSV()" class="btn btn-sm btn-success" style="border-radius: 8px; font-weight: 700; font-size: 0.78rem; padding: 5px 10px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa fa-file-csv"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- History Table -->
+            <div style="overflow-x: auto; max-height: 520px; overflow-y: auto;">
+                <table id="historyTable" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: #1e293b; color: white; position: sticky; top: 0; z-index: 2;">
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700; white-space: nowrap;">Date</th>
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700;">Type</th>
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700;">Vehicle</th>
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700; min-width: 280px;">Detail</th>
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700;">Status</th>
+                            <th style="padding: 10px 14px; text-align: right; font-weight: 700;">Amount</th>
+                            <th style="padding: 10px 14px; text-align: left; font-weight: 700;">Logged By</th>
+                            <th style="padding: 10px 14px; text-align: center; font-weight: 700;">View</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        {% for entry in activity_history %}
+                        <tr class="hist-row" 
+                            data-type="{{ entry.type }}" 
+                            data-vehicle="{{ entry.vehicle|lower }}" 
+                            data-detail="{{ entry.detail|lower }} {{ entry.sub|lower }}"
+                            style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;">
+                            <td style="padding: 9px 14px; font-weight: 700; color: #334155; white-space: nowrap;">
+                                {{ entry.date|date:"d M Y" }}
+                            </td>
+                            <td style="padding: 9px 14px; white-space: nowrap;">
+                                <span style="background: {{ entry.type_color }}22; color: {{ entry.type_color }}; border: 1px solid {{ entry.type_color }}44; font-weight: 800; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; white-space: nowrap;">
+                                    {{ entry.type_icon }} {{ entry.type }}
+                                </span>
+                            </td>
+                            <td style="padding: 9px 14px; font-weight: 700; color: #1e40af;">
+                                <a href="{% url 'fleet:kundali' entry.vehicle_id %}" style="color: #1e40af; text-decoration: none;" title="Open 360° Profile">
+                                    {{ entry.vehicle }}
+                                </a>
+                            </td>
+                            <td style="padding: 9px 14px; color: #374151;">
+                                <div style="font-weight: 600;">{{ entry.detail }}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">{{ entry.sub }}</div>
+                            </td>
+                            <td style="padding: 9px 14px; white-space: nowrap;">
+                                <span style="font-size: 0.74rem; font-weight: 700;">{{ entry.status }}</span>
+                            </td>
+                            <td style="padding: 9px 14px; text-align: right; font-weight: 700; color: #059669; white-space: nowrap;">
+                                {{ entry.amount }}
+                            </td>
+                            <td style="padding: 9px 14px; color: #64748b; font-size: 0.78rem; white-space: nowrap;">
+                                {{ entry.logged_by }}
+                            </td>
+                            <td style="padding: 9px 14px; text-align: center;">
+                                <a href="{% url 'fleet:kundali' entry.vehicle_id %}" style="color: #2563eb; font-size: 0.78rem; font-weight: 700; text-decoration: none;" title="View 360° Profile">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8; font-weight: 600;">No activity records found for this date range.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapsible Visual Analytics Section -->
+    <div id="fleetAnalyticsSection" style="display: none; background: white; border: 1.5px solid #dbeafe; border-radius: 18px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(37,99,235,0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.85rem;">
+            <div>
+                <h3 style="margin: 0; font-weight: 800; font-size: 1.25rem; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                    <span>📊</span> Fleet Health &amp; Breakdown Analytics
+                </h3>
+                <p style="margin: 3px 0 0 0; color: #64748b; font-size: 0.82rem;">
+                    Real-time operational analysis across all {{ total_count }} fleet vehicles and {{ analytics.total_lifetime_repairs }} lifetime maintenance tickets.
+                </p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 6px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #166534; font-weight: 800; text-transform: uppercase;">Availability</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #15803d;">{{ analytics.availability_rate }}%</div>
+                </div>
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 6px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #991b1b; font-weight: 800; text-transform: uppercase;">Breakdown Rate</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #dc2626;">{{ analytics.breakdown_rate }}%</div>
+                </div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 6px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #1e40af; font-weight: 800; text-transform: uppercase;">Avg Downtime</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #2563eb;">{{ analytics.avg_downtime_days }} Days</div>
+                </div>
+                <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 6px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #15803d; font-weight: 800; text-transform: uppercase;">Turnaround &lt; 24h</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #166534;">{{ analytics.same_day_pct }}%</div>
+                </div>
+                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 6px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #9a3412; font-weight: 800; text-transform: uppercase;">Chronic Asset</div>
+                    <div style="font-size: 0.92rem; font-weight: 800; color: #c2410c; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ analytics.highest_maint_veh }}">
+                        {{ analytics.highest_maint_veh }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8 Analytics Charts Grid (2 Rows of 4 Cards) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px;">
+            <!-- Chart 1: Fleet Operating Status -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Operating Availability</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">Live Status</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartStatusCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Fleet Ownership Distribution -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Ownership Ratio</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">In-House vs Hired</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartOwnershipCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Top Breakdown Problem Areas -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Top Defect Categories</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">Historical Complaints</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartProblemsCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Monthly Breakdown & Repair Trend -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>6-Month Maintenance Trend</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">In vs Repaired Out</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartTrendCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 5: Chronic Breakdown Vehicles (Top 6 High-Maintenance Assets) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Chronic Breakdown Assets</span>
+                    <span style="font-size: 0.75rem; color: #ef4444; font-weight: 700;">Top 6 Frequent</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartTopBdVehiclesCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 6: Fleet Machinery & Equipment Composition -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Machinery Composition</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">By Equipment Type</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartMachineryCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 7: Repair Turnaround Duration (MTTR) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Repair Turnaround (MTTR)</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">Resolution Speed</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartMttrCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 8: Major Hired Fleet Contractors -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Hired Fleet Suppliers</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">Top Contractors</span>
+                </div>
+                <div style="position: relative; height: 210px;">
+                    <canvas id="chartVendorsCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 1.5rem;">
+        
+        <!-- Total Fleet -->
+        <div class="stat-card-hub" onclick="setHubFilter('all')" style="cursor: pointer; background: white; border: 2px solid #3b82f6; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 12px rgba(59,130,246,0.08); transition: transform 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #3b82f6; text-transform: uppercase;">Total Fleet</span>
+                <span style="font-size: 1.2rem;">🚜</span>
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #1e3a8a; margin-top: 4px;">{{ total_count }}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">All registered vehicles</div>
+        </div>
+
+        <!-- In-House Vehicles -->
+        <div class="stat-card-hub" onclick="setHubFilter('in-house')" style="cursor: pointer; background: white; border: 1px solid #bfdbfe; border-radius: 14px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">In-House Fleet</span>
+                <span style="font-size: 1.2rem;">🏢</span>
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #1d4ed8; margin-top: 4px;">{{ in_house_total }}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Company-owned assets</div>
+        </div>
+
+        <!-- Hired Vehicles -->
+        <div class="stat-card-hub" onclick="setHubFilter('hired')" style="cursor: pointer; background: white; border: 1px solid #fed7aa; border-radius: 14px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #ea580c; text-transform: uppercase;">Hired Vehicles</span>
+                <span style="font-size: 1.2rem;">🤝</span>
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #c2410c; margin-top: 4px;">{{ hired_total }}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Contract / Vendor hired</div>
+        </div>
+
+        <!-- Running Fleet -->
+        <div class="stat-card-hub" onclick="setHubFilter('running')" style="cursor: pointer; background: white; border: 1px solid #bbf7d0; border-radius: 14px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #166534; text-transform: uppercase;">Active / Running</span>
+                <span style="font-size: 1.2rem;">🟢</span>
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #15803d; margin-top: 4px;">{{ running_total }}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Available for duty</div>
+        </div>
+
+        <!-- In Workshop -->
+        <div class="stat-card-hub" onclick="setHubFilter('workshop')" style="cursor: pointer; background: white; border: 1px solid #fecaca; border-radius: 14px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #dc2626; text-transform: uppercase;">In Workshop</span>
+                <span style="font-size: 1.2rem;">⚠️</span>
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #b91c1c; margin-top: 4px;">{{ workshop_total }}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Active Breakdowns</div>
+        </div>
+
+    </div>
+
+    <!-- Filter & Search Toolbar with View Switcher -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        
+        <!-- Date Range & Historical Filter Bar -->
+        <form method="GET" action="" id="hubDateFilterForm" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 700; color: #1e293b;">
+                    <i class="fa fa-calendar-alt" style="color: #2563eb;"></i>
+                    <span>Historical Date Filter:</span>
+                    <input type="date" name="date_from" id="hubDateFrom" value="{{ date_from }}" class="form-control form-control-sm" style="width: auto; font-weight: 600; border-radius: 8px; font-size: 0.8rem; padding: 4px 8px;">
+                    <span>to</span>
+                    <input type="date" name="date_to" id="hubDateTo" value="{{ date_to }}" class="form-control form-control-sm" style="width: auto; font-weight: 600; border-radius: 8px; font-size: 0.8rem; padding: 4px 8px;">
+                    
+                    <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 8px; font-weight: 700; padding: 4px 10px; font-size: 0.8rem;">
+                        <i class="fa fa-filter"></i> Apply Date Filter
+                    </button>
+
+                    {% if date_from or date_to %}
+                    <a href="{% url 'fleet:vehicle_profiles' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; text-decoration: none;">
+                        <i class="fa fa-undo"></i> Reset / All Time
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #64748b; margin-right: 2px;">Presets:</span>
+                    <button type="button" onclick="applyHubDatePreset('today')" class="btn-date-preset">Today</button>
+                    <button type="button" onclick="applyHubDatePreset('last7')" class="btn-date-preset">Last 7 Days</button>
+                    <button type="button" onclick="applyHubDatePreset('thisMonth')" class="btn-date-preset">This Month</button>
+                    <button type="button" onclick="applyHubDatePreset('last30')" class="btn-date-preset">Last 30 Days</button>
+                    <button type="button" onclick="applyHubDatePreset('all')" class="btn-date-preset">All Time</button>
+                </div>
+            </div>
+        </form>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            
+            <!-- Filter Tabs -->
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="hubFilterTabs">
+                <button class="hub-tab-btn active" data-filter="all" onclick="setHubFilter('all')">
+                    🌟 All ({{ total_count }})
+                </button>
+                <button class="hub-tab-btn" data-filter="in-house" onclick="setHubFilter('in-house')">
+                    🏢 In-House ({{ in_house_total }})
+                </button>
+                <button class="hub-tab-btn" data-filter="hired" onclick="setHubFilter('hired')">
+                    🤝 Hired ({{ hired_total }})
+                </button>
+                <button class="hub-tab-btn" data-filter="running" onclick="setHubFilter('running')">
+                    🟢 Running ({{ running_total }})
+                </button>
+                <button class="hub-tab-btn" data-filter="workshop" onclick="setHubFilter('workshop')">
+                    ⚠️ In Workshop ({{ workshop_total }})
+                </button>
+            </div>
+
+            <!-- Instant Search Input & View Mode Switcher -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex: 1; justify-content: flex-end;">
+                <div style="position: relative; min-width: 250px; flex: 1; max-width: 380px;">
+                    <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" id="vehicleHubSearch" placeholder="Search Door No, Regn, Model, Driver..."
+                           style="width: 100%; padding: 8px 36px 8px 38px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; outline: none; transition: border-color 0.2s;"
+                           oninput="filterVehiclesLive()">
+                    <span id="clearSearchBtn" onclick="clearHubSearch()" style="display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; font-weight: 700;">&times;</span>
+                </div>
+
+                <!-- View Switcher (Cards vs Table List) -->
+                <div style="display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 10px; border: 1px solid #e2e8f0; gap: 2px;">
+                    <button type="button" id="btnViewCards" onclick="switchHubView('cards')" class="hub-view-btn active" title="Card Grid View">
+                        <i class="fa fa-th-large"></i> Cards
+                    </button>
+                    <button type="button" id="btnViewTable" onclick="switchHubView('table')" class="hub-view-btn" title="Detailed Table / List View">
+                        <i class="fa fa-list"></i> Table List
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 0.8rem; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+            <span id="hubResultCount">Showing <strong>{{ total_count }}</strong> vehicles</span>
+            <span style="font-size: 0.75rem; color: #94a3b8;">💡 Click any vehicle to view its complete 360° Profile</span>
+        </div>
+    </div>
+
+    <!-- VIEW 1: Vehicles Cards Grid -->
+    <div id="vehicleCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;">
+        {% for v in vehicles %}
+        <div class="v-card-item" 
+             data-id="{{ v.id }}"
+             data-ownership="{% if v.is_hired %}hired{% else %}in-house{% endif %}"
+             data-status="{% if v.in_workshop %}workshop{% else %}running{% endif %}"
+             data-search="{{ v.dno }} {{ v.regn }} {{ v.model_name }} {{ v.driver_name }} {{ v.department }} {{ v.owner_name }}">
+            
+            <!-- Card Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #1e3a8a; line-height: 1.2;">
+                        {{ v.dno|default:v.regn }}
+                    </div>
+                    {% if v.regn and v.dno != v.regn %}
+                    <div style="font-size: 0.82rem; font-weight: 600; color: #475569;">
+                        Regn: {{ v.regn }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                    <!-- Ownership Badge -->
+                    {% if v.is_hired %}
+                    <span class="v-badge v-badge-hired">🤝 Hired</span>
+                    {% else %}
+                    <span class="v-badge v-badge-inhouse">🏢 In-House</span>
+                    {% endif %}
+
+                    <!-- Workshop Status Badge -->
+                    {% if v.in_workshop %}
+                    <a href="{% url 'fleet:breakdown_register' %}" class="v-badge v-badge-workshop" style="text-decoration: none;" title="Active Breakdown - Click to view in Workshop Register">⚠️ In Workshop</a>
+                    {% else %}
+                    <span class="v-badge v-badge-running">🟢 Running</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Vehicle Details -->
+            <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px;">
+                <div>
+                    <strong style="color: #334155;">Model:</strong> {{ v.model_name|default:"Equipment" }}
+                    <span style="color: #cbd5e1;">•</span>
+                    <span style="color: #64748b;">{{ v.department }}</span>
+                </div>
+                <div>
+                    <strong style="color: #334155;">Driver:</strong> {{ v.driver_name }}
+                </div>
+                {% if v.is_hired and v.owner_name %}
+                <div>
+                    <strong style="color: #334155;">Vendor:</strong> {{ v.owner_name }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Breakdown Lifecycle In & Out Banner (If breakdown exists) -->
+            {% if v.in_workshop %}
+            <div class="bd-in-workshop-banner" style="margin-bottom: 10px; padding: 8px 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 0.78rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: #b91c1c;">
+                    <span>⚠️ In Breakdown (Downtime: {{ v.latest_downtime }}d)</span>
+                    <span>In: {{ v.latest_bd_in|date:"d M Y"|default:"Active" }}</span>
+                </div>
+                {% if v.active_complaint %}
+                <div style="color: #475569; margin-top: 2px; font-size: 0.76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <strong>Issue:</strong> {{ v.active_complaint }}
+                </div>
+                {% endif %}
+                <div style="color: #64748b; margin-top: 2px; font-size: 0.74rem;">
+                    <strong>Garage:</strong> {{ v.active_garage|default:"Main Yard Workshop" }}
+                </div>
+            </div>
+            {% elif v.latest_bd_in and v.latest_bd_out %}
+            <div class="bd-repaired-banner" style="margin-bottom: 10px; padding: 6px 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 0.76rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #166534;">
+                    <span>✅ Repaired (Downtime: {{ v.latest_downtime }}d)</span>
+                    <span>Out: {{ v.latest_bd_out|date:"d M Y" }}</span>
+                </div>
+                <div style="color: #475569; margin-top: 2px; font-size: 0.74rem;">
+                    <strong>In:</strong> {{ v.latest_bd_in|date:"d M Y" }} &rarr; <strong>Out:</strong> {{ v.latest_bd_out|date:"d M Y" }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Real-time Activity Counters Row -->
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding: 6px 8px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; font-size: 0.72rem; font-weight: 700;">
+                <span title="Repairs logged" style="color: #ef4444;">🔧 {{ v.repair_count }}</span>
+                <span style="color: #e2e8f0;">|</span>
+                <span title="Lubrication logs" style="color: #8b5cf6;">🛢️ {{ v.lube_count }}</span>
+                <span style="color: #e2e8f0;">|</span>
+                <span title="Tyre logs" style="color: #10b981;">🚗 {{ v.tyre_count }}</span>
+                <span style="color: #e2e8f0;">|</span>
+                <span title="Spare parts" style="color: #3b82f6;">⚙️ {{ v.spare_count }}</span>
+                <span style="color: #e2e8f0;">|</span>
+                <span title="Gate movements" style="color: #059669;">🚚 {{ v.movement_count }}</span>
+                <span style="color: #e2e8f0;">|</span>
+                <span title="Site allocations" style="color: #2563eb;">📋 {{ v.allocation_count }}</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                {% if v.in_workshop %}
+                <button type="button" 
+                        onclick="openResolveModal('{{ v.active_repair_id }}', '{{ v.dno|default:v.regn|escapejs }}', '{{ v.active_complaint|escapejs }}', '{{ v.active_mechanic|escapejs }}', '{{ v.active_garage|escapejs }}')"
+                        class="btn btn-success" 
+                        style="width: 100%; border-radius: 10px; font-weight: 800; font-size: 0.82rem; padding: 8px 10px; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 3px 8px rgba(22,163,74,0.25);">
+                    <i class="fa fa-check-circle"></i> Mark Repaired / Release from Workshop
+                </button>
+                {% endif %}
+
+                <div style="display: flex; gap: 6px; align-items: stretch;">
+                    <a href="{% url 'fleet:kundali' v.id %}" class="btn-view-kundali" style="flex: 1;">
+                        <span>🔍 View 360° Profile</span>
+                        <i class="fa fa-arrow-right"></i>
+                    </a>
+                    {% if not v.in_workshop %}
+                    <button type="button" onclick="openAddBreakdownModal('{{ v.id }}')" class="btn btn-outline-danger" title="Log Breakdown for this vehicle" style="border-radius: 10px; padding: 0 12px; font-weight: 700; border: 1.5px solid #fca5a5;">
+                        <i class="fa fa-wrench"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: white; border-radius: 12px; color: #64748b;">
+            <i class="fa fa-truck fa-3x" style="color: #cbd5e1; margin-bottom: 10px;"></i>
+            <h4>No vehicles found</h4>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- VIEW 2: Vehicles Table / List View -->
+    <div id="vehicleTableView" style="display: none; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); margin-bottom: 1.5rem;">
+        <div style="overflow-x: auto;">
+            <table class="table table-hover align-middle mb-0" style="width: 100%; font-size: 0.84rem; border-collapse: separate; border-spacing: 0;">
+                <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #334155; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <tr>
+                        <th style="padding: 12px 16px;">Vehicle</th>
+                        <th style="padding: 12px 14px;">Ownership</th>
+                        <th style="padding: 12px 14px;">Operating Status</th>
+                        <th style="padding: 12px 16px;">Breakdown Lifecycle (In &amp; Out)</th>
+                        <th style="padding: 12px 14px;">Driver &amp; Dept</th>
+                        <th style="padding: 12px 14px; text-align: center;">Activity History</th>
+                        <th style="padding: 12px 16px; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="vehicleTableBody">
+                    {% for v in vehicles %}
+                    <tr class="v-table-row"
+                        data-id="{{ v.id }}"
+                        data-ownership="{% if v.is_hired %}hired{% else %}in-house{% endif %}"
+                        data-status="{% if v.in_workshop %}workshop{% else %}running{% endif %}"
+                        data-search="{{ v.dno }} {{ v.regn }} {{ v.model_name }} {{ v.driver_name }} {{ v.department }} {{ v.owner_name }}">
+                        
+                        <!-- Vehicle ID & Model -->
+                        <td style="padding: 12px 16px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color: #1e3a8a;">
+                                {{ v.dno|default:v.regn }}
+                            </div>
+                            {% if v.regn and v.dno != v.regn %}
+                            <div style="font-size: 0.78rem; color: #475569; font-weight: 600;">
+                                Regn: {{ v.regn }}
+                            </div>
+                            {% endif %}
+                            <div style="font-size: 0.75rem; color: #64748b;">
+                                {{ v.model_name|default:"Equipment" }}
+                            </div>
+                        </td>
+
+                        <!-- Ownership -->
+                        <td style="padding: 12px 14px;">
+                            {% if v.is_hired %}
+                            <span class="v-badge v-badge-hired">🤝 Hired</span>
+                            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">{{ v.owner_name|default:"Vendor" }}</div>
+                            {% else %}
+                            <span class="v-badge v-badge-inhouse">🏢 In-House</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Operating Status -->
+                        <td style="padding: 12px 14px;">
+                            {% if v.in_workshop %}
+                            <a href="{% url 'fleet:breakdown_register' %}" class="v-badge v-badge-workshop" style="text-decoration: none;" title="Active Breakdown in Workshop">
+                                ⚠️ In Workshop
+                            </a>
+                            <div style="font-size: 0.74rem; color: #dc2626; font-weight: 700; margin-top: 3px;">
+                                Downtime: {{ v.latest_downtime }} days
+                            </div>
+                            {% else %}
+                            <span class="v-badge v-badge-running">🟢 Running</span>
+                            <div style="font-size: 0.72rem; color: #16a34a; margin-top: 3px;">Available</div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Breakdown Lifecycle (In & Out in one place) -->
+                        <td style="padding: 12px 16px;">
+                            {% if v.in_workshop %}
+                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 10px; max-width: 320px;">
+                                <div style="font-weight: 800; color: #b91c1c; font-size: 0.78rem; display: flex; justify-content: space-between;">
+                                    <span>In: {{ v.latest_bd_in|date:"d M Y"|default:"Active" }}</span>
+                                    <span>Out: Pending</span>
+                                </div>
+                                {% if v.active_complaint %}
+                                <div style="font-size: 0.75rem; color: #374151; margin-top: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="{{ v.active_complaint }}">
+                                    <strong>Issue:</strong> {{ v.active_complaint }}
+                                </div>
+                                {% endif %}
+                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 1px;">
+                                    <strong>Garage:</strong> {{ v.active_garage|default:"Main Yard Workshop" }}
+                                </div>
+                            </div>
+                            {% elif v.latest_bd_in and v.latest_bd_out %}
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 6px 10px; max-width: 320px;">
+                                <div style="font-weight: 800; color: #166534; font-size: 0.78rem; display: flex; justify-content: space-between;">
+                                    <span>In: {{ v.latest_bd_in|date:"d M Y" }}</span>
+                                    <span>&rarr; Out: {{ v.latest_bd_out|date:"d M Y" }}</span>
+                                </div>
+                                <div style="font-size: 0.74rem; color: #15803d; margin-top: 1px;">
+                                    <strong>Total Downtime:</strong> {{ v.latest_downtime }} day{{ v.latest_downtime|pluralize }} | {{ v.latest_garage|default:"Main Yard Workshop" }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span style="font-size: 0.78rem; color: #94a3b8; font-style: italic;">No recent breakdown records</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Driver & Department -->
+                        <td style="padding: 12px 14px;">
+                            <div style="font-weight: 600; color: #1e293b;">{{ v.driver_name }}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">{{ v.department }}</div>
+                        </td>
+
+                        <!-- Activity Counters -->
+                        <td style="padding: 12px 14px; text-align: center;">
+                            <div style="display: inline-flex; gap: 6px; font-size: 0.74rem; font-weight: 700; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                                <span title="Repairs" style="color: #ef4444;">🔧 {{ v.repair_count }}</span>
+                                <span style="color: #cbd5e1;">|</span>
+                                <span title="Lubrications" style="color: #8b5cf6;">🛢️ {{ v.lube_count }}</span>
+                                <span style="color: #cbd5e1;">|</span>
+                                <span title="Tyres" style="color: #10b981;">🚗 {{ v.tyre_count }}</span>
+                                <span style="color: #cbd5e1;">|</span>
+                                <span title="Spares" style="color: #3b82f6;">⚙️ {{ v.spare_count }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Actions -->
+                        <td style="padding: 12px 16px; text-align: right;">
+                            <div style="display: flex; justify-content: flex-end; gap: 6px; align-items: center;">
+                                {% if v.in_workshop %}
+                                <button type="button" 
+                                        onclick="openResolveModal('{{ v.active_repair_id }}', '{{ v.dno|default:v.regn|escapejs }}', '{{ v.active_complaint|escapejs }}', '{{ v.active_mechanic|escapejs }}', '{{ v.active_garage|escapejs }}')"
+                                        class="btn btn-sm btn-success" 
+                                        style="border-radius: 8px; font-weight: 700; font-size: 0.76rem; padding: 5px 10px;"
+                                        title="Mark Repaired / Release Vehicle">
+                                    <i class="fa fa-check"></i> Release
+                                </button>
+                                {% else %}
+                                <button type="button" 
+                                        onclick="openAddBreakdownModal('{{ v.id }}')" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        style="border-radius: 8px; font-weight: 700; font-size: 0.76rem; padding: 5px 8px;"
+                                        title="Log Breakdown">
+                                    <i class="fa fa-wrench"></i>
+                                </button>
+                                {% endif %}
+
+                                <a href="{% url 'fleet:kundali' v.id %}" 
+                                   class="btn btn-sm btn-primary" 
+                                   style="border-radius: 8px; font-weight: 700; font-size: 0.76rem; padding: 5px 12px;"
+                                   title="View 360° Profile &amp; Complete History">
+                                    View 360°
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem; color: #64748b;">
+                            No vehicles found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Empty State for Filter/Search -->
+    <div id="noVehiclesFoundMsg" style="display: none; text-align: center; padding: 3rem; background: white; border-radius: 16px; border: 1px solid #e2e8f0; color: #64748b; margin-top: 1rem;">
+        <i class="fa fa-search fa-3x" style="color: #cbd5e1; margin-bottom: 12px;"></i>
+        <h4 style="font-weight: 700; color: #334155;">No matching vehicles found</h4>
+        <p style="font-size: 0.88rem; color: #94a3b8;">Try adjusting your search terms or filter selection.</p>
+        <button onclick="clearHubSearch(); setHubFilter('all');" class="btn btn-sm btn-primary" style="border-radius: 8px; font-weight: 700; margin-top: 8px;">
+            Reset All Filters
+        </button>
+    </div>
+
+</div>
+
+<!-- MODAL 1: Log New Breakdown (Zero-dependency pure overlay) -->
+<div id="modalAddBreakdownHub" class="custom-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target===this) closeAddBreakdownModal();">
+    <div style="background: white; border-radius: 16px; width: 100%; max-width: 620px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+        <div style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-wrench"></i> Log New Vehicle Breakdown
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #fecaca;">Record breakdown details (all fields are optional)</p>
+            </div>
+            <button type="button" onclick="closeAddBreakdownModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        
+        <form id="formAddBreakdownHub" onsubmit="submitAddBreakdownHub(event)" style="overflow-y: auto; display: flex; flex-direction: column;">
+            {% csrf_token %}
+            <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;">
+                
+                <!-- Vehicle Selection with Live Search Dropdown -->
+                <div>
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Vehicle (Live Search or Choose)
+                    </label>
+                    <div style="position: relative;" id="hubVehicleSearchWrapper">
+                        <input type="hidden" name="vehicle_id" id="hubBdVehicleSelect">
+                        <input type="hidden" name="vehicle_custom" id="hubBdVehicleCustom">
+                        
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <div style="position: relative; flex: 1;">
+                                <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                <input type="text" id="hubVehicleSearchInput" class="form-control" 
+                                       placeholder="Type Door No, Regn, or Model..." 
+                                       autocomplete="off" 
+                                       oninput="filterVehicleDropdown(this.value)" 
+                                       onfocus="showVehicleDropdown()" 
+                                       style="padding-left: 32px; border-radius: 8px; font-weight: 600; border: 1.5px solid #cbd5e1;">
+                            </div>
+                            <button type="button" id="btnHubClearVehicle" onclick="clearVehicleSelection()" title="Clear Selection" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
+                                <i class="fa fa-times"></i> Clear
+                            </button>
+                        </div>
+
+                        <!-- Selected Vehicle Pill Badge -->
+                        <div id="hubSelectedVehicleBadge" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 6px 12px; margin-top: 6px;">
+                            <div style="font-size: 0.84rem; font-weight: 700; color: #166534;" id="hubSelectedVehicleText"></div>
+                            <span style="font-size: 0.75rem; color: #15803d; font-weight: 600;">Selected</span>
+                        </div>
+
+                        <!-- Dropdown Container -->
+                        <div id="hubVehicleDropdownList" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 240px; overflow-y: auto; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 0.75rem; color: #64748b; font-weight: 700;">
+                                <span>Select Vehicle</span>
+                                <button type="button" onclick="hideVehicleDropdown()" style="background: none; border: none; color: #64748b; cursor: pointer; font-weight: 800; font-size: 0.85rem;" title="Close dropdown">&times; Close</button>
+                            </div>
+                            <div id="hubVehicleCustomOption" onclick="selectCustomVehicle()" style="display: none; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #4338ca; font-weight: 700; font-size: 0.84rem; cursor: pointer;">
+                                <i class="fa fa-plus-circle"></i> Use Custom: <span id="hubCustomOptionText"></span>
+                            </div>
+                            <div id="hubVehicleItemsList">
+                                {% for v in all_vehicles %}
+                                <div class="hub-v-opt" 
+                                     data-id="{{ v.id }}" 
+                                     data-dno="{{ v.dno|default:'' }}" 
+                                     data-regn="{{ v.regn|default:'' }}" 
+                                     data-model="{{ v.model_name|default:'' }}" 
+                                     onclick="selectVehicleItem('{{ v.id }}', '{{ v.dno|default:v.regn }}', '{{ v.regn }}', '{{ v.model_name|default:'' }}')" 
+                                     style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                    <div>
+                                        <strong style="color: #1e293b;">{{ v.dno|default:v.regn }}</strong> 
+                                        {% if v.regn and v.dno != v.regn %}<span style="color: #64748b; font-size: 0.8rem;">({{ v.regn }})</span>{% endif %}
+                                        <div style="font-size: 0.75rem; color: #94a3b8;">{{ v.model_name|default:"Equipment" }}</div>
+                                    </div>
+                                    <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569; font-weight: 600;">
+                                        {{ v.extra_data.ownership|default:"In-house" }}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div id="hubVehicleNoMatch" style="display: none; padding: 12px; text-align: center; color: #94a3b8; font-size: 0.82rem;">
+                                No matching vehicles found. Click "Use Custom" above to enter manually.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Garage / Workshop & Breakdown Location -->
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Garage / Workshop Name
+                        </label>
+                        <input type="text" list="garageListSuggestions" name="garage_name" placeholder="e.g. Main Yard Workshop" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Breakdown Location
+                        </label>
+                        <input type="text" list="breakdownLocationsSuggestions" name="breakdown_location" placeholder="e.g. Zone 1, Main Road, Culvert" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Date and Time -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            In Date
+                        </label>
+                        <input type="date" name="in_date" id="hubBdInDate" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            In Time
+                        </label>
+                        <input type="time" name="in_time" id="hubBdInTime" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Breakdown Complaint -->
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Complaint / Issue Description
+                    </label>
+                    <textarea name="complaint" id="hubBdComplaint" rows="2" 
+                              placeholder="e.g. Engine overheating, Hydraulic leakage, Clutch plate worn, Starter fault..." 
+                              style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;"></textarea>
+                </div>
+
+                <!-- Mechanic & HMR -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Assigned Mechanic
+                        </label>
+                        <input type="text" list="mechanicsSuggestions" name="mechanic" placeholder="e.g. Ramesh / Suresh" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            HMR at Breakdown
+                        </label>
+                        <input type="number" step="0.1" name="hmr_at_breakdown" placeholder="e.g. 1420.5" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Multiple Parts Section (Optional) -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin: 0;">
+                            Parts Used / Required (Optional - Multiple parts can be added)
+                        </label>
+                        <button type="button" onclick="addDynamicPartRow('hubAddPartsContainer')" style="font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 3px 8px; cursor: pointer;">
+                            <i class="fa fa-plus"></i> + Add Part
+                        </button>
+                    </div>
+                    <div id="hubAddPartsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="dynamic-part-row" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remarks -->
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Remarks / Additional Notes
+                    </label>
+                    <input type="text" name="remarks" placeholder="Additional details or instructions..." 
+                           style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                </div>
+
+                <!-- Status Info Note -->
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; color: #92400e; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-info-circle"></i>
+                    <span>Vehicle will be marked as <strong>⚠️ In Workshop (Breakdown)</strong> upon submission.</span>
+                </div>
+
+            </div>
+
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" onclick="closeAddBreakdownModal()" class="btn btn-secondary" style="border-radius: 8px; font-weight: 600; padding: 8px 16px;">Cancel</button>
+                <button type="submit" id="btnSubmitAddBreakdownHub" class="btn btn-danger" style="border-radius: 8px; font-weight: 700; padding: 8px 20px;">
+                    <i class="fa fa-save"></i> Save Breakdown Entry
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: Mark Repaired / Release from Workshop (Zero-dependency pure overlay) -->
+<div id="modalResolveBreakdownHub" class="custom-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target===this) closeResolveModal();">
+    <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+        <div style="background: linear-gradient(135deg, #16a34a, #15803d); color: white; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-check-circle"></i> Mark Repaired &amp; Release Vehicle
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #bbf7d0;">Close breakdown ticket and restore vehicle to Running fleet</p>
+            </div>
+            <button type="button" onclick="closeResolveModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        
+        <form id="formResolveBreakdownHub" onsubmit="submitResolveBreakdownHub(event)" style="overflow-y: auto; display: flex; flex-direction: column;">
+            {% csrf_token %}
+            <input type="hidden" id="resolveLogId" name="log_id">
+            
+            <div style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;">
+                
+                <!-- Vehicle Info Box -->
+                <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 10px 14px;">
+                    <div style="font-size: 0.75rem; color: #166534; font-weight: 800; text-transform: uppercase;">Vehicle to Release:</div>
+                    <div id="resolveVehicleName" style="font-size: 1.25rem; font-weight: 800; color: #14532d;">-</div>
+                    <div id="resolveComplaintText" style="font-size: 0.82rem; color: #374151; margin-top: 2px;">-</div>
+                </div>
+
+                <!-- Out Date & Time -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Out Date (Repaired)
+                        </label>
+                        <input type="date" name="out_date" id="resolveOutDate" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Out Time
+                        </label>
+                        <input type="time" name="out_time" id="resolveOutTime" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Garage & Mechanic -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Repaired At (Workshop / Garage)
+                        </label>
+                        <input type="text" list="garageListSuggestions" name="garage_name" id="resolveGarageName" placeholder="Workshop / Garage" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                            Mechanic Who Repaired
+                        </label>
+                        <input type="text" list="mechanicsSuggestions" name="mechanic" id="resolveMechanic" placeholder="Mechanic Name" 
+                               style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Multiple Parts Replaced (Optional) -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin: 0;">
+                            Parts Replaced / Used (Optional - Add Multiple Parts)
+                        </label>
+                        <button type="button" onclick="addDynamicPartRow('hubResolvePartsContainer')" style="font-size: 0.75rem; font-weight: 700; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 6px; padding: 3px 8px; cursor: pointer;">
+                            <i class="fa fa-plus"></i> + Add Part
+                        </button>
+                    </div>
+                    <div id="hubResolvePartsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="dynamic-part-row" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+                            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Closing Remarks / Trial Report -->
+                <div>
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Final Status / Remarks
+                    </label>
+                    <input type="text" name="remarks" placeholder="e.g. Trial run successful, ready for regular shift" 
+                           style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                </div>
+
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; color: #166534; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-check-circle"></i>
+                    <span>Submitting will immediately release this vehicle back to <strong>🟢 Running</strong> status!</span>
+                </div>
+
+            </div>
+
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" onclick="closeResolveModal()" class="btn btn-secondary" style="border-radius: 8px; font-weight: 600; padding: 8px 16px;">Cancel</button>
+                <button type="submit" id="btnSubmitResolveBreakdownHub" class="btn btn-success" style="border-radius: 8px; font-weight: 800; padding: 8px 22px; box-shadow: 0 4px 12px rgba(22,163,74,0.3);">
+                    <i class="fa fa-check"></i> Release to Running Fleet
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: Advanced Fleet & Breakdown Reports Export Popup -->
+<div id="modalExportReports" class="custom-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target===this) closeExportReportsModal();">
+    <div style="background: white; border-radius: 16px; width: 100%; max-width: 640px; box-shadow: 0 20px 45px rgba(0,0,0,0.25); overflow: hidden; max-height: 92vh; display: flex; flex-direction: column;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-file-export"></i> Advanced Fleet &amp; Breakdown Reports
+                </h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #bfdbfe;">
+                    Filter and generate unified In/Out lifecycle, active repairs, or full directory reports
+                </p>
+            </div>
+            <button type="button" onclick="closeExportReportsModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+            
+            <!-- Report Type Selector -->
+            <div>
+                <label style="font-weight: 800; font-size: 0.82rem; color: #1e293b; margin-bottom: 6px; display: block;">
+                    1. Select Report Type
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label class="export-type-card" style="cursor: pointer; border: 1.5px solid #2563eb; background: #eff6ff; border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start;">
+                        <input type="radio" name="exportReportType" value="lifecycle" checked style="margin-top: 3px;">
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.84rem; color: #1e3a8a;">Breakdown Lifecycle (In &amp; Out)</div>
+                            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Shows entry date, exit date, downtime days, mechanics &amp; parts in one row</div>
+                        </div>
+                    </label>
+
+                    <label class="export-type-card" style="cursor: pointer; border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start;">
+                        <input type="radio" name="exportReportType" value="master" style="margin-top: 3px;">
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.84rem; color: #1e293b;">Fleet Master Directory</div>
+                            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">All vehicles with model, department, driver, readings &amp; operational status</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Date Range Filter & Quick Presets -->
+            <div id="exportDateRangeSection" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                    <label style="font-weight: 800; font-size: 0.82rem; color: #1e293b; margin: 0;">
+                        2. Date Filter (Optional)
+                    </label>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button type="button" onclick="setExportDatePreset('all')" class="btn-date-preset">All Time</button>
+                        <button type="button" onclick="setExportDatePreset('today')" class="btn-date-preset">Today</button>
+                        <button type="button" onclick="setExportDatePreset('last7')" class="btn-date-preset">Last 7 Days</button>
+                        <button type="button" onclick="setExportDatePreset('thisMonth')" class="btn-date-preset">This Month</button>
+                        <button type="button" onclick="setExportDatePreset('last30')" class="btn-date-preset">Last 30 Days</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                    <div>
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 2px; display: block;">From Date</label>
+                        <input type="date" id="exportDateFrom" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.82rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 2px; display: block;">To Date</label>
+                        <input type="date" id="exportDateTo" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.82rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Filters -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Operational Status
+                    </label>
+                    <select id="exportStatusFilter" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.82rem;">
+                        <option value="all">All Vehicles (Running + Workshop)</option>
+                        <option value="workshop">⚠️ In Workshop (Breakdowns)</option>
+                        <option value="running">🟢 Running Fleet Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 700; font-size: 0.8rem; color: #1e293b; margin-bottom: 4px; display: block;">
+                        Ownership Type
+                    </label>
+                    <select id="exportOwnershipFilter" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.82rem;">
+                        <option value="all">All Fleet (In-House + Hired)</option>
+                        <option value="in-house">🏢 In-House Only</option>
+                        <option value="hired">🤝 Hired Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Active Filter Snapshot (auto-synced from page when modal opens) -->
+            <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;">
+                <div style="font-weight: 800; font-size: 0.8rem; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-filter" style="color: #2563eb;"></i> 3. Filter by Keyword / Vehicle Search
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 2px; display: block;">Keyword Filter (Door No, Regn, Model, Driver)</label>
+                    <input type="text" id="exportSearchFilter" placeholder="e.g. S01, CG-13BA, Scania, John..."
+                           style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.82rem;">
+                </div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 5px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
+                    <i class="fa fa-eye" style="color: #64748b;"></i>
+                    Current Page Selection:
+                    <span id="exportActiveFilerBadge" style="font-weight: 800; color: #16a34a;">No active filter — exporting All</span>
+                </div>
+            </div>
+
+            <!-- Summary Info Box -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+                <i class="fa fa-info-circle fa-lg"></i>
+                <div>
+                    The <strong>Breakdown Lifecycle Report</strong> compiles every vehicle's entry date, exit date, total days down in garage, reported defect, attending mechanic, and spare parts replaced in a single row.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer / Action Buttons -->
+        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="closeExportReportsModal()" class="btn btn-secondary" style="border-radius: 8px; font-weight: 600; padding: 7px 14px; font-size: 0.84rem;">
+                Close
+            </button>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="triggerExport('excel')" class="btn btn-success" style="border-radius: 8px; font-weight: 700; padding: 7px 14px; font-size: 0.84rem; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-file-excel"></i> Export Excel (.xlsx)
+                </button>
+                <button type="button" onclick="triggerExport('pdf')" class="btn btn-danger" style="border-radius: 8px; font-weight: 700; padding: 7px 14px; font-size: 0.84rem; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-file-pdf"></i> Export PDF / Print
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- REUSABLE DATALISTS FOR AUTOCOMPLETE & CUSTOM ADD -->
+<datalist id="sparePartsSuggestions">
+    {% for sp in common_spare_parts %}
+    <option value="{{ sp }}">
+    {% endfor %}
+</datalist>
+
+<datalist id="mechanicsSuggestions">
+    {% for m in common_mechanics %}
+    <option value="{{ m }}">
+    {% endfor %}
+</datalist>
+
+<datalist id="garageListSuggestions">
+    <option value="Main Yard Workshop">
+    <option value="Site 1 Workshop">
+    <option value="Site 2 Workshop">
+    <option value="Crusher Yard Workshop">
+    <option value="Outside / Vendor Workshop">
+    <option value="Tata Motors Authorized Garage">
+    <option value="Escorts Workshop">
+    <option value="Field Repair / On-Site">
+</datalist>
+
+<datalist id="breakdownLocationsSuggestions">
+    <option value="Main Yard">
+    <option value="Quarry Site">
+    <option value="Crusher Area">
+    <option value="Kiln 1">
+    <option value="Kiln 2">
+    <option value="Kiln 3">
+    <option value="Haul Road">
+    <option value="Workshop Area">
+</datalist>
+
+<!-- Styles for Vehicle Profiles Hub -->
+<style>
+    .stat-card-hub:hover {
+        transform: translateY(-3px);
+    }
+    .hub-tab-btn {
+        padding: 7px 14px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition: all 0.2s;
+    }
+    .hub-tab-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    .hub-tab-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+        box-shadow: 0 4px 10px rgba(37,99,235,0.25);
+    }
+
+    .hub-view-btn {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.78rem;
+        padding: 5px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.2s;
+    }
+    .hub-view-btn.active {
+        background: white;
+        color: #1e3a8a;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .btn-date-preset {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #475569;
+        padding: 2px 7px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-date-preset:hover {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+
+    .v-card-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.15rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .v-card-item:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 8px 20px rgba(37,99,235,0.1);
+        transform: translateY(-2px);
+    }
+
+    .v-table-row:hover td {
+        background-color: #f8fafc;
+    }
+
+    .v-badge {
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .v-badge-inhouse {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+    .v-badge-hired {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+    }
+    .v-badge-running {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+    .v-badge-workshop {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        animation: pulse-red 2s infinite;
+    }
+
+    @keyframes pulse-red {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .btn-view-kundali {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        color: #1e40af;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-view-kundali:hover {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+    }
+
+    /* ===================== DARK MODE COMPATIBILITY ===================== */
+    /* Cards & Lists */
+    [data-theme="dark"] .v-card-item {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    }
+    [data-theme="dark"] .v-card-item:hover {
+        border-color: #60a5fa !important;
+        box-shadow: 0 8px 20px rgba(96,165,250,0.15) !important;
+    }
+
+    /* Breakdown Banners in Cards */
+    [data-theme="dark"] .bd-in-workshop-banner {
+        background: rgba(185, 28, 28, 0.2) !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+        color: #fca5a5 !important;
+    }
+    [data-theme="dark"] .bd-in-workshop-banner div,
+    [data-theme="dark"] .bd-in-workshop-banner span {
+        color: #fca5a5 !important;
+    }
+
+    [data-theme="dark"] .bd-repaired-banner {
+        background: rgba(22, 101, 52, 0.25) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+        color: #86efac !important;
+    }
+    [data-theme="dark"] .bd-repaired-banner div,
+    [data-theme="dark"] .bd-repaired-banner span {
+        color: #86efac !important;
+    }
+
+    /* Badges inside Vehicle Cards */
+    [data-theme="dark"] .v-badge-inhouse {
+        background: rgba(29, 78, 216, 0.25) !important;
+        color: #93c5fd !important;
+        border-color: rgba(147, 197, 253, 0.3) !important;
+    }
+    [data-theme="dark"] .v-badge-hired {
+        background: rgba(194, 65, 12, 0.25) !important;
+        color: #fdba74 !important;
+        border-color: rgba(253, 186, 116, 0.3) !important;
+    }
+    [data-theme="dark"] .v-badge-running {
+        background: rgba(21, 128, 61, 0.25) !important;
+        color: #86efac !important;
+        border-color: rgba(134, 239, 172, 0.3) !important;
+    }
+    [data-theme="dark"] .v-badge-workshop {
+        background: rgba(185, 28, 28, 0.25) !important;
+        color: #fca5a5 !important;
+        border-color: rgba(252, 165, 165, 0.3) !important;
+    }
+
+    /* Card details & buttons in Dark Mode */
+    [data-theme="dark"] .v-card-item strong {
+        color: #e2e8f0 !important;
+    }
+    [data-theme="dark"] .v-card-item span {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .btn-view-kundali {
+        background: #0f172a !important;
+        color: #60a5fa !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] .btn-view-kundali:hover {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+    [data-theme="dark"] .v-card-item .btn-outline-danger {
+        background: #0f172a !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.5) !important;
+    }
+    [data-theme="dark"] .v-card-item .btn-outline-danger:hover {
+        background: #ef4444 !important;
+        color: white !important;
+    }
+    /* Activity Counters Row */
+    [data-theme="dark"] .v-card-item [style*="background: #f8fafc"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+
+    /* KPI Stat Cards */
+    [data-theme="dark"] .stat-card-hub {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+
+    /* Filter & Search Toolbar */
+    [data-theme="dark"] #hubFilterTabs .hub-tab-btn {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #hubFilterTabs .hub-tab-btn:hover {
+        background: #1e293b !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] #hubFilterTabs .hub-tab-btn.active {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+    [data-theme="dark"] #vehicleHubSearch {
+        background: #0f172a !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #vehicleHubSearch::placeholder { color: #475569 !important; }
+
+    /* Filter toolbar container */
+    [data-theme="dark"] #vehicleCardsGrid + div,
+    [data-theme="dark"] div[style*="background: white"][style*="border: 1px solid #e2e8f0"][style*="border-radius: 16px"] {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    /* View switcher */
+    [data-theme="dark"] .hub-view-btn {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .hub-view-btn.active {
+        background: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+
+    /* Table View */
+    [data-theme="dark"] #vehicleTableView {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #vehicleTableView thead {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #vehicleTableView tbody tr {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #vehicleTableView tbody tr:hover td {
+        background: #273549 !important;
+    }
+    [data-theme="dark"] #vehicleTableView td {
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .v-table-row:hover td {
+        background-color: #273549 !important;
+    }
+
+    /* Card text colors */
+    [data-theme="dark"] .v-card-item strong,
+    [data-theme="dark"] .v-card-item div,
+    [data-theme="dark"] .v-card-item span {
+        color: inherit;
+    }
+    [data-theme="dark"] .v-card-item [style*="color: #1e3a8a"] { color: #93c5fd !important; }
+    [data-theme="dark"] .v-card-item [style*="color: #475569"] { color: #94a3b8 !important; }
+    [data-theme="dark"] .v-card-item [style*="color: #64748b"] { color: #94a3b8 !important; }
+    [data-theme="dark"] .v-card-item [style*="color: #334155"] { color: #cbd5e1 !important; }
+    [data-theme="dark"] .v-card-item [style*="color: #1e293b"] { color: #e2e8f0 !important; }
+    [data-theme="dark"] .v-card-item [style*="color: #0f172a"] { color: #f1f5f9 !important; }
+
+    /* Activity Counters Strip in Card */
+    [data-theme="dark"] .v-card-item [style*="background: #f8fafc"][style*="border: 1px solid #f1f5f9"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+
+    /* Breakdown status banners inside cards */
+    [data-theme="dark"] .v-card-item [style*="background: #fef2f2"] {
+        background: #2d1515 !important;
+        border-color: #7f1d1d !important;
+    }
+    [data-theme="dark"] .v-card-item [style*="background: #f0fdf4"] {
+        background: #0f2e1a !important;
+        border-color: #14532d !important;
+    }
+
+    /* View 360° Button */
+    [data-theme="dark"] .btn-view-kundali {
+        background: #0f172a !important;
+        color: #93c5fd !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] .btn-view-kundali:hover {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+
+    /* Analytics Section */
+    [data-theme="dark"] #fleetAnalyticsSection {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #fleetAnalyticsSection [style*="background: #f8fafc"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #fleetAnalyticsSection [style*="color: #1e293b"] { color: #e2e8f0 !important; }
+    [data-theme="dark"] #fleetAnalyticsSection [style*="color: #64748b"] { color: #94a3b8 !important; }
+    [data-theme="dark"] #fleetAnalyticsSection [style*="border-bottom: 1px solid #f1f5f9"] {
+        border-bottom-color: #334155 !important;
+    }
+
+    /* KPI mini-badges inside analytics */
+    [data-theme="dark"] #fleetAnalyticsSection [style*="background: #f0fdf4"],
+    [data-theme="dark"] #fleetAnalyticsSection [style*="background: #fef2f2"],
+    [data-theme="dark"] #fleetAnalyticsSection [style*="background: #eff6ff"],
+    [data-theme="dark"] #fleetAnalyticsSection [style*="background: #fff7ed"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+
+    /* Empty state */
+    [data-theme="dark"] #noVehiclesFoundMsg {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+
+    /* Export Modal */
+    [data-theme="dark"] #modalExportReports > div {
+        background: #1e293b !important;
+    }
+    [data-theme="dark"] #modalExportReports [style*="background: #f8fafc"],
+    [data-theme="dark"] #modalExportReports [style*="background: #f8fafc; border-top"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #modalExportReports .export-type-card {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #modalExportReports [style*="background: #eff6ff"] {
+        background: #172554 !important;
+        border-color: #1e40af !important;
+        color: #93c5fd !important;
+    }
+    [data-theme="dark"] #modalExportReports label { color: #cbd5e1 !important; }
+    [data-theme="dark"] #modalExportReports select,
+    [data-theme="dark"] #modalExportReports input[type="date"],
+    [data-theme="dark"] #modalExportReports input[type="text"] {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .btn-date-preset {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .btn-date-preset:hover {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+
+    /* Heading & breadcrumb text */
+    [data-theme="dark"] h2[style*="color: #0f172a"],
+    [data-theme="dark"] h3[style*="color: #1e3a8a"] { color: #93c5fd !important; }
+    [data-theme="dark"] p[style*="color: #64748b"] { color: #94a3b8 !important; }
+    [data-theme="dark"] span[style*="color: #64748b"] { color: #94a3b8 !important; }
+
+    /* Table row dno text */
+    [data-theme="dark"] #vehicleTableView [style*="color: #1e3a8a"] { color: #93c5fd !important; }
+    [data-theme="dark"] #vehicleTableView [style*="color: #475569"] { color: #94a3b8 !important; }
+    [data-theme="dark"] #vehicleTableView [style*="color: #64748b"] { color: #94a3b8 !important; }
+
+    /* ── Fleet Activity History Table ── */
+    .hist-type-btn {
+        padding: 5px 11px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .hist-type-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .hist-type-btn.active {
+        background: #1e40af;
+        color: white;
+        border-color: #1e40af;
+        box-shadow: 0 3px 8px rgba(30,64,175,0.25);
+    }
+    #historyTable tbody tr.hist-row:hover td {
+        background: #f0f6ff;
+    }
+    #historyTable tbody tr.hist-row-hidden { display: none; }
+
+    /* Dark mode for history section */
+    [data-theme="dark"] #fleetHistorySection {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] #fleetHistorySection .hist-type-btn {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #fleetHistorySection .hist-type-btn.active {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+    [data-theme="dark"] #historyTable thead tr {
+        background: #0f172a !important;
+    }
+    [data-theme="dark"] #historyTable tbody tr.hist-row {
+        border-color: #1e293b !important;
+    }
+    [data-theme="dark"] #historyTable tbody tr.hist-row:hover td {
+        background: #334155 !important;
+    }
+    [data-theme="dark"] #historyTable td { color: #cbd5e1 !important; }
+    [data-theme="dark"] #histSearchInput {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+</style>
+
+<!-- Scripts: Filter, View Switcher, Charts & Modals -->
+<script>
+    let currentFilter = 'all';
+    let currentView = 'cards';
+    let analyticsChartsInitialized = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load saved view mode preference
+        const savedView = localStorage.getItem('fleet_hub_view') || 'cards';
+        switchHubView(savedView);
+    });
+
+    // View Switcher: Cards vs Table
+    function switchHubView(viewMode) {
+        currentView = viewMode;
+        localStorage.setItem('fleet_hub_view', viewMode);
+
+        const cardsGrid = document.getElementById('vehicleCardsGrid');
+        const tableView = document.getElementById('vehicleTableView');
+        const btnCards = document.getElementById('btnViewCards');
+        const btnTable = document.getElementById('btnViewTable');
+
+        if (viewMode === 'table') {
+            cardsGrid.style.display = 'none';
+            tableView.style.display = 'block';
+            btnCards.classList.remove('active');
+            btnTable.classList.add('active');
+        } else {
+            cardsGrid.style.display = 'grid';
+            tableView.style.display = 'none';
+            btnCards.classList.add('active');
+            btnTable.classList.remove('active');
+        }
+
+        filterVehiclesLive();
+    }
+
+    // Filter Hub Categories
+    function setHubFilter(filter) {
+        currentFilter = filter;
+        
+        document.querySelectorAll('.hub-tab-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        filterVehiclesLive();
+    }
+
+    function clearHubSearch() {
+        const input = document.getElementById('vehicleHubSearch');
+        input.value = '';
+        document.getElementById('clearSearchBtn').style.display = 'none';
+        filterVehiclesLive();
+    }
+
+    // Dual-Mode Live Instant Search & Filter (Filters both Cards and Table Rows simultaneously)
+    function filterVehiclesLive() {
+        const searchInput = document.getElementById('vehicleHubSearch');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const query = searchInput.value.toLowerCase().trim();
+
+        clearBtn.style.display = query ? 'block' : 'none';
+
+        const cards = document.querySelectorAll('.v-card-item');
+        const rows = document.querySelectorAll('.v-table-row');
+        let visibleCount = 0;
+
+        // Helper filter logic
+        function checkMatch(ownership, status, searchText) {
+            let matchesFilter = false;
+            if (currentFilter === 'all') {
+                matchesFilter = true;
+            } else if (currentFilter === 'in-house' && ownership === 'in-house') {
+                matchesFilter = true;
+            } else if (currentFilter === 'hired' && ownership === 'hired') {
+                matchesFilter = true;
+            } else if (currentFilter === 'running' && status === 'running') {
+                matchesFilter = true;
+            } else if (currentFilter === 'workshop' && status === 'workshop') {
+                matchesFilter = true;
+            }
+            const matchesSearch = !query || searchText.includes(query);
+            return matchesFilter && matchesSearch;
+        }
+
+        // Filter Cards
+        cards.forEach(card => {
+            const ownership = card.getAttribute('data-ownership');
+            const status = card.getAttribute('data-status');
+            const search = (card.getAttribute('data-search') || '').toLowerCase();
+            const isMatch = checkMatch(ownership, status, search);
+            
+            if (isMatch) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Filter Table Rows
+        rows.forEach(row => {
+            const ownership = row.getAttribute('data-ownership');
+            const status = row.getAttribute('data-status');
+            const search = (row.getAttribute('data-search') || '').toLowerCase();
+            const isMatch = checkMatch(ownership, status, search);
+            
+            if (isMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update result counter
+        const countSpan = document.getElementById('hubResultCount');
+        countSpan.innerHTML = `Showing <strong>${visibleCount}</strong> vehicles`;
+
+        // Toggle Empty state
+        const emptyMsg = document.getElementById('noVehiclesFoundMsg');
+        if (visibleCount === 0) {
+            emptyMsg.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'none';
+        }
+    }
+
+    // Toggle Analytics Section
+    function toggleAnalyticsSection() {
+        const sec = document.getElementById('fleetAnalyticsSection');
+        const btnText = document.getElementById('analyticsBtnText');
+        if (sec.style.display === 'none' || !sec.style.display) {
+            sec.style.display = 'block';
+            btnText.innerText = 'Hide Analytics';
+            if (!analyticsChartsInitialized) {
+                initFleetCharts();
+                analyticsChartsInitialized = true;
+            }
+        } else {
+            sec.style.display = 'none';
+            btnText.innerText = '📊 Fleet Analytics';
+        }
+    }
+
+    // ── Fleet Activity History Controls ──────────────────────────────────────
+    let histCurrentType = 'all';
+
+    function toggleHistorySection() {
+        const body = document.getElementById('historyBody');
+        const btnText = document.getElementById('historyBtnText');
+        if (body.style.display === 'none' || !body.style.display) {
+            body.style.display = 'block';
+            btnText.innerText = 'Hide History';
+            histApplyFilters(); // init count label
+        } else {
+            body.style.display = 'none';
+            btnText.innerText = 'Show History';
+        }
+    }
+
+    function histFilterType(type) {
+        histCurrentType = type;
+        // Update active tab
+        document.querySelectorAll('.hist-type-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.type === type);
+        });
+        histApplyFilters();
+    }
+
+    function histFilterLive() {
+        histApplyFilters();
+    }
+
+    function histApplyFilters() {
+        const searchVal = (document.getElementById('histSearchInput').value || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('#historyTableBody .hist-row');
+        let visible = 0;
+        rows.forEach(row => {
+            const rowType = row.dataset.type || '';
+            const rowVehicle = row.dataset.vehicle || '';
+            const rowDetail = row.dataset.detail || '';
+            const matchesType = histCurrentType === 'all' || rowType === histCurrentType;
+            const matchesSearch = !searchVal ||
+                rowVehicle.includes(searchVal) ||
+                rowDetail.includes(searchVal);
+            if (matchesType && matchesSearch) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        const label = document.getElementById('histResultsLabel');
+        if (label) label.textContent = `Showing ${visible} of ${rows.length} records`;
+    }
+
+    function exportHistoryCSV() {
+        const rows = document.querySelectorAll('#historyTableBody .hist-row');
+        let csv = 'Date,Type,Vehicle,Detail,Status,Amount,Logged By\n';
+        rows.forEach(row => {
+            if (row.style.display === 'none') return; // skip hidden rows
+            const cells = row.querySelectorAll('td');
+            const date = cells[0] ? cells[0].innerText.trim() : '';
+            const type = row.dataset.type || '';
+            const vehicle = row.dataset.vehicle || '';
+            const detailDiv = cells[3] ? cells[3].querySelector('div') : null;
+            const detail = detailDiv ? detailDiv.innerText.trim().replace(/"/g, '""') : '';
+            const status = cells[4] ? cells[4].innerText.trim() : '';
+            const amount = cells[5] ? cells[5].innerText.trim() : '';
+            const loggedBy = cells[6] ? cells[6].innerText.trim() : '';
+            csv += `"${date}","${type}","${vehicle}","${detail}","${status}","${amount}","${loggedBy}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fleet_activity_history.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Initialize Visual Analytics Charts via Chart.js
+    function initFleetCharts() {
+        const analytics = {{ analytics_json|safe }};
+
+        // Chart 1: Availability Status Donut
+        const ctxStatus = document.getElementById('chartStatusCanvas').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Running Fleet', 'In Workshop'],
+                datasets: [{
+                    data: [analytics.running_total, analytics.workshop_total],
+                    backgroundColor: ['#16a34a', '#dc2626'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } } }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // Chart 2: Fleet Ownership Doughnut
+        const ctxOwnership = document.getElementById('chartOwnershipCanvas').getContext('2d');
+        new Chart(ctxOwnership, {
+            type: 'doughnut',
+            data: {
+                labels: ['In-House Fleet', 'Hired Vehicles'],
+                datasets: [{
+                    data: [analytics.in_house_total, analytics.hired_total],
+                    backgroundColor: ['#2563eb', '#ea580c'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } } }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // Chart 3: Top Breakdown Problem Areas (Horizontal Bar)
+        const ctxProblems = document.getElementById('chartProblemsCanvas').getContext('2d');
+        new Chart(ctxProblems, {
+            type: 'bar',
+            data: {
+                labels: analytics.problem_areas_labels.slice(0, 6),
+                datasets: [{
+                    label: 'Defect Incidents',
+                    data: analytics.problem_areas_counts.slice(0, 6),
+                    backgroundColor: ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#8b5cf6', '#06b6d4'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Chart 4: 6-Month Maintenance Trend
+        const ctxTrend = document.getElementById('chartTrendCanvas').getContext('2d');
+        new Chart(ctxTrend, {
+            type: 'bar',
+            data: {
+                labels: analytics.months,
+                datasets: [
+                    {
+                        label: 'Breakdowns In',
+                        data: analytics.monthly_in,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Repaired Out',
+                        data: analytics.monthly_out,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } } }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // Chart 5: Chronic Breakdown Vehicles (Horizontal Bar)
+        const ctxTopBd = document.getElementById('chartTopBdVehiclesCanvas').getContext('2d');
+        new Chart(ctxTopBd, {
+            type: 'bar',
+            data: {
+                labels: analytics.top_bd_labels,
+                datasets: [{
+                    label: 'Repairs Logged',
+                    data: analytics.top_bd_counts,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.x + ' Lifetime Repairs';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Chart 6: Fleet Machinery Composition (Doughnut)
+        const ctxMachinery = document.getElementById('chartMachineryCanvas').getContext('2d');
+        new Chart(ctxMachinery, {
+            type: 'doughnut',
+            data: {
+                labels: analytics.top_model_labels,
+                datasets: [{
+                    data: analytics.top_model_counts,
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } }
+                },
+                cutout: '62%'
+            }
+        });
+
+        // Chart 7: Repair Turnaround Duration MTTR (Bar Chart)
+        const ctxMttr = document.getElementById('chartMttrCanvas').getContext('2d');
+        new Chart(ctxMttr, {
+            type: 'bar',
+            data: {
+                labels: analytics.downtime_bucket_labels,
+                datasets: [{
+                    label: 'Repairs Completed',
+                    data: analytics.downtime_bucket_counts,
+                    backgroundColor: ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'],
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+                }
+            }
+        });
+
+        // Chart 8: Top Hired Fleet Contractors (Horizontal Bar)
+        const ctxVendors = document.getElementById('chartVendorsCanvas').getContext('2d');
+        new Chart(ctxVendors, {
+            type: 'bar',
+            data: {
+                labels: analytics.top_vendor_labels,
+                datasets: [{
+                    label: 'Vehicles Supplied',
+                    data: analytics.top_vendor_counts,
+                    backgroundColor: '#ea580c',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Export Modal Controls & Presets
+    function openExportReportsModal() {
+        // Sync active page filters into export modal
+        const activeTab = document.querySelector('#hubFilterTabs .hub-tab-btn.active');
+        const filterVal = activeTab ? activeTab.dataset.filter : 'all';
+
+        const statusSel = document.getElementById('exportStatusFilter');
+        const ownerSel  = document.getElementById('exportOwnershipFilter');
+        const searchVal = (document.getElementById('vehicleHubSearch') || {}).value || '';
+        const exportSearchInput = document.getElementById('exportSearchFilter');
+
+        // Map hub filter → status/ownership dropdowns
+        if (filterVal === 'workshop') {
+            statusSel.value = 'workshop';
+            ownerSel.value  = 'all';
+        } else if (filterVal === 'running') {
+            statusSel.value = 'running';
+            ownerSel.value  = 'all';
+        } else if (filterVal === 'in-house') {
+            statusSel.value = 'all';
+            ownerSel.value  = 'in-house';
+        } else if (filterVal === 'hired') {
+            statusSel.value = 'all';
+            ownerSel.value  = 'hired';
+        } else {
+            statusSel.value = 'all';
+            ownerSel.value  = 'all';
+        }
+
+        // Pre-fill search text
+        if (exportSearchInput) exportSearchInput.value = searchVal;
+
+        // Sync active date range from page to export modal
+        const pageDateFrom = (document.getElementById('hubDateFrom') || {}).value || '';
+        const pageDateTo = (document.getElementById('hubDateTo') || {}).value || '';
+        if (pageDateFrom) document.getElementById('exportDateFrom').value = pageDateFrom;
+        if (pageDateTo) document.getElementById('exportDateTo').value = pageDateTo;
+
+        // Update the active-filter badge
+        const badge = document.getElementById('exportActiveFilerBadge');
+        if (badge) {
+            const labels = [];
+            if (filterVal !== 'all') labels.push('Filter: ' + (activeTab ? activeTab.textContent.trim() : filterVal));
+            if (searchVal) labels.push('Search: "' + searchVal + '"');
+            if (pageDateFrom || pageDateTo) labels.push('Date: ' + (pageDateFrom || 'Start') + ' to ' + (pageDateTo || 'Current'));
+            badge.textContent = labels.length ? labels.join(' · ') : 'No active filter — exporting All';
+            badge.style.color = labels.length ? '#dc2626' : '#16a34a';
+        }
+
+        document.getElementById('modalExportReports').style.display = 'flex';
+    }
+
+    function applyHubDatePreset(preset) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        const fromInput = document.getElementById('hubDateFrom');
+        const toInput = document.getElementById('hubDateTo');
+
+        if (preset === 'all') {
+            fromInput.value = '';
+            toInput.value = '';
+        } else if (preset === 'today') {
+            fromInput.value = todayStr;
+            toInput.value = todayStr;
+        } else if (preset === 'last7') {
+            const past7 = new Date();
+            past7.setDate(today.getDate() - 7);
+            fromInput.value = past7.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        } else if (preset === 'thisMonth') {
+            fromInput.value = `${yyyy}-${mm}-01`;
+            toInput.value = todayStr;
+        } else if (preset === 'last30') {
+            const past30 = new Date();
+            past30.setDate(today.getDate() - 30);
+            fromInput.value = past30.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        }
+        document.getElementById('hubDateFilterForm').submit();
+    }
+
+    function closeExportReportsModal() {
+        document.getElementById('modalExportReports').style.display = 'none';
+    }
+
+    function setExportDatePreset(preset) {
+        const fromInput = document.getElementById('exportDateFrom');
+        const toInput = document.getElementById('exportDateTo');
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        if (preset === 'all') {
+            fromInput.value = '';
+            toInput.value = '';
+        } else if (preset === 'today') {
+            fromInput.value = todayStr;
+            toInput.value = todayStr;
+        } else if (preset === 'last7') {
+            const past7 = new Date();
+            past7.setDate(today.getDate() - 7);
+            fromInput.value = past7.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        } else if (preset === 'thisMonth') {
+            fromInput.value = `${yyyy}-${mm}-01`;
+            toInput.value = todayStr;
+        } else if (preset === 'last30') {
+            const past30 = new Date();
+            past30.setDate(today.getDate() - 30);
+            fromInput.value = past30.toISOString().split('T')[0];
+            toInput.value = todayStr;
+        }
+    }
+
+    function triggerExport(format) {
+        const reportType = document.querySelector('input[name="exportReportType"]:checked').value;
+        const dateFrom = document.getElementById('exportDateFrom').value;
+        const dateTo = document.getElementById('exportDateTo').value;
+        const status = document.getElementById('exportStatusFilter').value;
+        const ownership = document.getElementById('exportOwnershipFilter').value;
+        const searchKw = (document.getElementById('exportSearchFilter') || {}).value || '';
+
+        const params = new URLSearchParams();
+        params.append('report_type', reportType);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        if (status && status !== 'all') params.append('status', status);
+        if (ownership && ownership !== 'all') params.append('ownership', ownership);
+        if (searchKw.trim()) params.append('search', searchKw.trim());
+
+        if (format === 'excel') {
+            window.location.href = "{% url 'fleet:export_vehicles_excel' %}?" + params.toString();
+        } else if (format === 'pdf') {
+            window.open("{% url 'fleet:export_vehicles_pdf' %}?" + params.toString(), '_blank');
+        }
+    }
+
+    // Vehicle Selection in Modal (Live Searchable Dropdown)
+    function filterVehicleDropdown(query) {
+        const q = (query || '').toLowerCase().trim();
+        const items = document.querySelectorAll('#hubVehicleItemsList .hub-v-opt');
+        let matchCount = 0;
+
+        items.forEach(item => {
+            const dno = (item.getAttribute('data-dno') || '').toLowerCase();
+            const regn = (item.getAttribute('data-regn') || '').toLowerCase();
+            const model = (item.getAttribute('data-model') || '').toLowerCase();
+            if (!q || dno.includes(q) || regn.includes(q) || model.includes(q)) {
+                item.style.display = 'flex';
+                matchCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        const customOpt = document.getElementById('hubVehicleCustomOption');
+        const customTxt = document.getElementById('hubCustomOptionText');
+        const noMatch = document.getElementById('hubVehicleNoMatch');
+
+        if (q) {
+            customOpt.style.display = 'block';
+            customTxt.innerText = query;
+        } else {
+            customOpt.style.display = 'none';
+        }
+
+        if (matchCount === 0 && !q) {
+            noMatch.style.display = 'block';
+        } else {
+            noMatch.style.display = 'none';
+        }
+
+        showVehicleDropdown();
+    }
+
+    function showVehicleDropdown() {
+        document.getElementById('hubVehicleDropdownList').style.display = 'block';
+    }
+
+    function hideVehicleDropdown() {
+        const list = document.getElementById('hubVehicleDropdownList');
+        if (list) list.style.display = 'none';
+    }
+
+    // Auto-dismiss vehicle dropdown on click outside or Escape key
+    document.addEventListener('click', function(e) {
+        const wrapper = document.getElementById('hubVehicleSearchWrapper');
+        const list = document.getElementById('hubVehicleDropdownList');
+        if (wrapper && list && list.style.display !== 'none') {
+            if (!wrapper.contains(e.target)) {
+                list.style.display = 'none';
+            }
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const list = document.getElementById('hubVehicleDropdownList');
+            if (list) list.style.display = 'none';
+        }
+    });
+
+    function selectVehicleItem(id, dno, regn, model) {
+        document.getElementById('hubBdVehicleSelect').value = id;
+        document.getElementById('hubBdVehicleCustom').value = '';
+        
+        const label = `${dno || regn} ${regn && dno !== regn ? '(' + regn + ')' : ''} ${model ? '- ' + model : ''}`;
+        document.getElementById('hubVehicleSearchInput').value = label;
+        document.getElementById('hubSelectedVehicleText').innerText = label;
+        document.getElementById('hubSelectedVehicleBadge').style.display = 'flex';
+        document.getElementById('btnHubClearVehicle').style.display = 'inline-block';
+        hideVehicleDropdown();
+    }
+
+    function selectCustomVehicle() {
+        const val = document.getElementById('hubVehicleSearchInput').value.trim();
+        if (!val) return;
+        document.getElementById('hubBdVehicleSelect').value = '';
+        document.getElementById('hubBdVehicleCustom').value = val;
+        
+        document.getElementById('hubSelectedVehicleText').innerText = `Custom Vehicle: ${val}`;
+        document.getElementById('hubSelectedVehicleBadge').style.display = 'flex';
+        document.getElementById('btnHubClearVehicle').style.display = 'inline-block';
+        hideVehicleDropdown();
+    }
+
+    function clearVehicleSelection() {
+        document.getElementById('hubBdVehicleSelect').value = '';
+        document.getElementById('hubBdVehicleCustom').value = '';
+        document.getElementById('hubVehicleSearchInput').value = '';
+        document.getElementById('hubSelectedVehicleBadge').style.display = 'none';
+        document.getElementById('btnHubClearVehicle').style.display = 'none';
+        filterVehicleDropdown('');
+    }
+
+    // Dynamic Multi-Part Rows
+    function addDynamicPartRow(containerId) {
+        const container = document.getElementById(containerId);
+        const row = document.createElement('div');
+        row.className = 'dynamic-part-row';
+        row.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-top: 6px;';
+        row.innerHTML = `
+            <input type="text" name="part_names[]" list="sparePartsSuggestions" class="form-control" placeholder="Search or type part name..." style="flex: 2; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+            <input type="text" name="part_qtys[]" class="form-control" placeholder="Qty (e.g. 1 pc)" style="flex: 1; border-radius: 8px; font-size: 0.84rem; padding: 7px 10px; border: 1.5px solid #cbd5e1;">
+            <button type="button" onclick="removeDynamicPartRow(this)" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 2px 6px; line-height: 1;" title="Remove Part">&times;</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeDynamicPartRow(btn) {
+        const row = btn.closest('.dynamic-part-row');
+        if (row) row.remove();
+    }
+
+    function openAddBreakdownModal(preselectVehicleId) {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('hubBdInDate').value = today;
+        const now = new Date();
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('hubBdInTime').value = timeStr;
+        
+        clearVehicleSelection();
+        if (preselectVehicleId) {
+            const item = document.querySelector(`#hubVehicleItemsList .hub-v-opt[data-id="${preselectVehicleId}"]`);
+            if (item) {
+                const dno = item.getAttribute('data-dno');
+                const regn = item.getAttribute('data-regn');
+                const model = item.getAttribute('data-model');
+                selectVehicleItem(preselectVehicleId, dno, regn, model);
+            } else {
+                document.getElementById('hubBdVehicleSelect').value = preselectVehicleId;
+            }
+        }
+        
+        const modal = document.getElementById('modalAddBreakdownHub');
+        modal.style.display = 'flex';
+    }
+
+    function closeAddBreakdownModal() {
+        const modal = document.getElementById('modalAddBreakdownHub');
+        modal.style.display = 'none';
+    }
+
+    function openResolveModal(logId, vehicleName, complaint, mechanic, garage) {
+        document.getElementById('resolveLogId').value = logId;
+        document.getElementById('resolveVehicleName').innerText = vehicleName;
+        document.getElementById('resolveComplaintText').innerText = complaint ? 'Issue: ' + complaint : '';
+        document.getElementById('resolveMechanic').value = mechanic || '';
+        document.getElementById('resolveGarageName').value = garage || 'Main Yard Workshop';
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('resolveOutDate').value = today;
+        const now = new Date();
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('resolveOutTime').value = timeStr;
+
+        const modal = document.getElementById('modalResolveBreakdownHub');
+        modal.style.display = 'flex';
+    }
+
+    function closeResolveModal() {
+        const modal = document.getElementById('modalResolveBreakdownHub');
+        modal.style.display = 'none';
+    }
+
+    // AJAX Form Submission: Add Breakdown
+    async function submitAddBreakdownHub(e) {
+        e.preventDefault();
+        const form = document.getElementById('formAddBreakdownHub');
+        const formData = new FormData(form);
+        const btn = document.getElementById('btnSubmitAddBreakdownHub');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+
+        try {
+            const res = await fetch("{% url 'fleet:api_add_breakdown' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to log breakdown'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-save"></i> Save Breakdown Entry';
+            }
+        } catch (err) {
+            alert('Request failed: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-save"></i> Save Breakdown Entry';
+        }
+    }
+
+    // AJAX Form Submission: Resolve Breakdown
+    async function submitResolveBreakdownHub(e) {
+        e.preventDefault();
+        const form = document.getElementById('formResolveBreakdownHub');
+        const formData = new FormData(form);
+        const logId = document.getElementById('resolveLogId').value;
+        const btn = document.getElementById('btnSubmitResolveBreakdownHub');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Releasing...';
+
+        try {
+            const res = await fetch(`/fleet/api/breakdown/resolve/${logId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to release vehicle'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-check"></i> Release to Running Fleet';
+            }
+        } catch (err) {
+            alert('Request failed: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-check"></i> Release to Running Fleet';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,1142 @@
+{% extends 'base.html' %}
+{% block title %}Lubricants Consumed - P&M Portal{% endblock %}
+
+{% block content %}
+<!-- jQuery & Select2 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<input type="hidden" id="lub-latest-id" value="{{ latest_log_id }}">
+<input type="hidden" id="lub-total-count" value="{{ total_log_count }}">
+
+<style>
+/* Select2 custom styling to fit project theme */
+.select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+.select2-container .select2-selection--single {
+    height: 38px !important;
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-color) !important;
+    line-height: 38px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+}
+.select2-dropdown {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+    z-index: 999999 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-color) !important;
+}
+
+/* Stats */
+.lub-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.lub-stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.lub-stat-icon { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lub-stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-color); line-height: 1; }
+.lub-stat-label { font-size: 0.78rem; color: var(--sidebar-text); font-weight: 600; margin-top: 3px; }
+
+/* Filter Bar */
+.filter-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.filter-input, .filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; }
+.filter-input { min-width: 200px; flex: 1; }
+
+/* View Toggle */
+.view-toggle-btn { padding: 7px 12px; border: 1px solid var(--border); background: var(--bg-color); color: var(--sidebar-text); border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.view-toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+/* Card Grid */
+.lub-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.lub-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; transition: box-shadow 0.2s, transform 0.2s; }
+.lub-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.lub-card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 0.85rem; padding-bottom: 0.6rem; border-bottom: 1px dashed var(--border); flex-wrap: nowrap; }
+.lub-card-regn { font-size: 0.92rem; font-weight: 800; background: rgba(99,102,241,0.1); color: #6366f1; padding: 4px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px; border: 1px solid rgba(99,102,241,0.2); }
+.lub-card-date { font-size: 0.76rem; color: var(--sidebar-text); font-weight: 600; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex-shrink: 0; text-align: right; }
+.lub-date-text { color: var(--text-color); font-weight: 600; }
+.lub-time-badge { color: #6366f1; font-weight: 700; background: rgba(99,102,241,0.08); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(99,102,241,0.15); white-space: nowrap; font-size: 0.72rem; }
+.lub-card-oil { font-size: 1rem; font-weight: 700; color: var(--text-color); margin-bottom: 0.5rem; }
+.lub-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.lub-card-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; background: var(--bg-color); color: var(--sidebar-text); border: 1px solid var(--border); }
+.lub-card-total { font-size: 1.2rem; font-weight: 800; color: #10b981; border-top: 1px solid var(--border); padding-top: 0.8rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+.lub-card-actions { display: flex; gap: 6px; }
+@media (max-width: 480px) {
+    .lub-card { padding: 0.9rem !important; }
+    .lub-card-header { gap: 6px; margin-bottom: 0.75rem; }
+    .lub-card-regn { font-size: 0.84rem; padding: 3px 7px; }
+    .lub-card-date { font-size: 0.7rem; gap: 4px; }
+    .lub-time-badge { padding: 1px 5px; font-size: 0.68rem; }
+}
+
+/* Modal */
+.lub-modal { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(5px); z-index:99999; justify-content:center; align-items:center; padding:15px; box-sizing:border-box; }
+.lub-modal-box { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:580px; max-height:90vh; overflow-y:auto; overflow-x:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); box-sizing:border-box; color:var(--text-color); }
+.lub-modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card-bg); z-index:2; }
+.lub-modal-body { padding:20px; box-sizing:border-box; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; box-sizing:border-box; }
+.form-grid .full { grid-column:1/-1; }
+.form-mini-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-control { width:100% !important; box-sizing:border-box !important; max-width:100% !important; border:1px solid var(--border); border-radius:8px; padding:9px 12px; background:var(--bg-color); color:var(--text-color); font-size:0.88rem; transition:border-color 0.2s, box-shadow 0.2s; }
+.form-control:focus { outline:none; border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+.form-label { display:block; font-size:0.83rem; font-weight:600; color:var(--text-color); margin-bottom:5px; }
+
+.page-header-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.header-title-section h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-weight: 800;
+    font-size: 1.8rem;
+}
+.header-title-section p {
+    margin: 4px 0 0 0;
+    font-size: 0.9rem;
+    color: var(--sidebar-text);
+}
+
+@media (max-width: 768px) {
+    .page-header-wrap {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    .header-title-section h2 {
+        justify-content: center;
+    }
+    .page-header-buttons {
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+    .page-header-buttons button, .page-header-buttons a {
+        width: 100% !important;
+        justify-content: center;
+    }
+    /* Form Grid collapses to single column on mobile */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .lub-modal {
+        padding: 10px !important;
+        align-items: center !important;
+    }
+    .lub-modal-box {
+        border-radius: 14px !important;
+        max-height: 92vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .lub-modal-header {
+        padding: 14px 16px !important;
+    }
+    .lub-modal-body {
+        padding: 16px 14px !important;
+        box-sizing: border-box !important;
+    }
+}
+</style>
+
+<!-- Page Header -->
+<div class="page-header-wrap">
+    <div class="header-title-section">
+        <h2 style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--primary);">&#128167;</span> Lubricants Consumed</h2>
+        <p>Track oil & lubricant consumption across fleet vehicles.</p>
+    </div>
+    <div class="page-header-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="document.getElementById('importModal').style.display='flex'" style="font-size:0.82rem;">&#128190; Import Excel</button>
+        <button class="btn btn-outline" onclick="document.getElementById('exportModal').style.display='flex'" style="font-size:0.82rem; color:#10b981; border-color:#10b981;">&#128196; Export Report</button>
+        <button class="btn btn-primary" onclick="openAddModal()" style="font-size:0.82rem;">+ Add Entry</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline" style="padding: 8px 15px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">&#8592; Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="lub-stats-grid">
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(139,92,246,0.12); color:#8b5cf6;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+        </div>
+        <div><div class="lub-stat-value" id="statTotalEntries">{{ total_entries }}</div><div class="lub-stat-label">Total Entries</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div><div class="lub-stat-value" id="statTotalAmount" style="font-size:1.4rem;">Nu. {{ month_amount|default:"0" }}</div><div class="lub-stat-label" id="statAmountLabel">Amount ({{ stats_month }})</div></div>
+    </div>
+    <div class="lub-stat-card">
+        <div class="lub-stat-icon" style="background:rgba(249,115,22,0.12); color:#f97316;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <div><div class="lub-stat-value" id="statTotalQty">{{ month_qty|default:"0" }} L</div><div class="lub-stat-label" id="statQtyLabel">Qty ({{ stats_month }})</div></div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <!-- Unified Search -->
+    <div style="position:relative; flex:1; min-width:220px;">
+        <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--sidebar-text);" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="globalSearch" class="filter-input" placeholder="Search Reg No, Location, Oil Type, WO No..." style="padding-left:34px; width:100%;" oninput="applyFilters()">
+    </div>
+    
+    <!-- Location filter -->
+    <select id="filterLocation" class="filter-select" onchange="applyFilters()">
+        <option value="">All Locations</option>
+        {% for loc in locations %}{% if loc %}<option value="{{ loc|lower }}">{{ loc }}</option>{% endif %}{% endfor %}
+    </select>
+    
+    <!-- Oil Type filter -->
+    <select id="filterOilType" class="filter-select" onchange="applyFilters()">
+        <option value="">All Oil Types</option>
+        {% for oil in oil_types %}{% if oil %}<option value="{{ oil|lower }}">{{ oil }}</option>{% endif %}{% endfor %}
+    </select>
+
+    <!-- Vendor filter -->
+    <select id="filterVendor" class="filter-select" onchange="applyFilters()">
+        <option value="">All Vendors</option>
+        {% for v in vendors %}{% if v %}<option value="{{ v|lower }}">{{ v }}</option>{% endif %}{% endfor %}
+    </select>
+    
+    <!-- Date range -->
+    <input type="date" id="filterFrom" class="filter-select" onchange="applyFilters()" title="From Date">
+    <input type="date" id="filterTo" class="filter-select" onchange="applyFilters()" title="To Date">
+    
+    <!-- Clear -->
+    <button class="btn btn-outline" style="font-size:0.8rem; white-space:nowrap;" onclick="clearFilters()">&#10005; Clear</button>
+    
+    <!-- View Toggle -->
+    <div style="display:flex; gap:4px; margin-left:auto;">
+        <button class="view-toggle-btn active" id="btnList" onclick="setView('list')" title="List View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+        <button class="view-toggle-btn" id="btnCard" onclick="setView('card')" title="Card View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </button>
+    </div>
+    
+    <span id="filterCount" style="font-size:0.8rem; color:var(--sidebar-text); white-space:nowrap;">{{ logs|length }} entries</span>
+</div>
+
+<!-- LIST VIEW -->
+<div id="listView">
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-responsive">
+        <table class="data-table" id="lubTable">
+            <thead>
+                <tr>
+                    <th style="padding:11px 12px;">#</th>
+                    <th style="padding:11px 12px;">Date</th>
+                    <th style="padding:11px 12px;">Location</th>
+                    <th style="padding:11px 12px;">WO No</th>
+                    <th style="padding:11px 12px;">Reg No</th>
+                    <th style="padding:11px 12px;">Oil / Particulars</th>
+                    <th style="padding:11px 12px;">Qty</th>
+                    <th style="padding:11px 12px;">Rate</th>
+                    <th style="padding:11px 12px;">Amount</th>
+                    <th style="padding:11px 12px;">Man Power</th>
+                    <th style="padding:11px 12px;">Total</th>
+                    <th style="padding:11px 12px;">Entered By</th>
+                    <th style="padding:11px 12px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="lubTableBody">
+                {% for log in logs %}
+                <tr class="lub-row"
+                    data-date="{{ log.date|date:'Y-m-d' }}"
+                    data-qty="{{ log.qty }}"
+                    data-total="{{ log.total_amount }}"
+                    data-search="{% if log.vehicle %}{{ log.vehicle.regn|lower }}{% endif %} {{ log.location|lower }} {{ log.oil_type|lower }} {{ log.work_order_no|lower }} {{ log.vendor|lower }} {% if log.entered_by %}{{ log.entered_by.full_name|lower }} {{ log.entered_by.username|lower }}{% endif %}">
+                    <td style="padding:9px 12px; color:var(--sidebar-text); font-size:0.8rem;">{{ forloop.counter }}</td>
+                    <td style="padding:9px 12px; font-weight:600; white-space:nowrap;">
+                        <div>{{ log.date|date:"d M Y" }}</div>
+                        {% if log.entered_on %}
+                            <div style="font-size:0.75rem; color:var(--sidebar-text); font-weight:normal; margin-top:2px;">⏰ {{ log.entered_on|date:"h:i A" }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:9px 12px;">{{ log.location|default:"-" }}</td>
+                    <td style="padding:9px 12px; font-family:monospace; font-size:0.8rem;">{{ log.work_order_no|default:"-" }}</td>
+                    <td style="padding:9px 12px;">
+                        <span style="background:rgba(99,102,241,0.1); color:#6366f1; padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:700;">{% if log.vehicle %}{{ log.vehicle.regn }}{% else %}-{% endif %}</span>
+                    </td>
+                    <td style="padding:9px 12px; font-weight:500;">{{ log.oil_type }}</td>
+                    <td style="padding:9px 12px;">{{ log.qty }} {{ log.unit }}</td>
+                    <td style="padding:9px 12px;">Nu. {{ log.rate }}</td>
+                    <td style="padding:9px 12px;">Nu. {{ log.amount }}</td>
+                    <td style="padding:9px 12px;">{% if log.manpower_cost and log.manpower_cost > 0 %}Nu. {{ log.manpower_cost }}{% else %}-{% endif %}</td>
+                    <td style="padding:9px 12px; font-weight:700; color:#10b981;">Nu. {{ log.total_amount }}</td>
+                    <td style="padding:9px 12px; font-weight:600; color:var(--primary); font-size:0.82rem;">
+                        <div>{% if log.entered_by %}👤 {{ log.entered_by.full_name|default:log.entered_by.username }}{% else %}👤 System{% endif %}</div>
+                        {% if log.entered_on %}
+                            <div style="font-size:0.72rem; color:var(--sidebar-text); font-weight:normal; margin-top:2px;">🕒 {{ log.entered_on|date:"d M, h:i A" }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:9px 12px;">
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="openEditModal({{ log.id }}, '{{ log.date|date:'Y-m-d' }}', '{% if log.vehicle %}{{ log.vehicle.id }}{% endif %}', '{{ log.location|default:'' }}', '{{ log.work_order_no|default:'' }}', '{{ log.oil_type }}', {{ log.qty }}, '{{ log.unit }}', {{ log.rate }}, {{ log.amount }}, {{ log.manpower_cost|default:0 }}, {{ log.total_amount }})"
+                                style="background:rgba(99,102,241,0.1); border:none; color:#6366f1; cursor:pointer; padding:5px 9px; border-radius:6px; font-size:0.78rem; border:1px solid rgba(99,102,241,0.2);" title="Edit">
+                                ✏️ Edit
+                            </button>
+                            <form method="post" action="/fleet/api/lubrication/delete/{{ log.id }}/" style="display:inline;" onsubmit="return confirm('Delete this entry for {{ log.vehicle.regn }}?')">
+                                {% csrf_token %}
+                                <button type="submit" style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); color:#ef4444; cursor:pointer; padding:5px 9px; border-radius:6px; font-size:0.78rem;" title="Delete">🗑️ Del</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="13" style="text-align:center; padding:3rem; color:var(--sidebar-text);">
+                    <div style="font-size:2rem; margin-bottom:8px;">🛢️</div>No lubrication entries found.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- CARD VIEW -->
+<div id="cardView" style="display:none;">
+    <div class="lub-card-grid" id="lubCardGrid">
+        {% for log in logs %}
+        <div class="lub-card lub-card-item"
+             data-date="{{ log.date|date:'Y-m-d' }}"
+             data-search="{{ log.vehicle.regn|lower }} {{ log.location|lower }} {{ log.oil_type|lower }} {{ log.work_order_no|lower }} {{ log.vendor|lower }} {{ log.entered_by.full_name|lower }} {{ log.entered_by.username|lower }}">
+            <div class="lub-card-header">
+                <span class="lub-card-regn">{{ log.vehicle.regn }}</span>
+                <span class="lub-card-date">
+                    <span class="lub-date-text">{{ log.date|date:"d M Y" }}</span>
+                    {% if log.entered_on %}
+                    <span class="lub-time-badge">⏰ {{ log.entered_on|date:"h:i A" }}</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="lub-card-oil">{{ log.oil_type }}</div>
+            <div class="lub-card-meta">
+                <span class="lub-card-badge">{{ log.qty }}{{ log.unit }}</span>
+                <span class="lub-card-badge">Nu. {{ log.rate }}/{{ log.unit }}</span>
+                {% if log.location %}<span class="lub-card-badge">📍 {{ log.location }}</span>{% endif %}
+                {% if log.work_order_no %}<span class="lub-card-badge">WO: {{ log.work_order_no }}</span>{% endif %}
+                {% if log.manpower_cost and log.manpower_cost > 0 %}<span class="lub-card-badge" style="background:rgba(249,115,22,0.1); color:#f97316; border-color:rgba(249,115,22,0.2);">Labour: Nu. {{ log.manpower_cost }}</span>{% endif %}
+                <span class="lub-card-badge" style="background:rgba(99,102,241,0.07); color:#6366f1; border-color:rgba(99,102,241,0.15); font-weight:700;">
+                    {% if log.entered_by %}👤 {{ log.entered_by.full_name|default:log.entered_by.username }}{% else %}👤 System{% endif %}
+                    {% if log.entered_on %}<span style="opacity:0.8; font-weight:normal; font-size:0.72rem; margin-left:3px;">({{ log.entered_on|date:"h:i A" }})</span>{% endif %}
+                </span>
+            </div>
+            <div class="lub-card-total">
+                <span style="font-size:0.8rem; color:var(--sidebar-text); font-weight:600;">Total Amount</span>
+                <span>Nu. {{ log.total_amount }}</span>
+            </div>
+            <div class="lub-card-actions" style="margin-top:10px;">
+                <button onclick="openEditModal({{ log.id }}, '{{ log.date|date:'Y-m-d' }}', '{{ log.vehicle.id }}', '{{ log.location|default:'' }}', '{{ log.work_order_no|default:'' }}', '{{ log.oil_type }}', {{ log.qty }}, '{{ log.unit }}', {{ log.rate }}, {{ log.amount }}, {{ log.manpower_cost|default:0 }}, {{ log.total_amount }})"
+                    style="flex:1; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); color:#6366f1; cursor:pointer; padding:7px; border-radius:8px; font-size:0.8rem;">
+                    &#9998; Edit
+                </button>
+                <form method="post" action="/fleet/api/lubrication/delete/{{ log.id }}/" onsubmit="return confirm('Delete this entry?')" style="flex:1;">
+                    {% csrf_token %}
+                    <button type="submit" style="width:100%; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); color:#ef4444; cursor:pointer; padding:7px; border-radius:8px; font-size:0.8rem;">&#128465; Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="addModal" class="lub-modal">
+    <div class="lub-modal-box">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px;">&#128167; Add Lubrication Entry</h3>
+            <button onclick="document.getElementById('addModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);line-height:1;">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <form method="post" action="/fleet/api/lubrication/add/">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div>
+                        <label class="form-label">Date (Optional)</label>
+                        <input type="date" name="date" class="form-control" id="add_date">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px;">
+                            <label class="form-label" style="margin-bottom:0;">Vehicle (Reg No)</label>
+                            <button type="button" id="add_veh_toggle_btn" onclick="toggleVehicleMode('add')" style="font-size:0.75rem; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.25); cursor:pointer; font-weight:700; white-space:nowrap; flex-shrink:0;">✨ + New Vehicle</button>
+                        </div>
+                        <div id="add_veh_select_wrap">
+                            <select name="vehicle_id" id="add_vehicle" class="form-control" onchange="onVehicleSelectChange('add', this)">
+                                <option value="">-- Select Vehicle (Optional) --</option>
+                                <option value="__NEW__" style="color:#6366f1; font-weight:bold;">➕ + Type New / Custom Vehicle...</option>
+                                {% for v in vehicles %}<option value="{{ v.id }}" data-regn="{{ v.regn }}">{{ v.regn }}{% if v.dno %} ({{ v.dno }}){% endif %}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div id="add_veh_custom_wrap" style="display:none;">
+                            <input type="text" name="vehicle_regn" id="add_vehicle_custom" class="form-control" placeholder="Type new Vehicle Reg No (e.g. BD-01A-1234)..." oninput="hireFillCustom('add', this.value)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Vendor <small style="color:var(--sidebar-text);">(auto-filled, editable)</small></label>
+                        <input type="text" name="vendor" class="form-control" placeholder="Owner / Vendor name" id="add_vendor" list="vendorList">
+                        <datalist id="vendorList">{% for v in vendors %}<option value="{{ v }}">{% endfor %}</datalist>
+                    </div>
+                    <div>
+                        <label class="form-label">Work Order No <small style="color:var(--sidebar-text);">(auto-filled)</small></label>
+                        <input type="text" name="work_order_no" class="form-control" placeholder="e.g. RVJ/HA/HI/26-08-001" id="add_wo" list="woList">
+                        <datalist id="woList">{% for wo in work_orders %}<option value="{{ wo }}">{% endfor %}</datalist>
+                    </div>
+                    <div class="full">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location" class="form-control" placeholder="e.g. Gelephu">
+                    </div>
+                    <div class="full">
+                        <label class="form-label">Oil / Particulars</label>
+                        <input type="text" name="oil_type" class="form-control" placeholder="e.g. Engine Oil 15W40" list="oilTypeList">
+                        <datalist id="oilTypeList">
+                            {% for oil in oil_types %}<option value="{{ oil }}">{% endfor %}
+                        </datalist>
+                    </div>
+                    <div>
+                        <div class="form-mini-row">
+                            <div>
+                                <label class="form-label">Quantity</label>
+                                <input type="number" step="0.01" name="qty" class="form-control" placeholder="0" oninput="calcAdd()" id="add_qty">
+                            </div>
+                            <div>
+                                <label class="form-label">Unit</label>
+                                <select name="unit" class="form-control" id="add_unit">
+                                    <option value="L">Litres (L)</option>
+                                    <option value="ml">Millilitres (ml)</option>
+                                    <option value="gal">Gallons (gal)</option>
+                                    <option value="kg">Kilograms (kg)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-mini-row">
+                            <div>
+                                <label class="form-label">Rate</label>
+                                <input type="number" step="0.01" name="rate" class="form-control" placeholder="0.00" oninput="calcAdd()" id="add_rate">
+                            </div>
+                            <div>
+                                <label class="form-label">Amount <small style="color:var(--sidebar-text);">(auto)</small></label>
+                                <input type="number" step="0.01" name="amount" id="add_amount" class="form-control" readonly style="background:var(--bg-color);">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Cost of Man Power</label>
+                        <input type="number" step="0.01" name="manpower_cost" class="form-control" placeholder="0.00" oninput="calcAdd()" id="add_manpower">
+                    </div>
+                    <div>
+                        <label class="form-label">Total Amount <small style="color:var(--sidebar-text);">(auto)</small></label>
+                        <input type="number" step="0.01" name="total_amount" id="add_total" class="form-control" readonly style="background:var(--bg-color); font-weight:700; color:#10b981;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="document.getElementById('addModal').style.display='none'" class="btn btn-outline" style="flex:1; max-width:120px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="lub-modal">
+    <div class="lub-modal-box">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px;">&#9998; Edit Lubrication Entry</h3>
+            <button onclick="document.getElementById('editModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);line-height:1;">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <form method="post" id="editForm" action="">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div>
+                        <label class="form-label">Date (Optional)</label>
+                        <input type="date" name="date" class="form-control" id="edit_date">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px;">
+                            <label class="form-label" style="margin-bottom:0;">Vehicle (Reg No)</label>
+                            <button type="button" id="edit_veh_toggle_btn" onclick="toggleVehicleMode('edit')" style="font-size:0.75rem; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.1); color:#6366f1; border:1px solid rgba(99,102,241,0.25); cursor:pointer; font-weight:700; white-space:nowrap; flex-shrink:0;">✨ + New Vehicle</button>
+                        </div>
+                        <div id="edit_veh_select_wrap">
+                            <select name="vehicle_id" id="edit_vehicle" class="form-control" onchange="onVehicleSelectChange('edit', this)">
+                                <option value="__NEW__" style="color:#6366f1; font-weight:bold;">➕ + Type New / Custom Vehicle...</option>
+                                {% for v in vehicles %}<option value="{{ v.id }}" data-regn="{{ v.regn }}">{{ v.regn }}{% if v.dno %} ({{ v.dno }}){% endif %}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div id="edit_veh_custom_wrap" style="display:none;">
+                            <input type="text" name="vehicle_regn" id="edit_vehicle_custom" class="form-control" placeholder="Type new Vehicle Reg No..." oninput="hireFillCustom('edit', this.value)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Vendor <small style="color:var(--sidebar-text);">(auto from Reg No)</small></label>
+                        <input type="text" name="vendor" class="form-control" id="edit_vendor" list="vendorList">
+                    </div>
+                    <div>
+                        <label class="form-label">Work Order No</label>
+                        <input type="text" name="work_order_no" class="form-control" id="edit_wo">
+                    </div>
+                    <div class="full">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location" class="form-control" id="edit_location">
+                    </div>
+                    <div class="full">
+                        <label class="form-label">Oil / Particulars</label>
+                        <input type="text" name="oil_type" class="form-control" id="edit_oil" list="oilTypeList">
+                    </div>
+                    <div>
+                        <div class="form-mini-row">
+                            <div>
+                                <label class="form-label">Quantity</label>
+                                <input type="number" step="0.01" name="qty" class="form-control" id="edit_qty" oninput="calcEdit()">
+                            </div>
+                            <div>
+                                <label class="form-label">Unit</label>
+                                <select name="unit" class="form-control" id="edit_unit">
+                                    <option value="L">Litres (L)</option>
+                                    <option value="ml">Millilitres (ml)</option>
+                                    <option value="gal">Gallons (gal)</option>
+                                    <option value="kg">Kilograms (kg)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-mini-row">
+                            <div>
+                                <label class="form-label">Rate</label>
+                                <input type="number" step="0.01" name="rate" class="form-control" id="edit_rate" oninput="calcEdit()">
+                            </div>
+                            <div>
+                                <label class="form-label">Amount <small style="color:var(--sidebar-text);">(auto)</small></label>
+                                <input type="number" step="0.01" name="amount" id="edit_amount" class="form-control" readonly style="background:var(--bg-color);">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Cost of Man Power</label>
+                        <input type="number" step="0.01" name="manpower_cost" class="form-control" id="edit_manpower" oninput="calcEdit()">
+                    </div>
+                    <div>
+                        <label class="form-label">Total Amount <small style="color:var(--sidebar-text);">(auto)</small></label>
+                        <input type="number" step="0.01" name="total_amount" id="edit_total" class="form-control" readonly style="background:var(--bg-color); font-weight:700; color:#10b981;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="btn btn-outline" style="flex:1; max-width:120px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Update Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- EXPORT MODAL -->
+<div id="exportModal" class="lub-modal">
+    <div class="lub-modal-box" style="max-width:500px;">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">&#128196; Export Report</h3>
+            <button onclick="document.getElementById('exportModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <form id="exportForm" method="get" action="" target="_blank">
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        <label class="form-label">Export Format *</label>
+                        <select id="exportFormat" class="form-control" style="width:100%;" required>
+                            <option value="excel">Excel (.xlsx)</option>
+                            <option value="pdf">PDF / Print Layout</option>
+                        </select>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="start_date" id="exportFrom" class="form-control">
+                        </div>
+                        <div>
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="end_date" id="exportTo" class="form-control">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Vehicle</label>
+                        <select name="vehicle_id" id="exportVehicle" class="form-control" style="width:100%;">
+                            <option value="">-- All Vehicles --</option>
+                            {% for v in vehicles %}
+                            <option value="{{ v.id }}">{{ v.regn }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Location</label>
+                        <select name="location" id="exportLocation" class="form-control" style="width:100%;">
+                            <option value="">-- All Locations --</option>
+                            {% for loc in locations %}{% if loc %}<option value="{{ loc }}">{{ loc }}</option>{% endif %}{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Oil / Particulars</label>
+                        <select name="oil_type" id="exportOilType" class="form-control" style="width:100%;">
+                            <option value="">-- All Oil Types --</option>
+                            {% for oil in oil_types %}{% if oil %}<option value="{{ oil }}">{{ oil }}</option>{% endif %}{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Vendor</label>
+                        <select name="vendor" id="exportVendor" class="form-control" style="width:100%;">
+                            <option value="">-- All Vendors --</option>
+                            {% for v in vendors %}{% if v %}<option value="{{ v }}">{{ v }}</option>{% endif %}{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">WO No (contains)</label>
+                        <input type="text" name="work_order_no" id="exportWO" class="form-control" placeholder="e.g. RVJ/HA/HI/26-04" style="width:100%;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); flex-wrap:wrap;">
+                    <button type="button" onclick="document.getElementById('exportModal').style.display='none'" class="btn btn-outline">Cancel</button>
+                    <button type="button" onclick="shareLubricationReport()" class="btn" style="background:#25D366; color:white; font-weight:800; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                        💬 Share (WhatsApp / Email)
+                    </button>
+                    <button type="button" onclick="triggerExport()" class="btn btn-primary" style="background:#10b981; border-color:#10b981;">Download Report</button>
+                </div>
+                <button type="button" onclick="triggerFullReport()" style="width:100%; margin-top:14px; background:rgba(99,102,241,0.08); border:2px solid rgba(99,102,241,0.35); color:#6366f1; cursor:pointer; padding:11px; border-radius:10px; font-weight:800; font-size:0.88rem;">
+                    &#128667; Complete Vehicle Report &mdash; Lubricants + Tyre (all sections)
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- IMPORT MODAL -->
+<div id="importModal" class="lub-modal">
+    <div class="lub-modal-box" style="max-width:480px;">
+        <div class="lub-modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">&#128190; Import Excel</h3>
+            <button onclick="document.getElementById('importModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sidebar-text);">&times;</button>
+        </div>
+        <div class="lub-modal-body">
+            <div style="background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.2); border-radius:10px; padding:14px; margin-bottom:18px; font-size:0.85rem; color:var(--sidebar-text); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    &#9432; Fill data in the <strong>Sample Format</strong> sheet.
+                    <br><small><strong>Columns:</strong> SL NO | DATE | LOCATION | WO NO | REG NO | PARTICULARS | QTY | RATE | AMOUNT | COST OF MAN POWER | TOTAL AMOUNT</small>
+                </div>
+                <a href="/fleet/api/lubrication/sample/" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 10px; background: white; white-space: nowrap;">&#11015; Download Sample</a>
+            </div>
+            <form method="post" action="/fleet/api/lubrication/import/" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Select Excel File (.xlsx)</label>
+                    <input type="file" name="excel_file" accept=".xlsx,.xls" required class="form-control">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" onclick="document.getElementById('importModal').style.display='none'" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload & Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentView = 'list';
+const HIRED = {{ hired_vehicles|safe }};
+
+// Auto-fill Vendor + WO No from the hire master when a Reg No is selected
+function hireFill(prefix) {
+    const sel = document.getElementById(prefix + '_vehicle');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    const regn = (opt && opt.dataset.regn) ? opt.dataset.regn.trim() : '';
+    if (!regn) return;
+    const hv = HIRED.find(x => (x.regn || '').toLowerCase() === regn.toLowerCase());
+    if (!hv) return;
+    const vendorEl = document.getElementById(prefix + '_vendor');
+    const woEl = document.getElementById(prefix + '_wo');
+    if (vendorEl && !vendorEl.value.trim()) vendorEl.value = hv.owner_name || '';
+    if (woEl && !woEl.value.trim()) woEl.value = hv.agreement_ref || '';
+}
+
+function setView(v) {
+    currentView = v;
+    document.getElementById('listView').style.display = v === 'list' ? 'block' : 'none';
+    document.getElementById('cardView').style.display = v === 'card' ? 'block' : 'none';
+    document.getElementById('btnList').className = 'view-toggle-btn' + (v === 'list' ? ' active' : '');
+    document.getElementById('btnCard').className = 'view-toggle-btn' + (v === 'card' ? ' active' : '');
+}
+
+function applyFilters() {
+    const search = document.getElementById('globalSearch').value.toLowerCase();
+    const loc = document.getElementById('filterLocation').value.toLowerCase();
+    const oil = document.getElementById('filterOilType').value.toLowerCase();
+    const vendor = document.getElementById('filterVendor').value.toLowerCase();
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    
+    let visibleCount = 0;
+    let visibleAmount = 0;
+    let visibleQty = 0;
+    
+    const isFiltered = (search || loc || oil || vendor || from || to);
+    
+    // Filter list rows
+    document.querySelectorAll('.lub-row').forEach(row => {
+        const searchData = row.dataset.search || '';
+        const date = row.dataset.date || '';
+        const qty = parseFloat(row.dataset.qty) || 0;
+        const total = parseFloat(row.dataset.total) || 0;
+        
+        let show = true;
+        if (search && !searchData.includes(search)) show = false;
+        if (loc && !searchData.includes(loc)) show = false;
+        if (oil && !searchData.includes(oil)) show = false;
+        if (vendor && !searchData.includes(vendor)) show = false;
+        if (from && date < from) show = false;
+        if (to && date > to) show = false;
+        
+        row.style.display = show ? '' : 'none';
+        if (show) {
+            visibleCount++;
+            visibleAmount += total;
+            visibleQty += qty;
+        }
+    });
+    
+    // Filter cards
+    document.querySelectorAll('.lub-card-item').forEach(card => {
+        const searchData = card.dataset.search || '';
+        const date = card.dataset.date || '';
+        
+        let show = true;
+        if (search && !searchData.includes(search)) show = false;
+        if (loc && !searchData.includes(loc)) show = false;
+        if (oil && !searchData.includes(oil)) show = false;
+        if (vendor && !searchData.includes(vendor)) show = false;
+        if (from && date < from) show = false;
+        if (to && date > to) show = false;
+        
+        card.style.display = show ? '' : 'none';
+    });
+    
+    document.getElementById('filterCount').textContent = visibleCount + ' entries';
+    
+    // Update Stats Cards dynamically
+    if (isFiltered) {
+        document.getElementById('statTotalEntries').textContent = visibleCount;
+        document.getElementById('statTotalAmount').innerHTML = 'Nu. ' + visibleAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('statTotalQty').textContent = visibleQty.toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' L';
+        document.getElementById('statAmountLabel').textContent = 'Amount (Filtered)';
+        document.getElementById('statQtyLabel').textContent = 'Qty (Filtered)';
+    } else {
+        // Reset to default page load context values
+        document.getElementById('statTotalEntries').textContent = "{{ total_entries }}";
+        document.getElementById('statTotalAmount').innerHTML = 'Nu. {{ month_amount|default:"0" }}';
+        document.getElementById('statTotalQty').textContent = "{{ month_qty|default:'0' }} L";
+        document.getElementById('statAmountLabel').textContent = 'Amount ({{ stats_month }})';
+        document.getElementById('statQtyLabel').textContent = 'Qty ({{ stats_month }})';
+    }
+}
+
+function clearFilters() {
+    document.getElementById('globalSearch').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterOilType').value = '';
+    document.getElementById('filterVendor').value = '';
+    document.getElementById('filterFrom').value = '';
+    document.getElementById('filterTo').value = '';
+    applyFilters();
+}
+
+function openAddModal() {
+    document.getElementById('addModal').style.display = 'flex';
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('add_date').value = `${yyyy}-${mm}-${dd}`;
+}
+
+function openEditModal(id, date, vehicleId, location, wo, oil, qty, unit, rate, amount, manpower, total) {
+    document.getElementById('editForm').action = '/fleet/api/lubrication/edit/' + id + '/';
+    document.getElementById('edit_date').value = date;
+    $('#edit_vehicle').val(vehicleId).trigger('change.select2');
+    document.getElementById('edit_location').value = location;
+    document.getElementById('edit_wo').value = wo;
+    document.getElementById('edit_oil').value = oil;
+    document.getElementById('edit_qty').value = qty;
+    document.getElementById('edit_unit').value = unit;
+    document.getElementById('edit_rate').value = rate;
+    document.getElementById('edit_amount').value = parseFloat(amount).toFixed(2);
+    document.getElementById('edit_manpower').value = manpower;
+    document.getElementById('edit_total').value = parseFloat(total).toFixed(2);
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function calcAdd() {
+    const qty = parseFloat(document.getElementById('add_qty').value) || 0;
+    const rate = parseFloat(document.getElementById('add_rate').value) || 0;
+    const manpower = parseFloat(document.getElementById('add_manpower').value) || 0;
+    const amount = qty * rate;
+    document.getElementById('add_amount').value = amount.toFixed(2);
+    document.getElementById('add_total').value = (amount + manpower).toFixed(2);
+}
+
+function calcEdit() {
+    const qty = parseFloat(document.getElementById('edit_qty').value) || 0;
+    const rate = parseFloat(document.getElementById('edit_rate').value) || 0;
+    const manpower = parseFloat(document.getElementById('edit_manpower').value) || 0;
+    const amount = qty * rate;
+    document.getElementById('edit_amount').value = amount.toFixed(2);
+    document.getElementById('edit_total').value = (amount + manpower).toFixed(2);
+}
+
+// Close modals on outside click
+['addModal','editModal','importModal','exportModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    }
+});
+
+function triggerExport() {
+    const format = document.getElementById('exportFormat').value;
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    const vehicle = document.getElementById('exportVehicle').value;
+    const location = document.getElementById('exportLocation').value;
+    const oil = document.getElementById('exportOilType').value;
+    const vendor = document.getElementById('exportVendor').value;
+    const wo = document.getElementById('exportWO').value;
+    
+    let url = '/fleet/api/lubrication/export/';
+    if (format === 'pdf') {
+        url = '/fleet/api/lubrication/export-pdf/';
+    }
+    
+    const params = [];
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    if (vehicle) params.push('vehicle_id=' + vehicle);
+    if (location) params.push('location=' + encodeURIComponent(location));
+    if (oil) params.push('oil_type=' + encodeURIComponent(oil));
+    if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+    if (wo) params.push('work_order_no=' + encodeURIComponent(wo));
+    
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+    
+    window.open(url, '_blank');
+    document.getElementById('exportModal').style.display = 'none';
+}
+
+function shareLubricationReport() {
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    const vehicle = document.getElementById('exportVehicle').value;
+    const location = document.getElementById('exportLocation').value;
+    const oil = document.getElementById('exportOilType').value;
+    const vendor = document.getElementById('exportVendor').value;
+    const wo = document.getElementById('exportWO').value;
+
+    const params = [];
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    if (vehicle) params.push('vehicle_id=' + vehicle);
+    if (location) params.push('location=' + encodeURIComponent(location));
+    if (oil) params.push('oil_type=' + encodeURIComponent(oil));
+    if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+    if (wo) params.push('work_order_no=' + encodeURIComponent(wo));
+
+    const q = params.length > 0 ? ('?' + params.join('&')) : '';
+    const excelUrl = '/fleet/api/lubrication/export/' + q;
+    const pdfUrl = '/fleet/api/lubrication/export-pdf/' + q;
+
+    document.getElementById('exportModal').style.display = 'none';
+
+    openReportShareModal({
+        title: "Lubricants Consumed & POL Audit Report",
+        date: (from && to && from !== to) ? `${from} to ${to}` : (from || "All Time"),
+        site: "P&M Fleet Hub",
+        extraInfo: (oil ? `Oil: ${oil} ` : '') + (location ? `| Loc: ${location}` : ''),
+        excelUrl: excelUrl,
+        pdfUrl: pdfUrl
+    });
+}
+
+function triggerFullReport() {
+    const vehicle = document.getElementById('exportVehicle').value;
+    if (!vehicle) { alert('Please select a vehicle first — the complete report shows all sections for one vehicle.'); return; }
+    const format = document.getElementById('exportFormat').value;
+    let url = format === 'pdf' ? '/fleet/api/vehicle-report-pdf/' : '/fleet/api/vehicle-report/';
+    const params = ['vehicle_id=' + vehicle];
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    if (from) params.push('start_date=' + from);
+    if (to) params.push('end_date=' + to);
+    window.open(url + '?' + params.join('&'), '_blank');
+    document.getElementById('exportModal').style.display = 'none';
+}
+
+// ---- LIVE DATA: In-place AJAX update for lubrication logs ----
+(function() {
+    let knownLatestId = parseInt(document.getElementById('lub-latest-id')?.value || '0');
+
+    function fetchUpdates() {
+        fetch('/fleet/api/lubrication/live/?since_id=' + knownLatestId)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.rows || data.rows.length === 0) return;
+
+                const newMax = Math.max(...data.rows.map(r => r.id));
+                if (newMax > knownLatestId) knownLatestId = newMax;
+
+                // Prepend to table body
+                const tbody = document.getElementById('lub-tbody');
+                if (tbody) {
+                    let slNo = tbody.querySelectorAll('tr').length;
+                    data.rows.forEach(log => {
+                        if (document.getElementById('lub-row-' + log.id)) return;
+                        slNo++;
+                        const tr = document.createElement('tr');
+                        tr.id = 'lub-row-' + log.id;
+                        tr.style.animation = 'fadeInRow 0.5s ease';
+                        tr.innerHTML = `
+                            <td>${slNo}</td>
+                            <td>${log.date}</td>
+                            <td>${log.location}</td>
+                            <td>${log.work_order_no}</td>
+                            <td>${log.vehicle_reg}</td>
+                            <td>${log.oil_type}</td>
+                            <td>${log.qty} ${log.unit}</td>
+                            <td>${log.rate}</td>
+                            <td>${log.amount}</td>
+                            <td>${log.manpower_cost}</td>
+                            <td><strong>${log.total_amount}</strong></td>
+                            <td style="font-size:0.8rem;color:#7c3aed;">&#128100; ${log.entered_by}</td>
+                            <td>—</td>
+                        `;
+                        tbody.prepend(tr);
+                    });
+                }
+
+                showLiveBadge(data.rows.length + ' new lubricant entry added');
+            })
+            .catch(() => {});
+    }
+
+    function showLiveBadge(msg) {
+        let badge = document.getElementById('lub-live-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'lub-live-badge';
+            badge.style.cssText = 'position:fixed;top:16px;right:16px;background:#059669;color:white;padding:8px 16px;border-radius:20px;font-size:0.82rem;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(5,150,105,0.4);';
+            document.body.appendChild(badge);
+        }
+        badge.textContent = '✓ ' + msg;
+        badge.style.display = 'block';
+        setTimeout(() => { badge.style.display = 'none'; }, 3000);
+    }
+
+    setInterval(fetchUpdates, 6000);
+})();
+
+function toggleVehicleMode(prefix) {
+    const selectWrap = document.getElementById(prefix + '_veh_select_wrap');
+    const customWrap = document.getElementById(prefix + '_veh_custom_wrap');
+    const toggleBtn = document.getElementById(prefix + '_veh_toggle_btn');
+    const customInput = document.getElementById(prefix + '_vehicle_custom');
+    
+    if (selectWrap.style.display !== 'none') {
+        selectWrap.style.display = 'none';
+        customWrap.style.display = 'block';
+        customInput.required = true;
+        customInput.focus();
+        toggleBtn.innerHTML = '📋 Choose from List';
+        toggleBtn.style.background = 'rgba(16,185,129,0.1)';
+        toggleBtn.style.color = '#10b981';
+        toggleBtn.style.borderColor = 'rgba(16,185,129,0.25)';
+    } else {
+        selectWrap.style.display = 'block';
+        customWrap.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+        toggleBtn.innerHTML = '✨ + New Vehicle';
+        toggleBtn.style.background = 'rgba(99,102,241,0.1)';
+        toggleBtn.style.color = '#6366f1';
+        toggleBtn.style.borderColor = 'rgba(99,102,241,0.25)';
+    }
+}
+
+function onVehicleSelectChange(prefix, el) {
+    if (el.value === '__NEW__') {
+        toggleVehicleMode(prefix);
+    } else {
+        hireFill(prefix);
+    }
+}
+
+function hireFillCustom(prefix, val) {
+    if (!val) return;
+    const cleanWO = (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let v = VEHICLES_LOOKUP.find(x => (x.regn && x.regn.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanWO));
+    const vendorEl = document.getElementById(prefix + '_vendor');
+    const woEl = document.getElementById(prefix + '_wo');
+    const locEl = prefix === 'add' ? document.querySelector('#addModal input[name="location"]') : document.getElementById('edit_location');
+
+    if (v) {
+        if (v.owner_name && vendorEl && !vendorEl.value.trim()) vendorEl.value = v.owner_name;
+        if (v.contract_ref && woEl && !woEl.value.trim()) woEl.value = v.contract_ref;
+        if (v.location && locEl && !locEl.value.trim()) locEl.value = v.location;
+    } else if (val.length >= 4) {
+        fetch('/deployment/vehicle-lookup/?regn=' + encodeURIComponent(val))
+            .then(r => r.json())
+            .then(d => {
+                if (d.found) {
+                    if (d.vendor && vendorEl && !vendorEl.value.trim()) vendorEl.value = d.vendor;
+                    if (d.work_order_no && woEl && !woEl.value.trim()) woEl.value = d.work_order_no;
+                }
+            }).catch(e => {});
+    }
+}
+
+// Vehicle Lookup and Auto-fill Script with Select2
+$(document).ready(function() {
+    // Initialize Select2 search dropdowns with tags: true (allows typing ANY custom vehicle)
+    $('#add_vehicle').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Vehicle Reg No --',
+        dropdownParent: $('#addModal')
+    });
+    $('#edit_vehicle').select2({
+        width: '100%',
+        tags: true,
+        placeholder: '-- Search or Type Vehicle Reg No --',
+        dropdownParent: $('#editModal')
+    });
+
+    function loadVehiclesLookup() {
+        fetch('/fleet/api/vehicles/lookup/?_=' + new Date().getTime())
+            .then(r => r.json())
+            .then(data => {
+                VEHICLES_LOOKUP = data;
+            });
+    }
+    loadVehiclesLookup();
+
+    function cleanStr(s) {
+        return (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function autofillFromVehicle(val, prefix) {
+        if (!val || val === '__NEW__') return;
+        const targetClean = cleanStr(val);
+        let v = VEHICLES_LOOKUP.find(x => String(x.id) === String(val) || cleanStr(x.regn) === targetClean || cleanStr(x.dno) === targetClean);
+        
+        const vendorEl = document.getElementById(prefix + '_vendor');
+        const woEl = document.getElementById(prefix + '_wo');
+        const locEl = prefix === 'add' ? document.querySelector('#addModal input[name="location"]') : document.getElementById('edit_location');
+
+        if (v) {
+            if (v.owner_name && vendorEl && !vendorEl.value.trim()) vendorEl.value = v.owner_name;
+            if (v.contract_ref && woEl && !woEl.value.trim()) woEl.value = v.contract_ref;
+            if (v.location && locEl && !locEl.value.trim()) locEl.value = v.location;
+        } else {
+            // Fetch dynamically
+            fetch('/deployment/vehicle-lookup/?regn=' + encodeURIComponent(val))
+                .then(r => r.json())
+                .then(d => {
+                    if (d.found) {
+                        if (d.vendor && vendorEl && !vendorEl.value.trim()) vendorEl.value = d.vendor;
+                        if (d.work_order_no && woEl && !woEl.value.trim()) woEl.value = d.work_order_no;
+                    }
+                }).catch(e => {});
+        }
+    }
+
+    // Add Modal Auto-fill
+    $(document).on('change', '#add_vehicle', function() {
+        if ($(this).val() === '__NEW__') {
+            toggleVehicleMode('add');
+            return;
+        }
+        autofillFromVehicle($(this).val(), 'add');
+    });
+
+    $(document).on('change input', '#add_wo', function() {
+        const val = $(this).val().trim();
+        if (!val) return;
+        const cleanWO = cleanStr(val);
+        const v = VEHICLES_LOOKUP.find(x => cleanStr(x.contract_ref) === cleanWO);
+        if (v) {
+            const curVeh = $('#add_vehicle').val();
+            if (!curVeh) {
+                $('#add_vehicle').val(v.id).trigger('change.select2');
+            }
+            if (v.owner_name && !$('#add_vendor').val().trim()) $('#add_vendor').val(v.owner_name);
+            if (v.location && !$('#addModal input[name="location"]').val().trim()) $('#addModal input[name="location"]').val(v.location);
+        }
+    });
+
+    // Edit Modal Auto-fill
+    $(document).on('change', '#edit_vehicle', function() {
+        if ($(this).val() === '__NEW__') {
+            toggleVehicleMode('edit');
+            return;
+        }
+        autofillFromVehicle($(this).val(), 'edit');
+    });
+
+    $(document).on('change input', '#edit_wo', function() {
+        const val = $(this).val().trim();
+        if (!val) return;
+        const cleanWO = cleanStr(val);
+        const v = VEHICLES_LOOKUP.find(x => cleanStr(x.contract_ref) === cleanWO);
+        if (v) {
+            const curVeh = $('#edit_vehicle').val();
+            if (!curVeh) {
+                $('#edit_vehicle').val(v.id).trigger('change.select2');
+            }
+            if (v.owner_name && !$('#edit_vendor').val().trim()) $('#edit_vendor').val(v.owner_name);
+            if (v.location && !$('#edit_location').val().trim()) $('#edit_location').val(v.location);
+        }
+    });
+});
+</script>
+
+<!-- Live update banner (hidden by default) -->
+<div id="lub-live-banner" style="display:none; position:fixed; bottom:24px; right:24px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; padding:14px 22px; border-radius:14px; box-shadow:0 8px 30px rgba(99,102,241,0.4); z-index:9999; align-items:center; gap:14px; font-weight:600; font-size:0.95rem; animation: slideUp 0.4s ease;">
+    <span>🔔 <span class="lub-banner-count">New data available</span></span>
+    <button onclick="location.reload()" style="background:white; color:#4f46e5; border:none; padding:7px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem;">Reload</button>
+    <button onclick="document.getElementById('lub-live-banner').style.display='none'" style="background:transparent; color:rgba(255,255,255,0.7); border:none; font-size:1.3rem; cursor:pointer; padding:0 4px;">×</button>
+</div>
+<style>
+@keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+</style>
+{% endblock %}

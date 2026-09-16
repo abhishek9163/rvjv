@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    .profile-header-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 2rem;
+    }
+    .settings-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .settings-sidebar button {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: var(--sidebar-text);
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .settings-sidebar button:hover {
+        background: var(--bg-subtle);
+    }
+    .settings-sidebar button.active {
+        background: var(--primary) !important;
+        color: white !important;
+    }
+    .profile-card {
+        padding: 2rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .profile-header-wrap {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        .profile-header-wrap .btn {
+            align-self: center;
+        }
+        .settings-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        .settings-sidebar {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .settings-sidebar button {
+            flex: 1 1 calc(50% - 0.5rem);
+            text-align: center;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        .profile-pic-container {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem !important;
+        }
+    }
+</style>
+
+<div class="profile-container">
+    <div class="profile-header-wrap">
+        <div>
+            <h2 style="margin: 0; color: var(--text-color); font-weight: 700;">Account Settings</h2>
+            <p style="margin: 0; color: var(--sidebar-text); font-size: 0.95rem; margin-top: 0.5rem;">Manage your profile, security preferences, and account features.</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="pwa-install-btn" type="button" class="btn" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">
+                <i class="fas fa-mobile-screen-button"></i> 📲 Add App to Home Screen
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            <a href="{% url 'logout' %}" class="btn" style="background:#ef4444; color:white; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div style="margin-bottom: 2rem;">
+        {% for message in messages %}
+        <div style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; {% if message.tags == 'success' %}background-color: var(--success); color: white;{% else %}background-color: var(--error); color: white;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="settings-grid">
+        <!-- Sidebar Navigation for Settings -->
+        <div class="settings-sidebar">
+            <button onclick="showTab('profile')" id="btn-profile" class="active">Profile Details</button>
+            <button onclick="showTab('security')" id="btn-security">Security & Password</button>
+            <button onclick="showTab('prefs')" id="btn-prefs">Notification Preferences</button>
+            {% if user.is_superuser or user.system_role == 'MANAGER' or user.can_view_user_activity %}
+            <button onclick="showTab('backup')" id="btn-backup" style="color:#059669; font-weight:700;">
+                <i class="fas fa-cloud-arrow-down" style="margin-right:6px;"></i> System Data Backup
+            </button>
+            {% endif %}
+            <a href="{% url 'logout' %}" style="display: flex; align-items: center; gap: 8px; padding: 0.75rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 700; text-decoration: none; margin-top: 10px; transition: background 0.2s;">
+                <i class="fas fa-right-from-bracket"></i> Logout Account
+            </a>
+        </div>
+
+        <!-- Content Area -->
+        <div class="card profile-card">
+            
+            <!-- PROFILE TAB -->
+            <div id="tab-profile" class="settings-tab">
+                <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--text-color); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">Profile Information</h3>
+                
+                <form method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    {% csrf_token %}
+                    
+                    <div class="profile-pic-container" style="display: flex; gap: 2rem; align-items: center;">
+                        <div style="position: relative; width: 100px; height: 100px; border-radius: 50%; background: var(--bg-subtle); overflow: hidden; display: flex; justify-content: center; align-items: center; border: 2px solid var(--border); flex-shrink: 0;">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                <span style="font-size: 2.5rem; color: var(--sidebar-text); font-weight: 600;">{{ user.full_name|default:user.username|make_list|first|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-color);">Upload New Picture</label>
+                            <input type="file" name="profile_picture" accept="image/*" style="font-size: 0.9rem;">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Full Name</label>
+                            <input type="text" name="full_name" value="{{ user.full_name }}" class="form-control" placeholder="Enter your full name" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Email Address</label>
+                            <input type="email" name="email" value="{{ user.email }}" class="form-control" placeholder="Enter your email" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Phone Number</label>
+                            <input type="text" name="phone_number" value="{{ user.phone_number }}" class="form-control" placeholder="Enter your phone number" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">System Role / Post</label>
+                            <input type="text" value="{{ user.get_system_role_display }} {% if user.post %}({{ user.post.name }}){% endif %}" disabled class="form-control" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-subtle); color: var(--sidebar-text); cursor: not-allowed;">
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Notification Preferences Tab -->
+            <div id="tab-prefs" class="settings-tab" style="display: none;">
+                <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--text-color); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">Notification Preferences</h3>
+                
+                <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                    <p style="margin-bottom: 1rem; color: var(--sidebar-text);">Select which alerts you want to see as popups.</p>
+                    <form id="prefsForm" onsubmit="savePrefs(event)">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-color);">
+                                <input type="checkbox" id="pref_docs" {% if user.notification_prefs.docs != False %}checked{% endif %}>
+                                <span>Document Expiration Alerts</span>
+                            </label>
+                            <div style="margin-top: 8px; margin-left: 24px; font-size: 0.9rem; color: var(--sidebar-text);">
+                                Alert me <select id="pref_docs_days" style="padding: 2px 5px; border-radius: 4px; background: var(--bg-subtle); color: var(--text-color); border: 1px solid var(--border);">
+                                    <option value="90" {% if user.notification_prefs.docs_days == 90 or not user.notification_prefs.docs_days %}selected{% endif %}>90 Days</option>
+                                    <option value="60" {% if user.notification_prefs.docs_days == 60 %}selected{% endif %}>60 Days</option>
+                                    <option value="30" {% if user.notification_prefs.docs_days == 30 %}selected{% endif %}>30 Days</option>
+                                    <option value="15" {% if user.notification_prefs.docs_days == 15 %}selected{% endif %}>15 Days</option>
+                                </select> before expiration
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-color);">
+                                <input type="checkbox" id="pref_breakdowns" {% if user.notification_prefs.breakdowns != False %}checked{% endif %}>
+                                <span>Vehicle Breakdown Alerts</span>
+                            </label>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-color);">
+                                <input type="checkbox" id="pref_system" {% if user.notification_prefs.system != False %}checked{% endif %}>
+                                <span>System Announcements</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">Save Preferences</button>
+                    </form>
+                    <p id="prefsMsg" style="margin-top: 10px; color: var(--success); display: none;">Preferences saved successfully!</p>
+                </div>
+            </div>
+
+            <!-- SECURITY TAB -->
+            <div id="tab-security" class="settings-tab" style="display: none;">
+                <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--text-color); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">Security & Password</h3>
+                
+                
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;">
+                    <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--text-color);">Reset Password via OTP</h4>
+                        <p style="margin: 0 0 1.5rem 0; font-size: 0.9rem; color: var(--sidebar-text);">A 6-digit verification code will be sent to your registered email address ({{ user.email|default:"Not provided" }}). You must verify the OTP to set a new password.</p>
+                        
+                        {% if not user.email %}
+                            <p style="color: var(--error); font-weight: 500;">⚠️ Please save your email address in the Profile tab first.</p>
+                        {% else %}
+                            <div id="otp-step-1">
+                                <button onclick="requestOTP()" class="btn btn-primary">Request OTP to Email</button>
+                                <p id="otp-msg-1" style="display: none; color: var(--success); font-size: 0.9rem; margin-top: 1rem;"></p>
+                            </div>
+
+                            <div id="otp-step-2" style="display: none; margin-top: 1rem;">
+                                <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 300px;">
+                                    <div>
+                                        <label style="font-size: 0.85rem; color: var(--sidebar-text); margin-bottom: 0.25rem; display: block;">Enter 6-Digit OTP</label>
+                                        <input type="text" id="reset-otp" class="form-control" placeholder="123456" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color); letter-spacing: 2px; font-weight: bold; text-align: center;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.85rem; color: var(--sidebar-text); margin-bottom: 0.25rem; display: block;">New Password</label>
+                                        <input type="password" id="reset-new-pwd" class="form-control" placeholder="••••••••" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-color);">
+                                    </div>
+                                    <button onclick="verifyOTPAndReset()" class="btn btn-success" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer;">Verify & Change Password</button>
+                                    <p id="otp-msg-2" style="display: none; font-size: 0.9rem; margin-top: 0.5rem;"></p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if user.is_superuser or user.system_role == 'MANAGER' or user.can_view_user_activity %}
+            <!-- SYSTEM BACKUP TAB -->
+            <div id="tab-backup" class="settings-tab" style="display: none;">
+                <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--text-color); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-database" style="color:#10b981;"></i> System Data Backup
+                </h3>
+                
+                <div style="background: var(--bg-color); padding: 2.5rem 1.5rem; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1.5rem auto;">
+                        <i class="fas fa-cloud-arrow-down"></i>
+                    </div>
+                    <a href="{% url 'download_system_backup' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #059669, #10b981); border: none; padding: 12px 30px; font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+                        <i class="fas fa-download"></i> Download Full System Backup (.ZIP)
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function savePrefs(e) {
+        e.preventDefault();
+        const payload = {
+            docs: document.getElementById('pref_docs').checked,
+            docs_days: parseInt(document.getElementById('pref_docs_days').value),
+            breakdowns: document.getElementById('pref_breakdowns').checked,
+            system: document.getElementById('pref_system').checked
+        };
+        fetch('/api/profile/update-notification-prefs/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(r => r.json()).then(res => {
+            if(res.success) {
+                const msg = document.getElementById('prefsMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 3000);
+            }
+        });
+    }
+
+    function showTab(tabId) {
+        document.querySelectorAll('.settings-tab').forEach(t => t.style.display = 'none');
+        document.getElementById('tab-' + tabId).style.display = 'block';
+        
+        const btns = ['profile', 'security', 'prefs', 'backup'];
+        btns.forEach(b => {
+            const el = document.getElementById('btn-' + b);
+            if(el) {
+                if(b === tabId) {
+                    el.style.background = 'var(--primary)';
+                    el.style.color = 'white';
+                    el.classList.add('active');
+                } else {
+                    el.style.background = 'transparent';
+                    el.style.color = 'var(--sidebar-text)';
+                    el.classList.remove('active');
+                }
+            }
+        });
+    }
+
+    function requestOTP() {
+        fetch("{% url 'request_otp' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        }).then(r => r.json()).then(data => {
+            if(data.success) {
+                document.getElementById('otp-msg-1').innerText = "OTP sent successfully to your email!";
+                document.getElementById('otp-msg-1').style.display = "block";
+                document.getElementById('otp-step-2').style.display = "block";
+            } else {
+                document.getElementById('otp-msg-1').innerText = "Failed to send OTP.";
+                document.getElementById('otp-msg-1').style.color = "var(--error)";
+                document.getElementById('otp-msg-1').style.display = "block";
+            }
+        });
+    }
+
+    function verifyOTPAndReset() {
+        const otp = document.getElementById('reset-otp').value;
+        const newPwd = document.getElementById('reset-new-pwd').value;
+        
+        if(!otp || !newPwd) {
+            alert("Please enter both OTP and a new password.");
+            return;
+        }
+        
+        fetch("{% url 'verify_otp' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({otp: otp, password: newPwd})
+        }).then(r => r.json()).then(data => {
+            const msgEl = document.getElementById('otp-msg-2');
+            msgEl.style.display = "block";
+            if(data.success) {
+                msgEl.style.color = "var(--success)";
+                msgEl.innerText = "Password changed successfully! You will be logged out in 3 seconds.";
+                setTimeout(() => window.location.href = "{% url 'auth_view' %}", 3000);
+            } else {
+                msgEl.style.color = "var(--error)";
+                msgEl.innerText = data.error || "Invalid OTP.";
+            }
+        });
+    }
+</script>
+
+<!-- PWA Step-by-Step Installation Modal -->
+
+<!-- PWA Step-by-Step Installation Modal -->
+<div id="pwaGuideModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.75); backdrop-filter: blur(6px); z-index: 10000; justify-content: center; align-items: center; padding: 16px;">
+    <div style="background: var(--card-bg, #ffffff); border-radius: 20px; border: 1px solid var(--border, #e2e8f0); width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <span>📲</span> Add P&M App to Mobile Home Screen
+            </h3>
+            <button type="button" onclick="closePwaGuideModal()" style="background: none; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
+            <h4 style="margin: 0 0 8px 0; color: #166534; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
+                <span>🤖</span> Android (Chrome / Samsung / Vivo / Realme):
+            </h4>
+            <div style="font-size: 0.9rem; color: #14532d; line-height: 1.6;">
+                <div style="margin-bottom: 8px;">
+                    <b>1.</b> Tap the <b>3 Dots (⋮)</b> in the top right corner of your Chrome browser.
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <b>2.</b> Select <b>"Install and create shortcut"</b> (or <b>"Add to Home screen"</b>).
+                </div>
+                <div>
+                    <b>3.</b> Confirm by clicking <b>"Add"</b>. The app will be added directly to your Home Screen!
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 14px; border-radius: 12px; margin-bottom: 16px;">
+            <h4 style="margin: 0 0 6px 0; color: #6b21a8; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
+                <span>🍎</span> iPhone (Safari Browser):
+            </h4>
+            <p style="margin: 0; font-size: 0.88rem; color: #581c87; line-height: 1.5;">
+                Tap the <b>Share Icon (📤)</b> in Safari toolbar &rarr; Scroll down and select <b>"Add to Home Screen" (➕)</b> &rarr; Tap <b>Add</b>.
+            </p>
+        </div>
+
+        <div style="text-align: right;">
+            <button type="button" onclick="closePwaGuideModal()" class="btn" style="background: #2563eb; color: white; font-weight: 700; border-radius: 8px; padding: 10px 24px; border: none; cursor: pointer; font-size: 0.95rem;">Got It (OK)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let localDeferredPrompt = null;
+    const installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        localDeferredPrompt = e;
+    });
+
+    function openPwaGuideModal() {
+        document.getElementById('pwaGuideModal').style.display = 'flex';
+    }
+
+    function closePwaGuideModal() {
+        document.getElementById('pwaGuideModal').style.display = 'none';
+    }
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            const activePrompt = window.deferredPwaPrompt || localDeferredPrompt;
+            if (activePrompt) {
+                try {
+                    activePrompt.prompt();
+                    const choice = await activePrompt.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        alert('🟢 App installation started! Check your phone home screen.');
+                        window.deferredPwaPrompt = null;
+                        localDeferredPrompt = null;
+                        return;
+                    }
+                } catch(err) {
+                    console.error('PWA prompt error:', err);
+                }
+            }
+            openPwaGuideModal();
+        });
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,542 @@
+[
+  {
+    "sl": 1,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6662",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17059",
+    "engine_no": "TBS4F21337",
+    "rc_expiry_date": "2027-08-29"
+  },
+  {
+    "sl": 2,
+    "vehicle_type": "Scorpio",
+    "registration_no": "BP-3-A6650",
+    "company": "RVJV",
+    "chassis_no": "MA1TJ4YTTS6F68485",
+    "engine_no": "YTS4E71372",
+    "rc_expiry_date": "2027-08-20"
+  },
+  {
+    "sl": 3,
+    "vehicle_type": "Scorpio",
+    "registration_no": "BP-3-A6651",
+    "company": "RVJV",
+    "chassis_no": "MAITJ4YTTS6F68484",
+    "engine_no": "YTS4E71279",
+    "rc_expiry_date": "2027-08-20"
+  },
+  {
+    "sl": 4,
+    "vehicle_type": "Scorpio",
+    "registration_no": "BP-3-A6622",
+    "company": "RVJV",
+    "chassis_no": "MA1TJ4YTTS6F68498",
+    "engine_no": "YTS4E71285",
+    "rc_expiry_date": "2027-08-06"
+  },
+  {
+    "sl": 5,
+    "vehicle_type": "Scorpio",
+    "registration_no": "BP-3-A6669",
+    "company": "RVJV",
+    "chassis_no": "MA1RC4CY2S2G48606",
+    "engine_no": "CYS4F12680",
+    "rc_expiry_date": "2027-09-01"
+  },
+  {
+    "sl": 6,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6740",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17675",
+    "engine_no": "TBS4F22377",
+    "rc_expiry_date": "2027-10-09"
+  },
+  {
+    "sl": 7,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6721",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F25365",
+    "engine_no": "TBS4F19888",
+    "rc_expiry_date": "2027-09-29"
+  },
+  {
+    "sl": 8,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6623",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17564",
+    "engine_no": "TBS4F22390",
+    "rc_expiry_date": "2027-08-06"
+  },
+  {
+    "sl": 9,
+    "vehicle_type": "Scorpio",
+    "registration_no": "BP-3-A6626",
+    "company": "RVJV",
+    "chassis_no": "MA1TJ4YTTS6F68486",
+    "engine_no": "YTS4E71379",
+    "rc_expiry_date": "2027-08-06"
+  },
+  {
+    "sl": 10,
+    "vehicle_type": "Bolero Camper- Single Cabin",
+    "registration_no": "BP-3-A6715",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F57522",
+    "engine_no": "TBS1F80748",
+    "rc_expiry_date": "2027-09-29"
+  },
+  {
+    "sl": 11,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6633",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17582",
+    "engine_no": "TBS4F22382",
+    "rc_expiry_date": "2027-08-12"
+  },
+  {
+    "sl": 12,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6720",
+    "company": "RVJV",
+    "chassis_no": "MA1RUGTBKS5B26524",
+    "engine_no": "TBS4B18914",
+    "rc_expiry_date": "2027-09-29"
+  },
+  {
+    "sl": 13,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6668",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5E43212",
+    "engine_no": "TBS4E30593",
+    "rc_expiry_date": "2027-09-01"
+  },
+  {
+    "sl": 14,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6625",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5E41754",
+    "engine_no": "TBS4D26190",
+    "rc_expiry_date": "2027-08-06"
+  },
+  {
+    "sl": 15,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6624",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17575",
+    "engine_no": "TBS4F22448",
+    "rc_expiry_date": "2027-08-06"
+  },
+  {
+    "sl": 16,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6634",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5F17676",
+    "engine_no": "TBS4F22436",
+    "rc_expiry_date": "2027-08-12"
+  },
+  {
+    "sl": 17,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6632",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5FE42853",
+    "engine_no": "TBS4E30309",
+    "rc_expiry_date": "2027-08-12"
+  },
+  {
+    "sl": 18,
+    "vehicle_type": "Bolero Camper",
+    "registration_no": "BP-3-A6721",
+    "company": "RVJV",
+    "chassis_no": "MA1RU4TBKS5B25365",
+    "engine_no": "TBS4B19888",
+    "rc_expiry_date": "2027-09-29"
+  },
+  {
+    "sl": 19,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0253",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000051",
+    "engine_no": "SPHM104861",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 20,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0256",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000041",
+    "engine_no": "SLHM111991",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 21,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0248",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000071",
+    "engine_no": "SLHM111990",
+    "rc_expiry_date": "2026-10-08"
+  },
+  {
+    "sl": 22,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0252",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000081",
+    "engine_no": "SPHM104859",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 23,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0249",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000091",
+    "engine_no": "SLHM111989",
+    "rc_expiry_date": "2026-10-08"
+  },
+  {
+    "sl": 24,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0251",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NSH000061",
+    "engine_no": "SPHM104860",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 25,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0254",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17VGL000234",
+    "engine_no": "95491834",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 26,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0255",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17HGL000237",
+    "engine_no": "95491839",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 27,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0275",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NS1000111",
+    "engine_no": "SJHM116207",
+    "rc_expiry_date": "2026-11-24"
+  },
+  {
+    "sl": 28,
+    "vehicle_type": "Motor Grader SANY STG170C-10",
+    "registration_no": "BP-3-A0272",
+    "company": "RVJV",
+    "chassis_no": "SY1STG17NS1000101",
+    "engine_no": "SNHM106554",
+    "rc_expiry_date": "2026-11-24"
+  },
+  {
+    "sl": 29,
+    "vehicle_type": "Excavator Kobelco SK520XDLC",
+    "registration_no": "BP-3-A0238",
+    "company": "RVJV",
+    "chassis_no": "YS14505402",
+    "engine_no": "P11CWF22153",
+    "rc_expiry_date": "2027-09-11"
+  },
+  {
+    "sl": 30,
+    "vehicle_type": "Excavator Kobelco SK520XDLC",
+    "registration_no": "BP-3-A0237",
+    "company": "RVJV",
+    "chassis_no": "YS14505400",
+    "engine_no": "P11CWF22152",
+    "rc_expiry_date": "2027-09-11"
+  },
+  {
+    "sl": 31,
+    "vehicle_type": "Excavator Kobelco SK520XDLC",
+    "registration_no": "BP-3-A0235",
+    "company": "RVJV",
+    "chassis_no": "YS14505399",
+    "engine_no": "P11CWF22144",
+    "rc_expiry_date": "2027-09-11"
+  },
+  {
+    "sl": 32,
+    "vehicle_type": "Excavator Kobelco SK520 XDLC-10",
+    "registration_no": "BP-3-A0274",
+    "company": "RVJV",
+    "chassis_no": "YS14505426",
+    "engine_no": "P11CWF22181",
+    "rc_expiry_date": "2026-11-24"
+  },
+  {
+    "sl": 33,
+    "vehicle_type": "Excavator Kobelco SK520 XDLC-10",
+    "registration_no": "BP-3-A0273",
+    "company": "RVJV",
+    "chassis_no": "YS14505420",
+    "engine_no": "P11CWF22193",
+    "rc_expiry_date": "2026-11-24"
+  },
+  {
+    "sl": 34,
+    "vehicle_type": "Excavator Kobelco SK520 XDLC-10",
+    "registration_no": "BP-3-A0271",
+    "company": "RVJV",
+    "chassis_no": "YS1450428",
+    "engine_no": "P11CWF22195",
+    "rc_expiry_date": "2026-11-24"
+  },
+  {
+    "sl": 35,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0259",
+    "company": "RVJV",
+    "chassis_no": "SSRCJ442324050007",
+    "engine_no": "6P24D0076",
+    "rc_expiry_date": "2026-10-16"
+  },
+  {
+    "sl": 36,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0258",
+    "company": "RVJV",
+    "chassis_no": "SSRC0442323080002",
+    "engine_no": "6P23G022258",
+    "rc_expiry_date": "2026-10-09"
+  },
+  {
+    "sl": 37,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0286",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3606",
+    "engine_no": "6P25F014302",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 38,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0283",
+    "company": "RVJV",
+    "chassis_no": "Y21522CF3602",
+    "engine_no": "6P25F014310",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 39,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0288",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3608",
+    "engine_no": "6P25F014303",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 40,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0282",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3601",
+    "engine_no": "6P25F014313",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 41,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0280",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3599",
+    "engine_no": "6P25F014311",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 42,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0284",
+    "company": "RVJV",
+    "chassis_no": "Y21522CF3603",
+    "engine_no": "6P25F014317",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 43,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0281",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3600",
+    "engine_no": "6P25F014316",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 44,
+    "vehicle_type": "Soil Compactor SANY SSR220C-8H 22TON",
+    "registration_no": "BP-3-A0285",
+    "company": "RVJV",
+    "chassis_no": "YZ1522CF3605",
+    "engine_no": "6P25F014309",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 45,
+    "vehicle_type": "Soil Compactor SANY SSR260C-10S 26TON",
+    "registration_no": "BP-3-A0291",
+    "company": "RVJV",
+    "chassis_no": "YZ1826CF4016",
+    "engine_no": "DL07018303",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 46,
+    "vehicle_type": "Soil Compactor SANY SSR260C-10S 26TON",
+    "registration_no": "BP-3-A0293",
+    "company": "RVJV",
+    "chassis_no": "YZ1826CF4019",
+    "engine_no": "DL07018305",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 47,
+    "vehicle_type": "Soil Compactor SANY SSR260C-10S 26TON",
+    "registration_no": "BP-3-A0290",
+    "company": "RVJV",
+    "chassis_no": "YZ1826CF3988",
+    "engine_no": "DL07018304",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 48,
+    "vehicle_type": "Soil Compactor SANY SSR260C-10S 26TON",
+    "registration_no": "BP-3A-0292",
+    "company": "RVJV",
+    "chassis_no": "YZ1826CF4018",
+    "engine_no": "DL07018302",
+    "rc_expiry_date": "2027-01-07"
+  },
+  {
+    "sl": 49,
+    "vehicle_type": "Skid Steer Loader",
+    "registration_no": "BP-3-A0319",
+    "company": "RVJV",
+    "chassis_no": "XUG0SR10ESCB30033",
+    "engine_no": "B7763A",
+    "rc_expiry_date": "2027-07-15"
+  },
+  {
+    "sl": 50,
+    "vehicle_type": "Skid Steer Loader",
+    "registration_no": "BP-3-A0321",
+    "company": "RVJV",
+    "chassis_no": "XUG0SR07PSCB34855",
+    "engine_no": "L5875A",
+    "rc_expiry_date": "2027-07-15"
+  },
+  {
+    "sl": 51,
+    "vehicle_type": "Tractor Farmtrac 6050 Executive UM F1",
+    "registration_no": "BP-2-A0071",
+    "company": "RVJV",
+    "chassis_no": "T052734018FP",
+    "engine_no": "E2730565",
+    "rc_expiry_date": "2026-11-04"
+  },
+  {
+    "sl": 52,
+    "vehicle_type": "Tractor Farmtrac 6050 Executive UM F1",
+    "registration_no": "BP-2-A0070",
+    "company": "RVJV",
+    "chassis_no": "T052734017FP",
+    "engine_no": "E2730564",
+    "rc_expiry_date": "2026-11-04"
+  },
+  {
+    "sl": 53,
+    "vehicle_type": "Excavator XCMG XE60GPRO",
+    "registration_no": "BP-3-A0320",
+    "company": "RVJV",
+    "chassis_no": "XUGA0604KSKA24857",
+    "engine_no": "CNY3127",
+    "rc_expiry_date": "2027-07-15"
+  },
+  {
+    "sl": 54,
+    "vehicle_type": "Excavator XCMG XE60GPRO",
+    "registration_no": "BP-3-A0323",
+    "company": "RVJV",
+    "chassis_no": "XUGA0604LSKA24858",
+    "engine_no": "CNY2798",
+    "rc_expiry_date": "2027-07-15"
+  },
+  {
+    "sl": 55,
+    "vehicle_type": "Diesel Tanker TATA 1613(Cap-12KL)",
+    "registration_no": "BP-1-A3370",
+    "company": "RVJV",
+    "chassis_no": "MAT373145B1J25616",
+    "engine_no": "697TC56JYY126824",
+    "rc_expiry_date": "2026-11-20"
+  },
+  {
+    "sl": 56,
+    "vehicle_type": "Diesel Tanker TATA 1613(Cap-12KL)",
+    "registration_no": "BP-3-A0675",
+    "company": "RVJV",
+    "chassis_no": "MAT388116G1C08920",
+    "engine_no": "3361C63509028",
+    "rc_expiry_date": "2027-08-15"
+  },
+  {
+    "sl": 57,
+    "vehicle_type": "Diesel Tanker(Cap-12KL)",
+    "registration_no": "BP-2-A7265",
+    "company": "RVJV",
+    "chassis_no": "MAT373145B1J25204",
+    "engine_no": "697TC56JYY126473",
+    "rc_expiry_date": "2026-12-01"
+  },
+  {
+    "sl": 58,
+    "vehicle_type": "Diesel Tanker(Cap-12KL)",
+    "registration_no": "BP-2-A6100",
+    "company": "RVJV",
+    "chassis_no": "MAT373145A1P41681",
+    "engine_no": "697TC56PZY135550",
+    "rc_expiry_date": "2027-09-14"
+  },
+  {
+    "sl": 59,
+    "vehicle_type": "Diesel Tanker(Cap-12KL)",
+    "registration_no": "BP-2-A8208",
+    "company": "RVJV",
+    "chassis_no": "MAT343147F1B04402",
+    "engine_no": "697TC48BUY102496",
+    "rc_expiry_date": "2027-09-26"
+  },
+  {
+    "sl": 60,
+    "vehicle_type": "Water Tanker",
+    "registration_no": "BP-2-A4599",
+    "company": "RVJV",
+    "chassis_no": "MAT37314591N30067",
+    "engine_no": "697TC56NQZ120734",
+    "rc_expiry_date": "2027-07-18"
+  }
+]

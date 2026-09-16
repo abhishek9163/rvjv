@@ -1,0 +1,1367 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block sidebar %}
+    <style>
+        /* Modern side-by-side 2-Column CSS Grid layout for dashboard */
+        #content {
+            display: grid !important;
+            grid-template-columns: 1fr 380px !important;
+            gap: 24px !important;
+            align-items: start !important;
+            padding: 24px !important;
+            box-sizing: border-box !important;
+            width: auto !important;
+            max-width: 100% !important;
+        }
+        .titles-and-tools {
+            grid-column: 1 / -1 !important;
+            grid-row: 1 !important;
+            margin-bottom: 0 !important;
+        }
+        #content-main {
+            grid-column: 1 !important;
+            grid-row: 2 / span 2 !important;
+            margin-right: 0 !important;
+            float: none !important;
+            width: 100% !important;
+        }
+        .admin-export-card {
+            grid-column: 2 !important;
+            grid-row: 2 !important;
+            background: var(--admin-card-bg, #ffffff);
+            border: 1px solid var(--admin-border, #cbd5e1);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
+        #content-related {
+            grid-column: 2 !important;
+            grid-row: 3 !important;
+            width: 100% !important;
+            margin-right: 0 !important;
+            float: none !important;
+            position: static !important;
+            margin-top: 0 !important;
+        }
+        @media (max-width: 1100px) {
+            #content {
+                grid-template-columns: 1fr !important;
+            }
+            #content-main {
+                grid-column: 1 !important;
+                grid-row: 1 !important;
+            }
+            .admin-export-card {
+                grid-column: 1 !important;
+                grid-row: 2 !important;
+            }
+            #content-related {
+                grid-column: 1 !important;
+                grid-row: 3 !important;
+            }
+        }
+
+        /* Styling for Export items */
+        .admin-export-item {
+            background: var(--admin-card-header, #f8fafc);
+            border: 1px solid var(--admin-border, #e2e8f0);
+            padding: 11px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            transition: background 0.15s;
+        }
+        .admin-export-item:hover {
+            background: var(--admin-row-hover, #eff6ff);
+        }
+        .admin-export-item:last-child {
+            margin-bottom: 0;
+        }
+        .admin-export-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--admin-text-main, #1e293b);
+        }
+        .admin-export-btn {
+            padding: 5px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+            border: none;
+        }
+        .admin-export-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-excel {
+            background: #10b981;
+            color: white !important;
+            margin-right: 4px;
+        }
+        .btn-pdf {
+            background: #ef4444;
+            color: white !important;
+            margin-right: 4px;
+        }
+        .btn-share {
+            background: #25D366;
+            color: white !important;
+        }
+
+        /* Modal overlay fixed full screen */
+        .export-modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 999999 !important;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .export-modal-container {
+            background-color: var(--admin-card-bg, #ffffff);
+            margin: auto;
+            padding: 20px;
+            border: 1px solid var(--admin-border, #cbd5e1);
+            width: 440px;
+            border-radius: 14px;
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.3);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .export-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--admin-border, #e2e8f0);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .export-modal-title {
+            margin: 0;
+            color: var(--admin-primary, #1e3a8a);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .export-modal-close {
+            color: #94a3b8;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+            border: none;
+            background: none;
+        }
+        .export-modal-close:hover {
+            color: #475569;
+        }
+        .modal-filter-group {
+            margin-bottom: 14px;
+        }
+        .modal-filter-label {
+            display: block;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--admin-text-muted, #64748b);
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--admin-border, #cbd5e1);
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+            background-color: var(--admin-card-header, #f8fafc);
+            color: var(--admin-text-main, #0f172a);
+        }
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--admin-primary, #1e3a8a);
+            background-color: var(--admin-card-bg, #ffffff);
+        }
+        .admin-adv-section-card {
+            background: var(--admin-card-bg, #ffffff);
+            border: 1px solid var(--admin-border, #e2e8f0);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .admin-adv-section-header {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: var(--admin-text-main, #1e293b);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+    </style>
+
+    <!-- RIGHT SIDE DATA EXPORT PANEL -->
+    <div class="admin-export-card">
+        <h3 style="margin-top: 0; color: var(--admin-primary, #1e3a8a); font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--admin-border, #cbd5e1); padding-bottom: 10px; margin-bottom: 14px;">
+            📥 Central Data Exports &amp; Reports
+        </h3>
+        
+        <button type="button" onclick="openAdvExportModalAdmin()" style="width: 100%; background: linear-gradient(135deg, #1d4ed8, #1e40af); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(29,78,216,0.25); transition: transform 0.15s;">
+            ✨ Open Custom Export Builder
+        </button>
+
+        <p style="font-size: 0.75rem; margin: 0 0 12px 0; color: var(--admin-text-muted, #475569); line-height: 1.4; font-weight: 600;">
+            Quick Download Module Reports:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 540px; overflow-y: auto; padding-right: 4px;">
+            <!-- Deployments -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">📋 Daily Deployments</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Deployments', 'excel', '/deployment/export-excel/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Deployments', 'pdf', '/deployment/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Deployments', 'share', '/deployment/export-excel/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Shift -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">🕒 Shifts &amp; Duty Logs</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Shifts', 'excel', '/api/shifts/export/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Shifts', 'share', '/api/shifts/export/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Employees -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">👥 Employees Directory</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Employees', 'excel', '/api/employees/export-excel/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Employees', 'pdf', '/api/employees/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Employees', 'share', '/api/employees/export-excel/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Vehicles -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">🚜 Vehicles Catalog</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Vehicles', 'excel', '/fleet/vehicles/export-excel/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Vehicles', 'pdf', '/fleet/vehicles/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Vehicles', 'share', '/fleet/vehicles/export-excel/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Movements -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">🛣️ Vehicle Movements</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Movements', 'excel', '/fleet/movements/export/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Movements', 'share', '/fleet/movements/export/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Lubricants -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">🛢️ Lubricants Consumed</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Lubricants', 'excel', '/fleet/api/lubrication/export/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Lubricants', 'pdf', '/fleet/api/lubrication/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Lubricants', 'share', '/fleet/api/lubrication/export/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Tyre -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">🛞 Tyre Section Fitments</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Tyre Section', 'excel', '/fleet/api/tyre/export/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Tyre Section', 'pdf', '/fleet/api/tyre/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Tyre Section', 'share', '/fleet/api/tyre/export/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Spare Parts -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">⚙️ Spare Parts Inventory</span>
+                <div>
+                    <button type="button" onclick="openExportModal('Spare Parts', 'excel', '/fleet/api/spare-parts/export/')" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openExportModal('Spare Parts', 'pdf', '/fleet/api/spare-parts/export-pdf/')" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openExportModal('Spare Parts', 'share', '/fleet/api/spare-parts/export/')" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Attendance -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">📊 Attendance &amp; Muster Roll</span>
+                <div>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Overtime -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">⏳ Overtime &amp; QR Punches</span>
+                <div>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+            <!-- Documents & Expiries -->
+            <div class="admin-export-item">
+                <span class="admin-export-title">📄 Documents &amp; Expiries</span>
+                <div>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-excel">Excel</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-pdf">PDF</button>
+                    <button type="button" onclick="openAdvExportModalAdmin()" class="admin-export-btn btn-share" title="Share WhatsApp/Email">💬 Share</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    
+    <!-- CENTRAL USER ACCESS & LOGIN MANAGEMENT CARD -->
+    <div class="admin-export-card" style="margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--admin-border, #cbd5e1); padding-bottom: 10px; margin-bottom: 14px;">
+            <h3 style="margin: 0; color: var(--admin-primary, #1e3a8a); font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                🔐 User Access &amp; Session Control
+            </h3>
+            <button type="button" onclick="openCreateAdminUserModal()" style="background: #10b981; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                ➕ Create User
+            </button>
+        </div>
+
+        <div id="adminUserAccessList" style="display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px;">
+            <div style="text-align: center; padding: 20px; color: var(--admin-text-muted); font-size: 0.8rem;">
+                Loading user accounts...
+            </div>
+        </div>
+
+        <div style="margin-top: 14px; text-align: center; border-top: 1px solid var(--admin-border, #e2e8f0); padding-top: 10px;">
+            <a href="/admin/portal/user/" style="font-size: 0.82rem; font-weight: 800; color: var(--admin-primary, #1d4ed8); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                👥 Manage All User Accounts in Django Admin &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- CREATE USER MODAL FOR ADMIN -->
+    <div id="adminCreateUserModal" class="export-modal-overlay">
+        <div style="background: var(--admin-card-bg, #ffffff); border-radius: 16px; width: 92%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); border: 1px solid var(--admin-border, #cbd5e1);">
+            <div style="padding: 16px 20px; background: var(--admin-card-header, #f8fafc); border-bottom: 1px solid var(--admin-border, #e2e8f0); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--admin-primary, #1d4ed8);">
+                    ➕ Create New Login User Account
+                </h3>
+                <span style="font-size: 1.5rem; font-weight: bold; color: var(--admin-text-muted); cursor: pointer;" onclick="closeCreateAdminUserModal()">&times;</span>
+            </div>
+            
+            <div style="padding: 20px; overflow-y: auto; flex-grow: 1;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="modal-filter-label">Username *</label>
+                        <input type="text" id="new-user-username" class="modal-input" placeholder="e.g. john_deo">
+                    </div>
+                    <div>
+                        <label class="modal-filter-label">Password *</label>
+                        <input type="password" id="new-user-password" class="modal-input" placeholder="Set password">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="modal-filter-label">Full Name</label>
+                        <input type="text" id="new-user-fullname" class="modal-input" placeholder="e.g. John Doe">
+                    </div>
+                    <div>
+                        <label class="modal-filter-label">System Role *</label>
+                        <select id="new-user-role" class="modal-input">
+                            <option value="DEO">Data Entry Operator (DEO)</option>
+                            <option value="TIME_KEEPER">Time Keeper</option>
+                            <option value="PROJECT_MANAGER">Project Manager (PM)</option>
+                            <option value="MANAGER">Manager (Full Control)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label class="modal-filter-label">Machinery Captain Category (Optional Restriction)</label>
+                    <select id="new-user-captain-cat" class="modal-input">
+                        <option value="All">All Machinery Categories (Full Access)</option>
+                        <option value="Scania">Scania / Dumper Captain</option>
+                        <option value="Excavator">Excavator Captain</option>
+                        <option value="Grader">Motor Grader Captain</option>
+                        <option value="Compactor">Compactor Captain</option>
+                        <option value="Other">Other Machinery Captain</option>
+                    </select>
+                </div>
+
+                <div style="background: var(--admin-card-header, #f8fafc); padding: 12px; border-radius: 8px; border: 1px solid var(--admin-border, #e2e8f0);">
+                    <label class="modal-filter-label" style="margin-bottom: 8px;">Assign Module Permissions:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.8rem;">
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="deployments" checked> Daily Deployment</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="shifts" checked> Shift Roster</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="employees" checked> Employees Directory</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="fleet" checked> Fleet Vehicles</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="movements" checked> Vehicle Movements</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="lubricants" checked> Lubricants Consumed</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="tyre" checked> Tyre Fitments</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="spare_parts" checked> Spare Parts Inventory</label>
+                        
+                        <label style="cursor:pointer; font-weight:700; color:#7e22ce;"><input type="checkbox" class="new-user-mod" value="mess"> 🍱 Mess Full Access</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="mess_user"> 👤 Mess User Portal</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="mess_scanner"> 📷 Mess PDA Scanner</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="mess_manager"> ⚙️ Mess Manager &amp; Reports</label>
+
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="attendance" checked> Attendance &amp; Muster</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="overtime" checked> Overtime &amp; QR Punches</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="documents" checked> Documents &amp; Expiries</label>
+                        <label style="cursor:pointer;"><input type="checkbox" class="new-user-mod" value="chat" checked> Team Chat</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 12px 20px; background: var(--admin-card-header, #f8fafc); border-top: 1px solid var(--admin-border, #e2e8f0); display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeCreateAdminUserModal()" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-muted); padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="button" onclick="submitCreateAdminUser()" style="background: #10b981; color: white; border: none; padding: 7px 18px; border-radius: 6px; font-weight: 800; cursor: pointer;">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIVE REALTIME USER ACTIVITY STREAM CARD -->
+    <div class="admin-export-card" style="margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--admin-border, #cbd5e1); padding-bottom: 10px; margin-bottom: 14px;">
+            <h3 style="margin: 0; color: var(--admin-primary, #1e3a8a); font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                ⚡ Live User Activity Stream
+            </h3>
+            <span style="font-size: 0.72rem; font-weight: 800; color: #059669; background: rgba(16,185,129,0.12); padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%;"></span> LIVE (4s)
+            </span>
+        </div>
+
+        <div id="adminHomeLiveActivityFeed" style="display: flex; flex-direction: column; gap: 8px; max-height: 440px; overflow-y: auto; padding-right: 4px;">
+            <div style="text-align: center; padding: 20px; color: var(--admin-text-muted); font-size: 0.8rem;">
+                Loading live activity feed...
+            </div>
+        </div>
+
+        <div style="margin-top: 14px; text-align: center; border-top: 1px solid var(--admin-border, #e2e8f0); padding-top: 10px;">
+            <a href="/admin/portal/useractivitylog/" style="font-size: 0.82rem; font-weight: 800; color: var(--admin-primary, #1d4ed8); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                🔍 View Full Activity Audit Trail &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- RECENT ACTIONS LIST (Django Default, sits underneath exports) -->
+    {{ block.super }}
+
+    <!-- QUICK SINGLE-MODULE EXPORT MODAL -->
+    <div id="exportFilterModal" class="export-modal-overlay">
+        <div class="export-modal-container">
+            <div class="export-modal-header">
+                <h3 id="modalTitle" class="export-modal-title">Export Options</h3>
+                <button type="button" class="export-modal-close" onclick="closeExportModal()">&times;</button>
+            </div>
+            
+            <form id="exportFilterForm" method="GET" action="" onsubmit="return submitExportForm(event);">
+                <!-- Date Range Filters -->
+                <div id="filter-date-range" class="modal-filter-group">
+                    <label class="modal-filter-label">Date Range</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="date" name="start_date" id="exp_start_date" class="modal-input" style="flex: 1;">
+                        <input type="date" name="end_date" id="exp_end_date" class="modal-input" style="flex: 1;">
+                    </div>
+                </div>
+
+                <!-- Vehicle Dropdown -->
+                <div id="filter-vehicle" class="modal-filter-group" style="display: none;">
+                    <label class="modal-filter-label">Filter by Vehicle</label>
+                    <select name="vehicle_id" id="exp_vehicle" class="modal-input">
+                        <option value="">-- All Vehicles --</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}">{{ v.regn }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Vehicle Number text field (for Movement Register) -->
+                <div id="filter-veh-text" class="modal-filter-group" style="display: none;">
+                    <label class="modal-filter-label">Vehicle Registration No.</label>
+                    <input type="text" name="vehicle_number" id="exp_veh_text" placeholder="e.g. BP-2-A0388" class="modal-input">
+                </div>
+
+                <!-- Spare Part Dropdown -->
+                <div id="filter-part" class="modal-filter-group" style="display: none;">
+                    <label class="modal-filter-label">Filter by Part / SKU</label>
+                    <select name="part_id" id="exp_part" class="modal-input">
+                        <option value="">-- All Parts --</option>
+                        {% for p in parts %}
+                        <option value="{{ p.id }}">{{ p.part_number }} - {{ p.part_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Vehicle Type Select -->
+                <div id="filter-veh-type" class="modal-filter-group" style="display: none;">
+                    <label class="modal-filter-label">Vehicle Category</label>
+                    <select name="type" id="exp_veh_type" class="modal-input">
+                        <option value="all">All Vehicles (Inhouse + Hired)</option>
+                        <option value="inhouse">Inhouse Owned</option>
+                        <option value="hired">Hired / Subcontractor</option>
+                    </select>
+                </div>
+
+                <!-- Employee Filters -->
+                <div id="filter-employee" class="modal-filter-group" style="display: none;">
+                    <label class="modal-filter-label">Employee Filter Options</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select name="status" id="exp_emp_status" class="modal-input" style="flex: 1;">
+                            <option value="">-- All Statuses --</option>
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Terminated">Terminated</option>
+                        </select>
+                        <select name="nationality" id="exp_emp_nat" class="modal-input" style="flex: 1;">
+                            <option value="">-- Nationality --</option>
+                            <option value="bhutan">Bhutanese</option>
+                            <option value="foreign">Foreign Worker</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Spare Parts Columns Selection -->
+                <div id="filter-columns" class="modal-filter-group" style="display: none; margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <label class="modal-filter-label" style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--admin-text-muted); margin:0;">Select Columns to Export</label>
+                        <div style="display:flex; gap:8px; font-size:10px; font-weight:700;">
+                            <a href="javascript:void(0)" onclick="toggleAdminIndexColumns(true)" style="color:#1e3a8a; text-decoration:none;">Select All</a>
+                            <span style="color:#cbd5e1;">|</span>
+                            <a href="javascript:void(0)" onclick="toggleAdminIndexColumns(false)" style="color:#64748b; text-decoration:none;">Unselect All</a>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; background: var(--admin-card-header, #f8fafc); padding: 10px; border-radius: 8px; border: 1px solid var(--admin-border, #cbd5e1); max-height: 200px; overflow-y: auto;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="date" checked> Date</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="type" checked> Type</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="vehicle" checked> Vehicle (Reg No)</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="supplier" checked> Supplier/Vendor</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="part_number" checked> Part No/SKU</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="part_name" checked> Part Name</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="quantity" checked> Quantity</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="rate" checked> Rate</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="total_amount" checked> Total Amount</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="location" checked> Location</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="wo_no" checked> WO No</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="reference_no" checked> Ref/Invoice No</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="manpower_cost" checked> Manpower Cost</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="mechanic" checked> Mechanic</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="entered_by" checked> Entered By</label>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color: var(--admin-text-main);"><input type="checkbox" class="idx-col-check" value="remarks" checked> Remarks</label>
+                    </div>
+                </div>
+
+                <!-- Vendor Dropdown (for Spare Parts) -->
+                <div id="filter-vendor" class="modal-filter-group" style="display: none; margin-bottom: 16px;">
+                    <label class="modal-filter-label" style="display:block; font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--admin-text-muted); margin-bottom: 8px;">Filter by Vendor</label>
+                    <select name="vendor_name" id="exp_vendor" class="modal-input select2" style="width:100%;">
+                        <option value="">-- All Vendors / Suppliers --</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 24px; border-top: 1px solid var(--admin-border, #e2e8f0); padding-top: 15px; flex-wrap: wrap;">
+                    <button type="button" onclick="closeExportModal()" style="flex: 1; min-width: 80px; padding: 10px; background-color: var(--admin-card-header, #f1f5f9); color: var(--admin-text-main, #475569); border: 1px solid var(--admin-border, #cbd5e1); border-radius: 6px; cursor: pointer; font-weight: bold; font-size:13px;">Cancel</button>
+                    <button type="button" onclick="shareFromExportFilterModal()" style="flex: 1.5; min-width: 140px; padding: 10px; background-color: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">💬 Share (WhatsApp/Email)</button>
+                    <button type="submit" style="flex: 1.5; min-width: 130px; padding: 10px; background-color: var(--admin-primary, #1e3a8a); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:13px;">📥 Export Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FULL CUSTOM EXPORT BUILDER MODAL (11 MODULES + DESIGNATION FILTERS) -->
+    <div id="adminAdvExportModal" class="export-modal-overlay">
+        <div style="background: var(--admin-card-bg, #ffffff); border-radius: 16px; width: 92%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); border: 1px solid var(--admin-border, #cbd5e1);">
+            <div style="padding: 18px 24px; background: var(--admin-card-header, #f8fafc); border-bottom: 1px solid var(--admin-border, #e2e8f0); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--admin-primary, #1d4ed8); display: flex; align-items: center; gap: 8px;">
+                    ✨ Custom Export Builder (All 11 Modules)
+                </h3>
+                <span style="font-size: 1.6rem; font-weight: bold; color: var(--admin-text-muted, #64748b); cursor: pointer;" onclick="closeAdvExportModalAdmin()">&times;</span>
+            </div>
+
+            <div style="padding: 20px 24px; overflow-y: auto; flex-grow: 1;">
+                <!-- Global Report Title & Dates -->
+                <div style="margin-bottom: 18px; background: var(--admin-card-header, #f8fafc); padding: 14px 16px; border-radius: 10px; border: 1px solid var(--admin-border, #e2e8f0);">
+                    <label style="font-weight: 800; font-size: 0.9rem; color: var(--admin-text-main, #1e293b); display: flex; align-items: center; gap: 8px;">
+                        📝 Custom Report Heading Title:
+                    </label>
+                    <input type="text" id="admin-export-report-title" value="P&M Department Official Executive Audit Report" class="modal-input" style="margin-top: 8px; font-weight: 700;">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div>
+                            <label style="font-weight: 700; font-size: 0.8rem; color: var(--admin-text-muted);">Global Start Date:</label>
+                            <input type="date" id="admin-export-start-date" class="modal-input" style="margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; font-size: 0.8rem; color: var(--admin-text-muted);">Global End Date:</label>
+                            <input type="date" id="admin-export-end-date" class="modal-input" style="margin-top: 4px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 1: EMPLOYEES DIRECTORY -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-emp-check" onchange="toggleAdminAdvOptions('emp')" checked>
+                        👥 Employees Directory &amp; Permits Data
+                    </div>
+                    <div id="admin-opt-emp" style="display: block; margin-top: 12px;">
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-weight: 700; font-size: 0.82rem; color: var(--admin-text-muted);">Select Columns to Include:</label>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 8px;">
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Emp ID" checked> Emp ID</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Name" checked> Name</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Nationality" checked> Nationality</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Designation" checked> Designation</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Department" checked> Department</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Contact Info" checked> Contact Info</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Work Permit No" checked> Work Permit No</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Work Permit Expiry" checked> Permit Expiry</label>
+                                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="admin-emp-col" value="Status" checked> Status</label>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Worker Type:</label>
+                                <select id="admin-emp-filter-type" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Workers</option>
+                                    <option value="national">National (Bhutanese)</option>
+                                    <option value="foreign">Foreign Workers</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Status:</label>
+                                <select id="admin-emp-filter-status" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Active">Active Only</option>
+                                    <option value="On Leave">On Leave</option>
+                                    <option value="Terminated">Terminated</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Designation Filter:</label>
+                                <input type="text" id="admin-emp-filter-desig" class="modal-input" placeholder="e.g. Driver, Operator..." style="margin-top: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 2: ATTENDANCE & MUSTER ROLL -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-att-check" onchange="toggleAdminAdvOptions('att')" checked>
+                        📊 Attendance &amp; Muster Roll
+                    </div>
+                    <div id="admin-opt-att" style="display: block; margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Shift Filter:</label>
+                                <select id="admin-att-filter-shift" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Shifts</option>
+                                    <option value="General">General Shift</option>
+                                    <option value="Shift A">Shift A (Morning)</option>
+                                    <option value="Shift B">Shift B (Evening)</option>
+                                    <option value="Shift C">Shift C (Night)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Attendance Status:</label>
+                                <select id="admin-att-filter-status" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Present">Present Only</option>
+                                    <option value="Absent">Absent Only</option>
+                                    <option value="On Leave">On Leave</option>
+                                    <option value="Half Day">Half Day</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Designation Filter:</label>
+                                <input type="text" id="admin-att-filter-desig" class="modal-input" placeholder="e.g. Driver, Operator..." style="margin-top: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 3: OVERTIME LOGS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-ot-check" onchange="toggleAdminAdvOptions('ot')" checked>
+                        ⏳ Overtime Logs &amp; Hours
+                    </div>
+                    <div id="admin-opt-ot" style="display: block; margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Approval Status:</label>
+                                <select id="admin-ot-filter-status" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Approved">Approved Only</option>
+                                    <option value="Pending">Pending Only</option>
+                                    <option value="Rejected">Rejected Only</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Designation Filter:</label>
+                                <input type="text" id="admin-ot-filter-desig" class="modal-input" placeholder="e.g. Dumper Driver..." style="margin-top: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 4: DOCUMENTS & EXPIRY ALERTS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-doc-check" onchange="toggleAdminAdvOptions('doc')" checked>
+                        📄 Documents &amp; Expiry Alerts
+                    </div>
+                    <div id="admin-opt-doc" style="display: block; margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Document Category:</label>
+                                <select id="admin-doc-filter-type" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Document Categories</option>
+                                    <option value="employee">Asset Permits &amp; Documents</option>
+                                    <option value="vehicle">Vehicle Registration (RC)</option>
+                                    <option value="insurance">Insurance Policies</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Expiry Filter:</label>
+                                <select id="admin-doc-filter-exp-status" class="modal-input" style="margin-top: 4px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="expired">Expired Only 🔴</option>
+                                    <option value="critical">Expiring in 30 Days ⚠️</option>
+                                    <option value="warning">Expiring in 30-90 Days 🟡</option>
+                                    <option value="valid">Valid / Active 🟢</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 5: DAILY DEPLOYMENTS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-dep-check" onchange="toggleAdminAdvOptions('dep')" checked>
+                        📋 Daily Vehicle &amp; Machinery Deployments
+                    </div>
+                    <div id="admin-opt-dep" style="display: block; margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Category:</label>
+                                <select id="admin-dep-filter-cat" class="modal-input" style="margin-top: 4px;">
+                                    <option value="All">All Categories</option>
+                                    <option value="Scania">Scania / Dumper</option>
+                                    <option value="Excavator">Excavator</option>
+                                    <option value="Grader">Motor Grader</option>
+                                    <option value="Compactor">Compactor / Roller</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 700; font-size: 0.8rem;">Shift:</label>
+                                <select id="admin-dep-filter-shift" class="modal-input" style="margin-top: 4px;">
+                                    <option value="All">All Shifts</option>
+                                    <option value="Day">Day Shift</option>
+                                    <option value="Night">Night Shift</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 6: VEHICLES & MACHINERY CATALOG -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-veh-check" onchange="toggleAdminAdvOptions('veh')" checked>
+                        🚜 Machinery &amp; Fleet Vehicles Catalog
+                    </div>
+                    <div id="admin-opt-veh" style="display: block; margin-top: 12px;">
+                        <div>
+                            <label style="font-weight: 700; font-size: 0.8rem;">Fleet Category:</label>
+                            <select id="admin-veh-filter-type" class="modal-input" style="margin-top: 4px;">
+                                <option value="all">All Fleet (Inhouse + Hired)</option>
+                                <option value="inhouse">Inhouse Owned Machinery</option>
+                                <option value="hired">Hired Subcontractors</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 7: VEHICLE MOVEMENTS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-mov-check" onchange="toggleAdminAdvOptions('mov')" checked>
+                        🛣️ Vehicle Movements &amp; Trips
+                    </div>
+                    <div id="admin-opt-mov" style="display: block; margin-top: 12px;">
+                        <div>
+                            <label style="font-weight: 700; font-size: 0.8rem;">Filter Vehicle Reg No:</label>
+                            <input type="text" id="admin-mov-filter-veh" class="modal-input" placeholder="e.g. BP-2-A0388" style="margin-top: 4px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 8: LUBRICANTS CONSUMED -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-lub-check" onchange="toggleAdminAdvOptions('lub')" checked>
+                        🛢️ Lubricants &amp; Oil Consumed
+                    </div>
+                </div>
+
+                <!-- MODULE 9: TYRE FITMENTS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-tyre-check" onchange="toggleAdminAdvOptions('tyre')" checked>
+                        🛞 Tyre Section Fitments &amp; Repairs
+                    </div>
+                </div>
+
+                <!-- MODULE 10: SPARE PARTS TRANSACTIONS -->
+                <div class="admin-adv-section-card">
+                    <div class="admin-adv-section-header">
+                        <input type="checkbox" id="admin-mod-spares-check" onchange="toggleAdminAdvOptions('spares')" checked>
+                        ⚙️ Spare Parts Ledger &amp; Inventory
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 16px 24px; background: var(--admin-card-header, #f8fafc); border-top: 1px solid var(--admin-border, #e2e8f0); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                <button type="button" onclick="closeAdvExportModalAdmin()" style="background: transparent; color: var(--admin-text-muted, #64748b); border: 1px solid var(--admin-border, #cbd5e1); padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="button" onclick="runAdminAdvExport('share')" class="btn-share" style="padding: 8px 18px; border-radius: 8px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    💬 Share (WhatsApp/Email)
+                </button>
+                <button type="button" onclick="runAdminAdvExport('excel')" class="btn-excel" style="padding: 8px 18px; border-radius: 8px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📊 Download Excel
+                </button>
+                <button type="button" onclick="runAdminAdvExport('pdf')" class="btn-pdf" style="padding: 8px 18px; border-radius: 8px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📄 Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOGIC JAVASCRIPT -->
+    <script>
+        function toggleAdminIndexColumns(checked) {
+            document.querySelectorAll('.idx-col-check').forEach(cb => {
+                cb.checked = checked;
+            });
+        }
+
+        let currentAdminExportModule = '';
+        let currentAdminExportFormat = 'excel';
+        let currentAdminExportBaseUrl = '';
+
+        function openExportModal(module, format, exportUrl) {
+            currentAdminExportModule = module;
+            currentAdminExportFormat = format;
+            currentAdminExportBaseUrl = exportUrl;
+            document.getElementById('exportFilterForm').action = exportUrl;
+            
+            const formatName = format === 'share' ? 'SHARE REPORT' : format.toUpperCase();
+            document.getElementById('modalTitle').innerText = `Export ${module} (${formatName})`;
+            
+            // Hide all filter groups
+            document.querySelectorAll('#exportFilterForm .modal-filter-group').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show Date Range by default (except for Vehicles catalog)
+            if (module !== 'Vehicles') {
+                document.getElementById('filter-date-range').style.display = 'block';
+            }
+            
+            // Show module-specific filters
+            if (module === 'Deployments') {
+                document.getElementById('filter-vehicle').style.display = 'block';
+            } else if (module === 'Employees') {
+                document.getElementById('filter-employee').style.display = 'block';
+            } else if (module === 'Vehicles') {
+                document.getElementById('filter-veh-type').style.display = 'block';
+            } else if (module === 'Movements') {
+                document.getElementById('filter-veh-text').style.display = 'block';
+            } else if (module === 'Lubricants' || module === 'Tyre Section') {
+                document.getElementById('filter-vehicle').style.display = 'block';
+            } else if (module === 'Spare Parts') {
+                document.getElementById('filter-part').style.display = 'block';
+                document.getElementById('filter-vehicle').style.display = 'block';
+                document.getElementById('filter-columns').style.display = 'block';
+                document.getElementById('filter-vendor').style.display = 'block';
+            }
+            
+            // Show the modal
+            document.getElementById('exportFilterModal').style.display = 'flex';
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportFilterModal').style.display = 'none';
+        }
+
+        function getExportFilterParams() {
+            const params = new URLSearchParams();
+            const start_date = document.getElementById('exp_start_date').value;
+            const end_date = document.getElementById('exp_end_date').value;
+            const vehicle_id = document.getElementById('exp_vehicle').value;
+            const vehicle_number = document.getElementById('exp_veh_text').value;
+            const part_id = document.getElementById('exp_part').value;
+            const veh_type = document.getElementById('exp_veh_type').value;
+            const emp_status = document.getElementById('exp_emp_status').value;
+            const emp_nat = document.getElementById('exp_emp_nat').value;
+            
+            if (start_date) params.append('start_date', start_date);
+            if (end_date) params.append('end_date', end_date);
+            
+            if (vehicle_id && document.getElementById('filter-vehicle').style.display !== 'none') {
+                params.append('vehicle_id', vehicle_id);
+            }
+            if (vehicle_number && document.getElementById('filter-veh-text').style.display !== 'none') {
+                params.append('vehicle_number', vehicle_number);
+            }
+            if (part_id && document.getElementById('filter-part').style.display !== 'none') {
+                params.append('part_id', part_id);
+            }
+            if (veh_type && document.getElementById('filter-veh-type').style.display !== 'none') {
+                params.append('type', veh_type);
+            }
+            if (emp_status && document.getElementById('filter-employee').style.display !== 'none') {
+                params.append('status', emp_status);
+            }
+            if (emp_nat && document.getElementById('filter-employee').style.display !== 'none') {
+                params.append('nationality', emp_nat);
+            }
+            return params;
+        }
+
+        function submitExportForm(event) {
+            event.preventDefault();
+            const form = document.getElementById('exportFilterForm');
+            let actionUrl = form.action;
+            if (currentAdminExportFormat === 'share') {
+                shareFromExportFilterModal();
+                return false;
+            }
+            const params = getExportFilterParams();
+            const finalUrl = `${actionUrl}?${params.toString()}`;
+            window.open(finalUrl, '_blank');
+            closeExportModal();
+            return false;
+        }
+
+        function shareFromExportFilterModal() {
+            const params = getExportFilterParams();
+            const qStr = params.toString() ? ('?' + params.toString()) : '';
+            let excelUrl = currentAdminExportBaseUrl + qStr;
+            let pdfUrl = currentAdminExportBaseUrl + qStr;
+
+            if (currentAdminExportModule === 'Deployments') {
+                excelUrl = '/deployment/export-excel/' + qStr;
+                pdfUrl = '/deployment/export-pdf/' + qStr;
+            } else if (currentAdminExportModule === 'Employees') {
+                excelUrl = '/api/employees/export-excel/' + qStr;
+                pdfUrl = '/api/employees/export-pdf/' + qStr;
+            } else if (currentAdminExportModule === 'Vehicles') {
+                excelUrl = '/fleet/vehicles/export-excel/' + qStr;
+                pdfUrl = '/fleet/vehicles/export-pdf/' + qStr;
+            } else if (currentAdminExportModule === 'Movements') {
+                excelUrl = '/fleet/movements/export/' + qStr;
+                pdfUrl = excelUrl;
+            } else if (currentAdminExportModule === 'Lubricants') {
+                excelUrl = '/fleet/api/lubrication/export/' + qStr;
+                pdfUrl = '/fleet/api/lubrication/export-pdf/' + qStr;
+            } else if (currentAdminExportModule === 'Tyre Section') {
+                excelUrl = '/fleet/api/tyre/export/' + qStr;
+                pdfUrl = '/fleet/api/tyre/export-pdf/' + qStr;
+            } else if (currentAdminExportModule === 'Spare Parts') {
+                excelUrl = '/fleet/api/spare-parts/export/' + qStr;
+                pdfUrl = '/fleet/api/spare-parts/export-pdf/' + qStr;
+            }
+
+            const sDate = document.getElementById('exp_start_date').value;
+            const eDate = document.getElementById('exp_end_date').value;
+            const dateText = (sDate && eDate && sDate !== eDate) ? `${sDate} to ${eDate}` : (sDate || "Current Period");
+
+            closeExportModal();
+
+            openReportShareModal({
+                title: `${currentAdminExportModule} Report`,
+                date: dateText,
+                site: "Central Executive Admin",
+                extraInfo: `Category: ${currentAdminExportModule}`,
+                excelUrl: excelUrl,
+                pdfUrl: pdfUrl
+            });
+        }
+
+        function openAdvExportModalAdmin() {
+            const modal = document.getElementById('adminAdvExportModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+        function closeAdvExportModalAdmin() {
+            const modal = document.getElementById('adminAdvExportModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        function toggleAdminAdvOptions(mod) {
+            const el = document.getElementById('admin-mod-' + mod + '-check');
+            const opt = document.getElementById('admin-opt-' + mod);
+            if (el && opt) {
+                opt.style.display = el.checked ? 'block' : 'none';
+            }
+        }
+
+        function runAdminAdvExport(format) {
+            const payload = {
+                format: format,
+                report_title: document.getElementById('admin-export-report-title')?.value || 'P&M Department Official Executive Audit Report',
+                start_date: document.getElementById('admin-export-start-date')?.value || null,
+                end_date: document.getElementById('admin-export-end-date')?.value || null,
+                modules: {}
+            };
+
+            // 1. Employees Directory
+            if (document.getElementById('admin-mod-emp-check')?.checked) {
+                const cols = Array.from(document.querySelectorAll('.admin-emp-col:checked')).map(cb => cb.value);
+                payload.modules.employees = {
+                    columns: cols,
+                    worker_type: document.getElementById('admin-emp-filter-type')?.value || 'all',
+                    status: document.getElementById('admin-emp-filter-status')?.value || 'all',
+                    designation: document.getElementById('admin-emp-filter-desig')?.value || 'all'
+                };
+            }
+
+            // 2. Attendance
+            if (document.getElementById('admin-mod-att-check')?.checked) {
+                payload.modules.attendance = {
+                    shift: document.getElementById('admin-att-filter-shift')?.value || 'all',
+                    status: document.getElementById('admin-att-filter-status')?.value || 'all',
+                    designation: document.getElementById('admin-att-filter-desig')?.value || 'all'
+                };
+            }
+
+            // 3. Overtime
+            if (document.getElementById('admin-mod-ot-check')?.checked) {
+                payload.modules.overtime = {
+                    status: document.getElementById('admin-ot-filter-status')?.value || 'all',
+                    designation: document.getElementById('admin-ot-filter-desig')?.value || 'all'
+                };
+            }
+
+            // 4. Documents & Expiry Alerts
+            if (document.getElementById('admin-mod-doc-check')?.checked) {
+                payload.modules.documents = {
+                    type: document.getElementById('admin-doc-filter-type')?.value || 'all',
+                    exp_status: document.getElementById('admin-doc-filter-exp-status')?.value || 'all'
+                };
+            }
+
+            // 5. Deployments
+            if (document.getElementById('admin-mod-dep-check')?.checked) {
+                payload.modules.deployment = {
+                    category: document.getElementById('admin-dep-filter-cat')?.value || 'All',
+                    shift: document.getElementById('admin-dep-filter-shift')?.value || 'All'
+                };
+            }
+
+            // 6. Vehicles
+            if (document.getElementById('admin-mod-veh-check')?.checked) {
+                payload.modules.vehicles = {
+                    type: document.getElementById('admin-veh-filter-type')?.value || 'all'
+                };
+            }
+
+            // 7. Movements
+            if (document.getElementById('admin-mod-mov-check')?.checked) {
+                payload.modules.movements = {
+                    vehicle_number: document.getElementById('admin-mov-filter-veh')?.value || null
+                };
+            }
+
+            // 8. Lubricants
+            if (document.getElementById('admin-mod-lub-check')?.checked) {
+                payload.modules.lubricants = {};
+            }
+
+            // 9. Tyre
+            if (document.getElementById('admin-mod-tyre-check')?.checked) {
+                payload.modules.tyre = {};
+            }
+
+            // 10. Spare Parts
+            if (document.getElementById('admin-mod-spares-check')?.checked) {
+                payload.modules.spares = {};
+            }
+
+            if (Object.keys(payload.modules).length === 0) {
+                alert("Please select at least one module section to export.");
+                return;
+            }
+
+            if (format === 'share') {
+                closeAdvExportModalAdmin();
+                const repTitle = payload.report_title || 'Central Executive Audit Report';
+                const sDate = payload.start_date || '';
+                const eDate = payload.end_date || '';
+                const dateText = (sDate && eDate && sDate !== eDate) ? `${sDate} to ${eDate}` : (sDate || "Custom Scope");
+                
+                openReportShareModal({
+                    title: repTitle,
+                    date: dateText,
+                    site: "Central Executive Admin",
+                    extraInfo: `Modules: ${Object.keys(payload.modules).join(', ')}`,
+                    excelUrl: '/api/export-portal/',
+                    pdfUrl: '/api/export-portal/'
+                });
+                return;
+            }
+
+            fetch('/api/export-portal/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(async response => {
+                    if (!response.ok) throw new Error('Export failed with status ' + response.status);
+                    if (format === 'excel') {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = (payload.report_title.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        const htmlText = await response.text();
+                        const win = window.open('', '_blank');
+                        if (win) {
+                            win.document.write(htmlText);
+                            win.document.close();
+                        } else {
+                            alert('Pop-up blocked! Please allow pop-ups for this site to view the PDF report.');
+                        }
+                    }
+                    closeAdvExportModalAdmin();
+                })
+                .catch(err => {
+                    console.error('Export Error:', err);
+                    alert('Error generating export: ' + err.message);
+                });
+        }
+
+        // Close modal when clicking backdrop
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportFilterModal');
+            const advModal = document.getElementById('adminAdvExportModal');
+            if (event.target === modal) {
+                closeExportModal();
+            }
+            if (event.target === advModal) {
+                closeAdvExportModalAdmin();
+            }
+        }
+    
+        function updateAdminHomeLiveActivities() {
+            fetch('/api/live/user-activity/?q=')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logs && data.logs.length > 0) {
+                        const container = document.getElementById('adminHomeLiveActivityFeed');
+                        if (!container) return;
+                        
+                        let feedHtml = '';
+                        data.logs.slice(0, 10).forEach(log => {
+                            const act = (log.action_type || '').toUpperCase();
+                            let badgeClass = 'background: #f1f5f9; color: #334155;';
+                            let badgeIcon = '📌';
+                            if (act === 'CREATE' || act === 'CREATED') { badgeClass = 'background: #d1fae5; color: #047857;'; badgeIcon = '🟢'; }
+                            else if (act === 'UPDATE' || act === 'UPDATED') { badgeClass = 'background: #dbeafe; color: #1d4ed8;'; badgeIcon = '🔵'; }
+                            else if (act === 'DELETE' || act === 'DELETED') { badgeClass = 'background: #fee2e2; color: #b91c1c;'; badgeIcon = '🔴'; }
+                            else if (act === 'APPROVE' || act === 'APPROVED') { badgeClass = 'background: #f3e8ff; color: #6b21a8;'; badgeIcon = '⚡'; }
+                            else if (act === 'LOGIN') { badgeClass = 'background: #ecfdf5; color: #059669;'; badgeIcon = '🔑'; }
+                            else if (act === 'LOGOUT') { badgeClass = 'background: #f1f5f9; color: #475569;'; badgeIcon = '🚪'; }
+
+                            const timeStr = log.time_ago || (log.date_str + ' ' + log.time_str);
+
+                            feedHtml += `
+                                <div style="background: var(--admin-card-header, #f8fafc); border: 1px solid var(--admin-border, #e2e8f0); padding: 10px 12px; border-radius: 8px; font-size: 0.8rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <strong style="color: var(--admin-text-main, #1e293b);">${log.user_name}</strong>
+                                            <span style="font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; ${badgeClass}">${badgeIcon} ${act}</span>
+                                        </div>
+                                        <span style="font-size: 0.72rem; font-weight: 700; color: var(--admin-primary, #1d4ed8);">${timeStr}</span>
+                                    </div>
+                                    <div style="color: var(--admin-text-main, #334155); font-weight: 600; line-height: 1.3; font-size: 0.78rem;">
+                                        ${log.description}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = feedHtml;
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        // Start live polling
+        updateAdminHomeLiveActivities();
+        setInterval(updateAdminHomeLiveActivities, 4000);
+
+    
+        function fetchAdminUserAccessList() {
+            fetch('/api/live/user-activity/?q=')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.users) {
+                        const container = document.getElementById('adminUserAccessList');
+                        if (!container) return;
+
+                        let userHtml = '';
+                        data.users.forEach(u => {
+                            const isOnline = u.is_online;
+                            const isIdle = u.is_idle;
+                            let statusBadge = '<span style="font-size:0.68rem; font-weight:800; color:#64748b;">⚪ Offline</span>';
+                            if (isOnline) statusBadge = '<span style="font-size:0.68rem; font-weight:800; color:#059669;">🟢 Online</span>';
+                            else if (isIdle) statusBadge = '<span style="font-size:0.68rem; font-weight:800; color:#d97706;">🟡 Idle</span>';
+
+                            let roleColor = 'background: #d1fae5; color: #065f46;';
+                            if (u.role === 'MANAGER') roleColor = 'background: #f3e8ff; color: #6b21a8;';
+                            else if (u.role === 'PROJECT_MANAGER') roleColor = 'background: #dbeafe; color: #1e40af;';
+                            else if (u.role === 'TIME_KEEPER') roleColor = 'background: #fef3c7; color: #92400e;';
+                            else if (u.role === 'PENDING') roleColor = 'background: #fee2e2; color: #991b1b;';
+
+                            const initial = (u.name || 'U').charAt(0).toUpperCase();
+
+                            userHtml += `
+                                <div style="background: var(--admin-card-header, #f8fafc); border: 1px solid var(--admin-border, #e2e8f0); padding: 10px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #1d4ed8; color: white; font-weight: 800; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;">${initial}</div>
+                                        <div>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <strong style="font-size: 0.85rem; color: var(--admin-text-main, #1e293b);">${u.name}</strong>
+                                                <span style="font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; ${roleColor}">${u.role}</span>
+                                                ${statusBadge}
+                                            </div>
+                                            <div style="font-size: 0.72rem; color: var(--admin-text-muted, #64748b);">Last active: ${u.last_seen} | Active: ${u.estimated_active_time}</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 4px;">
+                                        ${u.role === 'PENDING' ? `<button type="button" onclick="adminUserAction(${u.id}, 'approve', {role:'DEO'})" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:800; font-size:0.7rem; cursor:pointer;">⚡ Approve</button>` : ''}
+                                        <button type="button" onclick="adminUserAction(${u.id}, 'toggle_active')" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:4px 8px; border-radius:4px; font-weight:700; font-size:0.7rem; cursor:pointer;">Status</button>
+                                        <button type="button" onclick="promptResetUserPass(${u.id}, '${u.name}')" style="background:#3b82f6; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:800; font-size:0.7rem; cursor:pointer;">🔑 Pass</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = userHtml;
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function adminUserAction(userId, action, extraPayload = {}) {
+            const payload = Object.assign({ user_id: userId, action: action }, extraPayload);
+            fetch('/api/admin/users/update-access/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    fetchAdminUserAccessList();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Error: ' + err.message));
+        }
+
+        function promptResetUserPass(userId, name) {
+            const newPass = prompt(`Enter new password for user '${name}':`);
+            if (newPass && newPass.trim().length > 0) {
+                adminUserAction(userId, 'reset_password', { password: newPass.trim() });
+            }
+        }
+
+        function openCreateAdminUserModal() {
+            document.getElementById('adminCreateUserModal').style.display = 'flex';
+        }
+        function closeCreateAdminUserModal() {
+            document.getElementById('adminCreateUserModal').style.display = 'none';
+        }
+
+        function submitCreateAdminUser() {
+            const username = document.getElementById('new-user-username').value.trim();
+            const password = document.getElementById('new-user-password').value.trim();
+            const full_name = document.getElementById('new-user-fullname').value.trim();
+            const role = document.getElementById('new-user-role').value;
+            const captain_cat = document.getElementById('new-user-captain-cat').value;
+
+            const modules = Array.from(document.querySelectorAll('.new-user-mod:checked')).map(cb => cb.value);
+
+            if (!username || !password) {
+                alert('Username and Password are required!');
+                return;
+            }
+
+            const payload = {
+                username: username,
+                password: password,
+                full_name: full_name,
+                system_role: role,
+                captain_category: captain_cat,
+                assigned_modules: modules
+            };
+
+            fetch('/api/admin/users/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    closeCreateAdminUserModal();
+                    fetchAdminUserAccessList();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Error: ' + err.message));
+        }
+
+        // Start user list polling
+        fetchAdminUserAccessList();
+        setInterval(fetchAdminUserAccessList, 6000);
+
+    </script>
+{% endblock %}
