@@ -302,7 +302,7 @@
                 </div>
                 <div class="form-meta-box">
                     <div>Serial No: <span class="serial-badge">{{ record.serial_no }}</span></div>
-                    <div style="color: #64748b; margin-top: 3px;">Date: <strong>{{ data.date_requisition|default:data.from_date|default:record.created_at|date:"d-M-Y" }}</strong></div>
+                    <div style="color: #64748b; margin-top: 3px;">Date: <strong>{{ display_date }}</strong></div>
                 </div>
             </div>
 
@@ -595,19 +595,19 @@
                 <div class="signatures-grid">
                     <div class="sig-box">
                         <div class="sig-title">Requested / Prepared By</div>
-                        <div class="sig-name">{{ data.requested_by|default:data.worker_name|default:data.applicant_name|default:record.created_by_name|default:"Applicant Signature" }}</div>
+                        <div class="sig-name">{{ applicant_signature_name }}</div>
                         <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Date</div>
                     </div>
 
                     <div class="sig-box">
                         <div class="sig-title">Recommended / Verified By</div>
-                        <div class="sig-name">{{ data.supervisor_name|default:data.recommended_by|default:data.verified_by|default:"HOD / Officer In-Charge" }}</div>
+                        <div class="sig-name">{{ recommended_by_name }}</div>
                         <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Seal</div>
                     </div>
 
                     <div class="sig-box">
                         <div class="sig-title">Approved By</div>
-                        <div class="sig-name">{{ data.approved_by|default:data.approved_by_pm|default:"Project Manager" }}</div>
+                        <div class="sig-name">{{ approved_by_name }}</div>
                         <div style="font-size: 10px; color: #94a3b8;">Authorized Signatory</div>
                     </div>
                 </div>

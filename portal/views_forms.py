@@ -440,6 +440,40 @@ def office_form_print_view(request, record_id):
     cfg = FORM_TEMPLATES_CONFIG.get(record.form_type, {})
     form_data = record.form_data or {}
 
+    # Pre-resolve signatures and dates safely in Python to avoid Django template lookup errors
+    applicant_name = (
+        form_data.get('requested_by') or
+        form_data.get('worker_name') or
+        form_data.get('applicant_name') or
+        form_data.get('employee_name') or
+        form_data.get('full_name') or
+        record.created_by_name or
+        'Applicant Signature'
+    )
+
+    recommended_by = (
+        form_data.get('supervisor_name') or
+        form_data.get('recommended_by') or
+        form_data.get('verified_by') or
+        form_data.get('requested_by_hod') or
+        form_data.get('supervisor') or
+        'HOD / Officer In-Charge'
+    )
+
+    approved_by = (
+        form_data.get('approved_by') or
+        form_data.get('approved_by_pm') or
+        'Project Manager'
+    )
+
+    display_date = (
+        form_data.get('date_requisition') or
+        form_data.get('from_date') or
+        form_data.get('start_date') or
+        form_data.get('effective_date') or
+        (record.created_at.strftime('%d-%b-%Y') if record.created_at else '')
+    )
+
     context = {
         'record': record,
         'cfg': cfg,
@@ -447,8 +481,13 @@ def office_form_print_view(request, record_id):
         'items': form_data.get('items', []),
         'print_time': timezone.now().strftime('%d-%b-%Y %I:%M %p'),
         'printed_by_user': request.user.get_full_name() or request.user.username,
+        'applicant_signature_name': applicant_name,
+        'recommended_by_name': recommended_by,
+        'approved_by_name': approved_by,
+        'display_date': display_date,
     }
     return render(request, 'office_forms/form_print_layout.html', context)
+
 
 
 @login_required
