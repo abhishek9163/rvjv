@@ -86,6 +86,35 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* Faded Logo Watermark in Background */
+        .watermark-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            height: 440px;
+            pointer-events: none;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .watermark-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.055;
+            filter: grayscale(100%);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .page-sheet-content {
+            position: relative;
+            z-index: 1;
         }
 
         /* Typography & Dotted Underlines */
@@ -182,6 +211,8 @@
             font-size: 8pt;
             color: #64748b;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            position: relative;
+            z-index: 1;
         }
 
         /* Print Media Styles */
@@ -200,6 +231,11 @@
                 padding: 6mm 10mm !important;
                 box-shadow: none !important;
                 border: none !important;
+            }
+            .watermark-img {
+                opacity: 0.055 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             @page {
                 size: A4 portrait;
@@ -234,7 +270,12 @@
 
     <!-- Official A4 Paper Sheet -->
     <div class="page-sheet">
-        <div>
+        <!-- Faded Background Watermark Logo -->
+        <div class="watermark-container">
+            <img src="{% static 'office_templates/assets/rvjv_logo_emblem.png' %}" class="watermark-img" alt="Watermark">
+        </div>
+
+        <div class="page-sheet-content">
 
             <!-- ========================================================= -->
             <!-- 1. FOREIGN WORKER LEAVE FORM (Exact PDF Replica)           -->
@@ -244,12 +285,14 @@
                 <img src="{% static 'office_templates/assets/rvjv_letterhead_banner.jpg' %}" style="width: 100%; max-height: 90px; object-fit: contain;" alt="RVJV Letterhead">
             </div>
 
-            <div style="text-align: center; font-size: 15pt; font-weight: bold; margin: 4px 0 12px 0;">
+            <!-- Blue Background Title Banner -->
+            <div style="background-color: #1e3a8a; color: #ffffff; text-align: center; font-size: 14.5pt; font-weight: bold; padding: 6px 16px; border-radius: 4px; margin: 6px 0 12px 0; letter-spacing: 0.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
                 Foreign Worker Leave Form
             </div>
 
+            <!-- Current Application Date -->
             <div style="text-align: right; margin-bottom: 8px;">
-                Date: <span class="fill-text">{{ display_date|default:"……/……/ 2026" }}</span>
+                Date: <span class="fill-text">{{ current_date }}</span>
             </div>
 
             <div style="line-height: 1.9; font-size: 10.5pt;">
@@ -287,7 +330,7 @@
                 </div>
 
                 <div style="margin-top: 4px;">
-                    From Date <span class="fill-text">{{ data.from_date|default:"………….…" }}</span> &nbsp; To Date <span class="fill-text">{{ data.to_date|default:"………….…" }}</span>
+                    From Date <span class="fill-text">{{ display_from_date|default:"………….…" }}</span> &nbsp; To Date <span class="fill-text">{{ display_to_date|default:"………….…" }}</span>
                 </div>
 
                 <div style="margin-top: 8px; font-weight: bold;">Leave type:</div>
@@ -354,7 +397,7 @@
             </div>
 
             <div style="text-align: right; margin-bottom: 10px;">
-                Date: <span class="fill-text">{{ display_date|default:"……/……/ 2026" }}</span>
+                Date: <span class="fill-text">{{ current_date }}</span>
             </div>
 
             <div style="line-height: 1.9; font-size: 10.5pt;">
@@ -386,7 +429,7 @@
                 </div>
 
                 <div style="margin-top: 4px;">
-                    From Date: <span class="fill-text">{{ data.from_date|default:"….../……." }}</span> / 2026, &nbsp;&nbsp; To Date: <span class="fill-text">{{ data.to_date|default:"....…/......." }}</span> / 2026
+                    From Date: <span class="fill-text">{{ display_from_date|default:"….../……." }}</span> &nbsp;&nbsp; To Date: <span class="fill-text">{{ display_to_date|default:"....…/......." }}</span>
                 </div>
 
                 <div style="margin-top: 8px; font-weight: bold;">Leave type:</div>
@@ -450,11 +493,11 @@
             <table class="req-meta-tbl">
                 <tr>
                     <td style="width: 60%;">Name of Project:&nbsp; <strong>Earthwork and Enabling Works</strong></td>
-                    <td style="width: 40%;">Date of Requisition:&nbsp; <strong>{{ display_date }}</strong></td>
+                    <td style="width: 40%;">Date of Requisition:&nbsp; <strong>{{ display_req_date }}</strong></td>
                 </tr>
                 <tr>
                     <td>Requisition/Order Reference No.:&nbsp; <strong style="font-family: monospace;">{{ record.serial_no }}</strong></td>
-                    <td>Date of Requirement:&nbsp; <strong>{{ data.date_requirement }}</strong></td>
+                    <td>Date of Requirement:&nbsp; <strong>{{ display_req_urgency }}</strong></td>
                 </tr>
             </table>
 
@@ -570,7 +613,7 @@
                 <span style="font-weight: bold;">OHS</span> [ <span class="chk-box">{% if data.ohs_clearance %}&#10004;{% endif %}</span> ] &nbsp;&nbsp; 
                 <span style="font-weight: bold;">Account</span> [ <span class="chk-box">{% if data.accounts_clearance %}&#10004;{% endif %}</span> ] &nbsp;&nbsp; 
                 <span style="font-weight: bold;">Administration</span> [ <span class="chk-box">{% if data.admin_clearance %}&#10004;{% endif %}</span> ] 
-                the undersigned individuals, being the authorized representative of respective Department/Division/Sections, confirm that no outstanding dues or liabilities are pending against the aforementioned employee as of <span class="fill-text">{{ data.effective_date|default:"…/…/20…" }}</span>.
+                the undersigned individuals, being the authorized representative of respective Department/Division/Sections, confirm that no outstanding dues or liabilities are pending against the aforementioned employee as of <span class="fill-text">{{ display_effective_date|default:"…/…/20…" }}</span>.
             </div>
 
             <div style="margin-top: 10px; font-size: 10.5pt;">
@@ -650,7 +693,7 @@
                 <div>Designation: <span class="fill-text">{{ data.designation }}</span></div>
                 <div>Department: <span class="fill-text">{{ data.department }}</span></div>
                 <div>Supervisor: <span class="fill-text">{{ data.supervisor }}</span></div>
-                <div>Start Date: <span class="fill-text">{{ data.start_date }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; End Date: <span class="fill-text">{{ data.end_date|default:"Ongoing" }}</span></div>
+                <div>Start Date: <span class="fill-text">{{ display_start_date }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; End Date: <span class="fill-text">{{ display_end_date|default:"Ongoing" }}</span></div>
                 <div>Work Schedule: <span class="fill-text">{{ data.work_schedule|default:"General Shift" }}</span></div>
 
                 <div style="font-weight: bold; margin-top: 12px;">Acknowledgment</div>
@@ -659,8 +702,8 @@
                 </div>
 
                 <div style="margin-top: 30px; display: flex; justify-content: space-between;">
-                    <div>Employee Signature: <span class="fill-text">{{ data.full_name }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ display_date }}</span></div>
-                    <div>Supervisor Signature: <span class="fill-text">{{ data.supervisor }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ display_date }}</span></div>
+                    <div>Employee Signature: <span class="fill-text">{{ data.full_name }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ current_date }}</span></div>
+                    <div>Supervisor Signature: <span class="fill-text">{{ data.supervisor }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ current_date }}</span></div>
                 </div>
             </div>
 

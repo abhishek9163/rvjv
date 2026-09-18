@@ -466,13 +466,27 @@ def office_form_print_view(request, record_id):
         'Project Manager'
     )
 
-    display_date = (
-        form_data.get('date_requisition') or
-        form_data.get('from_date') or
-        form_data.get('start_date') or
-        form_data.get('effective_date') or
-        (record.created_at.strftime('%d/%m/%Y') if record.created_at else '')
-    )
+    # Helper to convert YYYY-MM-DD or date objects to DD/MM/YYYY
+    def format_date_str(d_val):
+        if not d_val:
+            return ''
+        try:
+            if isinstance(d_val, (datetime.date, datetime.datetime)):
+                return d_val.strftime('%d/%m/%Y')
+            dt = datetime.datetime.strptime(str(d_val).strip(), '%Y-%m-%d')
+            return dt.strftime('%d/%m/%Y')
+        except Exception:
+            return str(d_val)
+
+    current_date = timezone.now().strftime('%d/%m/%Y')
+    display_from_date = format_date_str(form_data.get('from_date'))
+    display_to_date = format_date_str(form_data.get('to_date'))
+    display_req_date = format_date_str(form_data.get('date_requisition')) or current_date
+    display_req_urgency = format_date_str(form_data.get('date_requirement'))
+    display_effective_date = format_date_str(form_data.get('effective_date')) or current_date
+    display_start_date = format_date_str(form_data.get('start_date'))
+    display_end_date = format_date_str(form_data.get('end_date'))
+    display_target_date = format_date_str(form_data.get('target_date'))
 
     # 16-row padded items table for Requisition forms (matches Word template exactly)
     raw_items = form_data.get('items', [])
@@ -516,7 +530,16 @@ def office_form_print_view(request, record_id):
         'applicant_signature_name': applicant_name,
         'recommended_by_name': recommended_by,
         'approved_by_name': approved_by,
-        'display_date': display_date,
+        'current_date': current_date,
+        'display_date': current_date,
+        'display_from_date': display_from_date,
+        'display_to_date': display_to_date,
+        'display_req_date': display_req_date,
+        'display_req_urgency': display_req_urgency,
+        'display_effective_date': display_effective_date,
+        'display_start_date': display_start_date,
+        'display_end_date': display_end_date,
+        'display_target_date': display_target_date,
         'leave_type_raw': leave_type_raw,
         'zone_val': zone_val,
     }

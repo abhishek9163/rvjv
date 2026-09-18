@@ -407,7 +407,44 @@
                 ];
             items.forEach(item => addItemRow(item));
         }
+
+        // Auto-calculate leave days when from_date or to_date changes
+        const fromDateEl = document.getElementById('field_from_date');
+        const toDateEl = document.getElementById('field_to_date');
+        if (fromDateEl && toDateEl) {
+            fromDateEl.addEventListener('change', autoCalculateLeaveDays);
+            toDateEl.addEventListener('change', autoCalculateLeaveDays);
+            fromDateEl.addEventListener('input', autoCalculateLeaveDays);
+            toDateEl.addEventListener('input', autoCalculateLeaveDays);
+            const leaveDaysEl = document.getElementById('field_leave_days');
+            if (leaveDaysEl && (!leaveDaysEl.value || leaveDaysEl.value === '0')) {
+                autoCalculateLeaveDays();
+            }
+        }
     });
+
+    function autoCalculateLeaveDays() {
+        const fromEl = document.getElementById('field_from_date');
+        const toEl = document.getElementById('field_to_date');
+        const daysEl = document.getElementById('field_leave_days');
+        if (!fromEl || !toEl || !daysEl) return;
+
+        const fromVal = fromEl.value;
+        const toVal = toEl.value;
+        if (fromVal && toVal) {
+            const d1 = new Date(fromVal);
+            const d2 = new Date(toVal);
+            if (!isNaN(d1) && !isNaN(d2)) {
+                const diffTime = d2.getTime() - d1.getTime();
+                const diffDays = Math.round(diffTime / (1000 * 3600 * 24)) + 1;
+                if (diffDays >= 1) {
+                    daysEl.value = diffDays;
+                } else {
+                    daysEl.value = 1;
+                }
+            }
+        }
+    }
 
     function addItemRow(data = {}) {
         const tbody = document.getElementById('itemsTableBody');
