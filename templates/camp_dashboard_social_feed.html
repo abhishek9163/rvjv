@@ -74,6 +74,12 @@
         font-weight: 600;
     }
 
+    /* Ensure parent containers allow CSS sticky to work properly */
+    .main-content, .container, .app-layout {
+        overflow: visible !important;
+        overflow-y: visible !important;
+    }
+
     /* Layout grid */
     .feed-layout {
         display: grid;
@@ -87,15 +93,31 @@
         .feed-layout {
             grid-template-columns: 1fr;
         }
+        .feed-sidebar-col {
+            position: static !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
     }
 
     /* Facebook-style Sticky Sidebar Column */
     .feed-sidebar-col {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 20px;
-        align-self: start;
-        will-change: top, transform;
+        position: -webkit-sticky !important;
+        position: sticky !important;
+        top: 20px !important;
+        max-height: calc(100vh - 35px) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        align-self: start !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+    }
+    .feed-sidebar-col::-webkit-scrollbar {
+        width: 5px;
+    }
+    .feed-sidebar-col::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 10px;
     }
 
     /* Feed Post Card */
@@ -858,90 +880,6 @@
             console.error('Comment request error:', err);
         });
     }
-
-    // Facebook-style Smart Sticky Sidebar:
-    // When scrolling down, the sidebar stops scrolling as soon as its bottom (end) is reached,
-    // locking into view so only the center/feed content continues scrolling.
-    function initFacebookStickySidebar() {
-        const sidebar = document.querySelector('.feed-sidebar-col');
-        if (!sidebar) return;
-
-        const parent = sidebar.parentElement;
-        if (!parent) return;
-
-        let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const offsetTop = 20;
-        const offsetBottom = 20;
-
-        function updateSidebar() {
-            if (window.innerWidth <= 992) {
-                sidebar.style.position = '';
-                sidebar.style.top = '';
-                sidebar.dataset.mode = '';
-                return;
-            }
-
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const viewportHeight = window.innerHeight;
-            const sidebarHeight = sidebar.offsetHeight;
-            const parentRect = parent.getBoundingClientRect();
-            const sidebarRect = sidebar.getBoundingClientRect();
-            const delta = scrollTop - lastScrollTop;
-
-            // 1. If sidebar fits completely inside viewport
-            if (sidebarHeight + offsetTop + offsetBottom <= viewportHeight) {
-                sidebar.style.position = 'sticky';
-                sidebar.style.top = offsetTop + 'px';
-                sidebar.dataset.mode = 'sticky-top';
-                lastScrollTop = scrollTop;
-                return;
-            }
-
-            // 2. Sidebar is taller than viewport (lock when end reached)
-            const bottomStickyTop = Math.round(viewportHeight - sidebarHeight - offsetBottom);
-
-            if (delta > 0) {
-                // Scrolling DOWN
-                if (sidebar.dataset.mode === 'sticky-top') {
-                    const currentOffset = Math.round(sidebarRect.top - parentRect.top);
-                    sidebar.style.position = 'relative';
-                    sidebar.style.top = currentOffset + 'px';
-                    sidebar.dataset.mode = 'scrolling-down';
-                } else if (sidebarRect.bottom <= viewportHeight - offsetBottom) {
-                    sidebar.style.position = 'sticky';
-                    sidebar.style.top = bottomStickyTop + 'px';
-                    sidebar.dataset.mode = 'sticky-bottom';
-                }
-            } else if (delta < 0) {
-                // Scrolling UP
-                if (sidebar.dataset.mode === 'sticky-bottom') {
-                    const currentOffset = Math.round(sidebarRect.top - parentRect.top);
-                    sidebar.style.position = 'relative';
-                    sidebar.style.top = currentOffset + 'px';
-                    sidebar.dataset.mode = 'scrolling-up';
-                } else if (sidebarRect.top >= offsetTop) {
-                    sidebar.style.position = 'sticky';
-                    sidebar.style.top = offsetTop + 'px';
-                    sidebar.dataset.mode = 'sticky-top';
-                }
-            }
-
-            // Boundary reset when scrolled all the way to top
-            if (scrollTop <= 10) {
-                sidebar.style.position = 'sticky';
-                sidebar.style.top = offsetTop + 'px';
-                sidebar.dataset.mode = 'sticky-top';
-            }
-
-            lastScrollTop = Math.max(0, scrollTop);
-        }
-
-        window.addEventListener('scroll', updateSidebar, { passive: true });
-        window.addEventListener('resize', updateSidebar, { passive: true });
-        updateSidebar();
-    }
-    window.addEventListener('DOMContentLoaded', initFacebookStickySidebar);
-    window.addEventListener('load', initFacebookStickySidebar);
 </script>
 
 {% endblock %}
