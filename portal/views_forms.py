@@ -434,13 +434,13 @@ def api_log_office_form_print(request, record_id):
 @login_required
 def office_form_print_view(request, record_id):
     """
-    Clean official A4 print layout for physical printing or saving as PDF.
+    Official A4 print layout matching the exact design and letterhead of the original documents.
     """
     record = get_object_or_404(OfficeFormRecord, id=record_id)
     cfg = FORM_TEMPLATES_CONFIG.get(record.form_type, {})
     form_data = record.form_data or {}
 
-    # Pre-resolve signatures and dates safely in Python to avoid Django template lookup errors
+    # Pre-resolve signatures safely
     applicant_name = (
         form_data.get('requested_by') or
         form_data.get('worker_name') or
@@ -448,7 +448,7 @@ def office_form_print_view(request, record_id):
         form_data.get('employee_name') or
         form_data.get('full_name') or
         record.created_by_name or
-        'Applicant Signature'
+        ''
     )
 
     recommended_by = (
@@ -457,7 +457,7 @@ def office_form_print_view(request, record_id):
         form_data.get('verified_by') or
         form_data.get('requested_by_hod') or
         form_data.get('supervisor') or
-        'HOD / Officer In-Charge'
+        ''
     )
 
     approved_by = (
@@ -471,20 +471,54 @@ def office_form_print_view(request, record_id):
         form_data.get('from_date') or
         form_data.get('start_date') or
         form_data.get('effective_date') or
-        (record.created_at.strftime('%d-%b-%Y') if record.created_at else '')
+        (record.created_at.strftime('%d/%m/%Y') if record.created_at else '')
     )
+
+    # 16-row padded items table for Requisition forms (matches Word template exactly)
+    raw_items = form_data.get('items', [])
+    padded_items = []
+    max_rows = max(16, len(raw_items))
+    for idx in range(max_rows):
+        if idx < len(raw_items):
+            itm = raw_items[idx]
+            padded_items.append({
+                'sl': str(itm.get('sl') or (idx + 1)),
+                'desc': itm.get('desc', ''),
+                'qty': itm.get('qty', ''),
+                'unit': itm.get('unit', ''),
+                'spec': itm.get('spec', ''),
+                'remark': itm.get('remark', ''),
+            })
+        else:
+            padded_items.append({
+                'sl': str(idx + 1),
+                'desc': '',
+                'qty': '',
+                'unit': '',
+                'spec': '',
+                'remark': '',
+            })
+
+    # Leave types helper
+    leave_type_raw = (form_data.get('leave_type') or '').lower()
+
+    # Zone helper
+    zone_val = (form_data.get('zone') or '').strip()
 
     context = {
         'record': record,
         'cfg': cfg,
         'data': form_data,
-        'items': form_data.get('items', []),
+        'items': padded_items,
+        'has_actual_items': len(raw_items) > 0,
         'print_time': timezone.now().strftime('%d-%b-%Y %I:%M %p'),
         'printed_by_user': request.user.get_full_name() or request.user.username,
         'applicant_signature_name': applicant_name,
         'recommended_by_name': recommended_by,
         'approved_by_name': approved_by,
         'display_date': display_date,
+        'leave_type_raw': leave_type_raw,
+        'zone_val': zone_val,
     }
     return render(request, 'office_forms/form_print_layout.html', context)
 

@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ cfg.title }} - {{ record.serial_no }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -11,27 +12,28 @@
             padding: 0;
         }
         body {
-            font-family: 'Inter', Arial, sans-serif;
-            color: #111827;
-            background: #f1f5f9;
-            font-size: 13px;
-            line-height: 1.5;
+            font-family: 'Times New Roman', Times, serif;
+            color: #000000;
+            background: #cbd5e1;
+            font-size: 11pt;
+            line-height: 1.4;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        /* Floating Screen Action Bar */
+        /* Floating Screen Action Bar (Screen Only) */
         .print-toolbar {
-            background: #1e293b;
+            background: #0f172a;
             color: white;
             padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
             position: sticky;
             top: 0;
             z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         .toolbar-title {
             font-weight: 700;
@@ -46,8 +48,8 @@
         }
         .btn-toolbar {
             padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 700;
+            border-radius: 6px;
+            font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
             text-decoration: none;
@@ -55,6 +57,7 @@
             align-items: center;
             gap: 6px;
             border: none;
+            transition: all 0.2s;
         }
         .btn-print {
             background: #2563eb;
@@ -71,173 +74,114 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
-        /* A4 Paper Container */
+        /* A4 Document Container */
         .page-sheet {
             width: 210mm;
             min-height: 297mm;
-            padding: 18mm 18mm 18mm 18mm;
+            padding: 12mm 16mm 12mm 16mm;
             margin: 20px auto;
             background: #ffffff;
-            box-shadow: 0 4px 25px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.12);
             position: relative;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        /* Official Company Header */
-        .comp-header {
-            text-align: center;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
-        }
-        .comp-name {
-            font-size: 20px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            color: #0f172a;
-            text-transform: uppercase;
-        }
-        .comp-sub {
-            font-size: 12px;
-            color: #475569;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 2px;
+        /* Typography & Dotted Underlines */
+        .fill-text {
+            font-weight: bold;
+            color: #000;
+            border-bottom: 1px dotted #000;
+            padding: 0 4px;
+            font-family: Arial, sans-serif;
+            font-size: 10.5pt;
         }
 
-        /* Form Title Bar */
-        .form-title-banner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f8fafc;
-            border: 1.5px solid #0f172a;
-            padding: 10px 16px;
-            margin-bottom: 18px;
-            border-radius: 4px;
-        }
-        .form-title-text {
-            font-size: 15px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #0f172a;
-        }
-        .form-meta-box {
-            text-align: right;
-            font-size: 11px;
-            line-height: 1.3;
-        }
-        .serial-badge {
-            font-family: 'Roboto Mono', monospace;
-            font-weight: 700;
-            font-size: 12px;
-            background: #0f172a;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
+        /* Checkbox Box Replica */
+        .chk-box {
             display: inline-block;
-            margin-bottom: 2px;
+            width: 14px;
+            height: 14px;
+            border: 1px solid #000;
+            text-align: center;
+            line-height: 13px;
+            font-size: 11px;
+            font-weight: bold;
+            vertical-align: middle;
+            margin: 0 4px;
+            font-family: Arial, sans-serif;
         }
 
-        /* Detail Tables & Key-Value Grids */
-        .doc-table {
+        /* Zone Tag Style */
+        .zone-pill {
+            display: inline-block;
+            padding: 1px 4px;
+            margin: 0 2px;
+            font-size: 9.5pt;
+        }
+        .zone-pill-active {
+            font-weight: bold;
+            text-decoration: underline;
+            background: #e2e8f0;
+            border: 1px solid #000;
+        }
+
+        /* Requisition Standard Table */
+        .req-meta-tbl {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin: 10px 0;
+            font-size: 10.5pt;
         }
-        .doc-table th, .doc-table td {
-            border: 1px solid #94a3b8;
-            padding: 7px 10px;
-            font-size: 12px;
-            vertical-align: top;
+        .req-meta-tbl td {
+            border: 1px solid #000;
+            padding: 4px 8px;
+            vertical-align: middle;
         }
-        .doc-table th {
-            background: #f1f5f9;
-            font-weight: 700;
-            color: #1e293b;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.5px;
+        .req-items-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10pt;
         }
-        .cell-label {
-            background: #f8fafc;
-            font-weight: 700;
-            width: 25%;
-            color: #334155;
+        .req-items-tbl th {
+            border: 1px solid #000;
+            padding: 5px 4px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f8fafc;
         }
-        .cell-value {
-            font-weight: 600;
-            color: #0f172a;
+        .req-items-tbl td {
+            border: 1px solid #000;
+            padding: 3px 6px;
+            height: 23px;
         }
-
-        /* Grid of 4 Departments for Clearance */
-        .clearance-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-        .clearance-card {
-            border: 1.5px solid #94a3b8;
-            border-radius: 6px;
-            padding: 10px;
-            background: #ffffff;
-        }
-        .clearance-card-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: #0f172a;
-            text-transform: uppercase;
-            border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 4px;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* Official Signatures Block */
-        .signatures-section {
-            margin-top: 30px;
-            padding-top: 10px;
-        }
-        .signatures-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+        .req-sig-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 10.5pt;
             text-align: center;
         }
-        .sig-box {
-            border-top: 1.5px dashed #475569;
-            padding-top: 8px;
-        }
-        .sig-title {
-            font-weight: 800;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #0f172a;
-        }
-        .sig-name {
-            font-size: 12px;
-            color: #334155;
-            margin-top: 2px;
-            font-weight: 600;
+        .req-sig-tbl td {
+            border: 1px solid #000;
+            padding: 8px 8px;
+            width: 33.33%;
+            vertical-align: top;
+            height: 85px;
         }
 
-        /* Document Footer / Audit Stamp */
-        .doc-footer {
+        /* Print Audit Tag at Bottom */
+        .print-audit-bar {
+            margin-top: 15px;
+            padding-top: 6px;
             border-top: 1px solid #cbd5e1;
-            padding-top: 8px;
-            margin-top: 24px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
+            font-size: 8pt;
             color: #64748b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         /* Print Media Styles */
@@ -253,7 +197,7 @@
                 width: 100% !important;
                 min-height: auto !important;
                 margin: 0 !important;
-                padding: 10mm !important;
+                padding: 6mm 10mm !important;
                 box-shadow: none !important;
                 border: none !important;
             }
@@ -266,361 +210,556 @@
 </head>
 <body>
 
-    <!-- On-Screen Toolbar -->
+    <!-- On-Screen Action Bar -->
     <div class="print-toolbar no-print">
         <div class="toolbar-title">
             <span>📄</span>
-            <span>{{ cfg.title }} &bull; {{ record.serial_no }}</span>
+            <span>{{ cfg.title }} &bull; <strong>{{ record.serial_no }}</strong></span>
         </div>
         <div class="toolbar-actions">
             <a href="{% url 'office_form_editor_edit' record.form_type record.id %}" class="btn-toolbar btn-secondary">
-                ✏️ Edit Form
+                ✏️ Edit Details
+            </a>
+            <a href="{% url 'office_form_download_template' cfg.template_file %}" class="btn-toolbar btn-secondary" title="Download original blank template file">
+                ⬇️ Blank File
             </a>
             <a href="{% url 'office_forms_hub' %}" class="btn-toolbar btn-secondary">
                 📁 Forms Hub
             </a>
             <button onclick="triggerOfficialPrint()" class="btn-toolbar btn-print">
-                🖨️ Print Document
+                🖨️ Print / Save PDF
             </button>
         </div>
     </div>
 
-    <!-- Official Printable A4 Sheet -->
+    <!-- Official A4 Paper Sheet -->
     <div class="page-sheet">
         <div>
-            <!-- Company Letterhead -->
-            <div class="comp-header">
-                <div class="comp-name">RVJV PTE LTD</div>
-                <div class="comp-sub">{{ data.project_name|default:"Earthwork and Enabling Works Project" }}</div>
-            </div>
 
-            <!-- Form Title Banner with Auto Serial -->
-            <div class="form-title-banner">
-                <div>
-                    <div class="form-title-text">{{ cfg.title }}</div>
-                    <div style="font-size: 11px; color: #475569; font-weight: 500;">Official Project Form &bull; Reference Copy</div>
-                </div>
-                <div class="form-meta-box">
-                    <div>Serial No: <span class="serial-badge">{{ record.serial_no }}</span></div>
-                    <div style="color: #64748b; margin-top: 3px;">Date: <strong>{{ display_date }}</strong></div>
-                </div>
-            </div>
-
-            <!-- Content Renderers by Form Type -->
-
-            <!-- 1. Foreign Worker Leave Form -->
+            <!-- ========================================================= -->
+            <!-- 1. FOREIGN WORKER LEAVE FORM (Exact PDF Replica)           -->
+            <!-- ========================================================= -->
             {% if record.form_type == 'fw_leave' %}
-            <table class="doc-table">
-                <tr>
-                    <td class="cell-label">Foreign Worker Name</td>
-                    <td class="cell-value" colspan="3">{{ data.worker_name|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Labour ID / Worker ID</td>
-                    <td class="cell-value">{{ data.labour_id|default:"-" }}</td>
-                    <td class="cell-label">Designation at Site</td>
-                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Worker Permit No</td>
-                    <td class="cell-value">{{ data.permit_no|default:"-" }}</td>
-                    <td class="cell-label">Contact Phone No</td>
-                    <td class="cell-value">{{ data.contact_no|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Site Work Zone</td>
-                    <td class="cell-value">{{ data.zone|default:"-" }}</td>
-                    <td class="cell-label">Leave Type</td>
-                    <td class="cell-value"><strong>{{ data.leave_type|default:"Casual Leave" }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Leave Applied For</td>
-                    <td class="cell-value">{{ data.leave_days|default:"-" }} Days</td>
-                    <td class="cell-label">Leave Period</td>
-                    <td class="cell-value">{{ data.from_date }} &rarr; {{ data.to_date }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Reason for Leave</td>
-                    <td class="cell-value" colspan="3" style="min-height: 50px;">{{ data.reason|default:"Personal / Home Visit" }}</td>
-                </tr>
-            </table>
+            <div style="text-align: center; margin-bottom: 6px;">
+                <img src="{% static 'office_templates/assets/rvjv_letterhead_banner.jpg' %}" style="width: 100%; max-height: 90px; object-fit: contain;" alt="RVJV Letterhead">
+            </div>
 
-            <!-- 2. RVJV Staff Leave Form -->
+            <div style="text-align: center; font-size: 15pt; font-weight: bold; margin: 4px 0 12px 0;">
+                Foreign Worker Leave Form
+            </div>
+
+            <div style="text-align: right; margin-bottom: 8px;">
+                Date: <span class="fill-text">{{ display_date|default:"……/……/ 2026" }}</span>
+            </div>
+
+            <div style="line-height: 1.9; font-size: 10.5pt;">
+                <div>
+                    Name of Foreign Worker: <span class="fill-text" style="min-width: 320px; display: inline-block;">{{ data.worker_name|default:".................................................................................................." }}</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                    <div>Labour ID: HR-EMP- <span class="fill-text">{{ data.labour_id|default:"……………" }}</span></div>
+                    <div>Designation at site: <span class="fill-text">{{ data.designation|default:".........................................." }}</span></div>
+                </div>
+
+                <div style="margin-top: 4px;">
+                    Worker Permit NO: <span class="fill-text">{{ data.permit_no|default:"........................................." }}</span>
+                </div>
+
+                <div style="margin-top: 4px;">
+                    ContactNo: <span class="fill-text">{{ data.contact_no|default:".................................................." }}</span>
+                </div>
+
+                <div style="margin: 8px 0;">
+                    Zone: 
+                    <span class="zone-pill {% if 'one' in zone_val|lower %}zone-pill-active{% endif %}">[One]</span>
+                    <span class="zone-pill {% if 'two' in zone_val|lower %}zone-pill-active{% endif %}">[Two]</span>
+                    <span class="zone-pill {% if 'three' in zone_val|lower %}zone-pill-active{% endif %}">[Three]</span>
+                    <span class="zone-pill {% if 'four' in zone_val|lower %}zone-pill-active{% endif %}">[Four]</span>
+                    <span class="zone-pill {% if 'crusher' in zone_val|lower %}zone-pill-active{% endif %}">[Crusher]</span>
+                    <span class="zone-pill {% if 'workshop' in zone_val|lower %}zone-pill-active{% endif %}">[Workshop]</span>
+                    <span class="zone-pill {% if 'camp' in zone_val|lower %}zone-pill-active{% endif %}">[Camp Area]</span>
+                    <span class="zone-pill {% if 'batching' in zone_val|lower %}zone-pill-active{% endif %}">[Batching Plant]</span>
+                </div>
+
+                <div>
+                    Leave applied for (number of days) <span class="fill-text">{{ data.leave_days|default:".........................................................................." }}</span>
+                </div>
+
+                <div style="margin-top: 4px;">
+                    From Date <span class="fill-text">{{ data.from_date|default:"………….…" }}</span> &nbsp; To Date <span class="fill-text">{{ data.to_date|default:"………….…" }}</span>
+                </div>
+
+                <div style="margin-top: 8px; font-weight: bold;">Leave type:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; margin-left: 15px; margin-top: 4px; line-height: 1.8;">
+                    <div>
+                        1. Casual leave <span class="chk-box">{% if 'casual' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                        2. Earn Leave <span class="chk-box">{% if 'earn' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                        3. Medical leave <span class="chk-box">{% if 'medic' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                        4. Leave Without Pay <span class="chk-box">{% if 'without' in leave_type_raw or 'lwp' in leave_type_raw %}&#10004;{% endif %}</span>
+                    </div>
+                    <div>
+                        Maternity Leave <span class="chk-box">{% if 'matern' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                        Paternity Leave <span class="chk-box">{% if 'patern' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                        Bereavement Leave <span class="chk-box">{% if 'bereav' in leave_type_raw %}&#10004;{% endif %}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    Reason:
+                    <div style="border-bottom: 1px dotted #000; min-height: 45px; padding: 4px 0; font-family: Arial, sans-serif; font-weight: bold;">
+                        {{ data.reason|default:"…………………………………………………………………………………………………………………………" }}
+                    </div>
+                </div>
+
+                <div style="margin-top: 35px; display: flex; justify-content: space-between;">
+                    <div>
+                        Signature of FW: <span class="fill-text">{{ data.worker_name|default:"............................" }}</span>
+                    </div>
+                    <div>
+                        Signature of Camp In-Charge: <span class="fill-text">{{ recommended_by_name|default:"…………………………………" }}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    Labour Contarctor: <span class="fill-text">{{ data.contractor_name|default:"…………………………………" }}</span>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    Signature of Liaison Officer: <span class="fill-text">{{ approved_by_name|default:"……………………………………..." }}</span>
+                </div>
+
+                <div style="margin-top: 35px; font-size: 9pt; font-style: italic;">
+                    *If on medical leave, attach medical documents
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- 2. RVJV STAFF LEAVE FORM (Exact PDF Replica)               -->
+            <!-- ========================================================= -->
             {% elif record.form_type == 'rvjv_leave' %}
-            <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 6px 10px; font-size: 10px; color: #92400e; margin-bottom: 12px; border-radius: 4px;">
-                * If on medical leave, attach certified medical certificates. Employees on probation are not eligible for casual &amp; earned leave.
+            <div style="font-size: 8.5pt; font-weight: bold; margin-bottom: 2px;">
+                *IF ON MEDICAL LEAVE, ATTACH MEDICAL DOCUMENTS NEEDED.
             </div>
-            <table class="doc-table">
-                <tr>
-                    <td class="cell-label">Applicant Name</td>
-                    <td class="cell-value" colspan="3">{{ data.applicant_name|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Employee ID</td>
-                    <td class="cell-value">{{ data.emp_id|default:"-" }}</td>
-                    <td class="cell-label">Designation</td>
-                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Contact Number</td>
-                    <td class="cell-value">{{ data.contact_no|default:"-" }}</td>
-                    <td class="cell-label">Zone / Department</td>
-                    <td class="cell-value">{{ data.zone|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Leave Duration</td>
-                    <td class="cell-value"><strong>{{ data.leave_days|default:"-" }} Days</strong></td>
-                    <td class="cell-label">Leave Type</td>
-                    <td class="cell-value"><strong>{{ data.leave_type|default:"Casual Leave" }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="cell-label">From &rarr; To Date</td>
-                    <td class="cell-value" colspan="3">{{ data.from_date }} To {{ data.to_date }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Reason for Leave</td>
-                    <td class="cell-value" colspan="3">{{ data.reason|default:"-" }}</td>
-                </tr>
-            </table>
-
-            <!-- 3. No Dues Certificate (Clearance) -->
-            {% elif record.form_type == 'no_dues' %}
-            <div style="margin-bottom: 14px; font-size: 12px; line-height: 1.6; text-align: justify; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px;">
-                This is to certify that <strong>{{ data.employee_name|default:"........................................" }}</strong>, Designation: <strong>{{ data.designation|default:"...................." }}</strong>, attached with <strong>{{ data.department|default:"...................." }}</strong> in the office/site of <strong>{{ data.office_site|default:"RVJV PTE LTD" }}</strong> has completed all necessary obligations and surrendered/returned all company assets as verified below as of <strong>{{ data.effective_date }}</strong>.
+            <div style="font-size: 8.5pt; font-weight: bold; margin-bottom: 6px;">
+                *EMPLOYEE ON PROBATION ARE NOT ELIGIBLE FOR CASUAL LEAVE AND EARN LEAVE.
             </div>
 
-            <div class="clearance-grid">
-                <!-- Store Clearance -->
-                <div class="clearance-card">
-                    <div class="clearance-card-title">
-                        <span>1. Store Department</span>
-                        <span>{% if data.store_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
-                    </div>
-                    <div style="font-size: 11px; color: #475569;">Tools, Equipment, Materials &amp; Consumables</div>
-                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.store_remarks|default:"Nil dues pending" }}</div>
-                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Store In-Charge</div>
+            <div style="text-align: center; margin-bottom: 6px;">
+                <img src="{% static 'office_templates/assets/rvjv_letterhead_banner.jpg' %}" style="width: 100%; max-height: 90px; object-fit: contain;" alt="RVJV Letterhead">
+            </div>
+
+            <div style="text-align: center; font-size: 16pt; font-weight: bold; letter-spacing: 2px; margin: 4px 0 8px 0;">
+                LEA VE FORM
+            </div>
+
+            <div style="text-align: right; margin-bottom: 10px;">
+                Date: <span class="fill-text">{{ display_date|default:"……/……/ 2026" }}</span>
+            </div>
+
+            <div style="line-height: 1.9; font-size: 10.5pt;">
+                <div>
+                    Name of Applicant: <span class="fill-text" style="min-width: 320px; display: inline-block;">{{ data.applicant_name|default:".................................................................................." }}</span>
                 </div>
 
-                <!-- OHS Clearance -->
-                <div class="clearance-card">
-                    <div class="clearance-card-title">
-                        <span>2. OHS Department</span>
-                        <span>{% if data.ohs_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
-                    </div>
-                    <div style="font-size: 11px; color: #475569;">PPE, Safety Badge &amp; Site Clearance</div>
-                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.ohs_remarks|default:"Nil dues pending" }}</div>
-                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Safety Officer</div>
+                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                    <div>Employee ID: HR-EMP: <span class="fill-text">{{ data.emp_id|default:"…………………" }}</span></div>
+                    <div>Designation at site: <span class="fill-text">{{ data.designation|default:"................................" }}</span></div>
                 </div>
 
-                <!-- Accounts Clearance -->
-                <div class="clearance-card">
-                    <div class="clearance-card-title">
-                        <span>3. Accounts &amp; Finance</span>
-                        <span>{% if data.accounts_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
-                    </div>
-                    <div style="font-size: 11px; color: #475569;">Imprest, Site Advances &amp; Salary Deductions</div>
-                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.accounts_remarks|default:"Nil dues pending" }}</div>
-                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Finance Head</div>
+                <div style="margin-top: 4px;">
+                    Contact No: <span class="fill-text">{{ data.contact_no|default:"................................................" }}</span>
                 </div>
 
-                <!-- Admin Clearance -->
-                <div class="clearance-card">
-                    <div class="clearance-card-title">
-                        <span>4. Administration</span>
-                        <span>{% if data.admin_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
+                <div style="margin: 8px 0;">
+                    Zone: 
+                    <span class="zone-pill {% if '1' in zone_val and '2' in zone_val %}zone-pill-active{% endif %}">[1&2]</span>
+                    <span class="zone-pill {% if '3' in zone_val and '4' in zone_val %}zone-pill-active{% endif %}">[3&4]</span>
+                    <span class="zone-pill {% if 'office' in zone_val|lower %}zone-pill-active{% endif %}">[Office Area]</span>
+                    <span class="zone-pill {% if 'batching' in zone_val|lower or 'crusher' in zone_val|lower %}zone-pill-active{% endif %}">[Batching Crusher]</span>
+                    <span class="zone-pill {% if 'workshop' in zone_val|lower %}zone-pill-active{% endif %}">[Workshop]]</span>
+                    <span class="zone-pill {% if 'culvert' in zone_val|lower %}zone-pill-active{% endif %}">[Culvert]</span>
+                </div>
+
+                <div>
+                    Leave applied for number of days: <span class="fill-text">{{ data.leave_days|default:"..........................................." }}</span>
+                </div>
+
+                <div style="margin-top: 4px;">
+                    From Date: <span class="fill-text">{{ data.from_date|default:"….../……." }}</span> / 2026, &nbsp;&nbsp; To Date: <span class="fill-text">{{ data.to_date|default:"....…/......." }}</span> / 2026
+                </div>
+
+                <div style="margin-top: 8px; font-weight: bold;">Leave type:</div>
+                <div style="margin-left: 20px; line-height: 1.8;">
+                    1. Casual Leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'casual' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    2. Earn Leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'earn' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    3. Medical leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'medic' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    4. Leave Without Pay &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'without' in leave_type_raw or 'lwp' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    5. Maternity Leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'matern' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    6. Paternity Leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'patern' in leave_type_raw %}&#10004;{% endif %}</span><br>
+                    7. Bereavement Leave &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'bereav' in leave_type_raw %}&#10004;{% endif %}</span>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    Reason:
+                    <div style="border-bottom: 1px dotted #000; min-height: 40px; padding: 4px 0; font-family: Arial, sans-serif; font-weight: bold;">
+                        {{ data.reason|default:".............................................................................................................................." }}
                     </div>
-                    <div style="font-size: 11px; color: #475569;">Camp Bed, Room Keys &amp; Communication Assets</div>
-                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.admin_remarks|default:"Nil dues pending" }}</div>
-                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Admin Officer</div>
+                </div>
+
+                <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        Signature of applicant:<br><br>
+                        <strong style="font-family: Arial, sans-serif;">{{ applicant_signature_name }}</strong>
+                    </div>
+                    <div>
+                        Leave Recommended by:<br>
+                        <span style="font-size: 9.5pt;">(Name & Designation)</span><br><br>
+                        <strong style="font-family: Arial, sans-serif;">{{ recommended_by_name }}</strong>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        Leave Balance Verified by<br>
+                        <span style="font-size: 9.5pt;">(HR/Admin)</span><br><br>
+                        <strong style="font-family: Arial, sans-serif;">Verified</strong>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        Leave Approved by:<br>
+                        <span style="font-size: 9.5pt;">(Name & Designation)</span><br><br>
+                        <strong style="font-family: Arial, sans-serif;">{{ approved_by_name }}</strong>
+                    </div>
                 </div>
             </div>
 
-            <!-- 4. Requisition Forms (Material, Stationery, Pantry) -->
+            <!-- ========================================================= -->
+            <!-- 3. MATERIAL / STATIONERY / PANTRY REQUISITION FORMS        -->
+            <!-- ========================================================= -->
             {% elif record.form_type in 'material_req,stationery_req,pantry_req' %}
-            <table class="doc-table">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <img src="{% static 'office_templates/assets/rvjv_logo_emblem.png' %}" style="height: 60px; width: 60px; object-fit: contain;" alt="Logo">
+                <div style="text-align: center;">
+                    <div style="font-family: 'Comic Sans MS', cursive, sans-serif; font-size: 16pt; font-weight: bold;">Rigsar-Vajra JV</div>
+                    <div style="font-family: 'Times New Roman', serif; font-size: 13.5pt; font-weight: bold; text-decoration: underline; margin-top: 2px;">
+                        {{ cfg.title|upper }}
+                    </div>
+                </div>
+                <img src="{% static 'office_templates/assets/rvjv_logo_emblem2.png' %}" style="height: 60px; width: 60px; object-fit: contain;" alt="Logo">
+            </div>
+
+            <!-- Top 2x2 Meta Table -->
+            <table class="req-meta-tbl">
                 <tr>
-                    <td class="cell-label">Requisition / Order Ref No</td>
-                    <td class="cell-value"><strong style="font-family: monospace;">{{ record.serial_no }}</strong></td>
-                    <td class="cell-label">Date of Requisition</td>
-                    <td class="cell-value">{{ data.date_requisition }}</td>
+                    <td style="width: 60%;">Name of Project:&nbsp; <strong>Earthwork and Enabling Works</strong></td>
+                    <td style="width: 40%;">Date of Requisition:&nbsp; <strong>{{ display_date }}</strong></td>
                 </tr>
                 <tr>
-                    <td class="cell-label">Requesting Department</td>
-                    <td class="cell-value">{{ data.department|default:"-" }}</td>
-                    <td class="cell-label">Date of Requirement</td>
-                    <td class="cell-value"><strong>{{ data.date_requirement }}</strong></td>
+                    <td>Requisition/Order Reference No.:&nbsp; <strong style="font-family: monospace;">{{ record.serial_no }}</strong></td>
+                    <td>Date of Requirement:&nbsp; <strong>{{ data.date_requirement }}</strong></td>
                 </tr>
-                <tr>
-                    <td class="cell-label">To / Recipient</td>
-                    <td class="cell-value" colspan="3">{{ data.to_recipient|default:"Procurement / Store Department" }}</td>
-                </tr>
-                {% if data.remarks %}
-                <tr>
-                    <td class="cell-label">Purpose / Notes</td>
-                    <td class="cell-value" colspan="3">{{ data.remarks }}</td>
-                </tr>
-                {% endif %}
             </table>
 
-            <div style="font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #0f172a;">Kindly supply the following items:</div>
-            
-            <table class="doc-table">
+            <div style="margin: 8px 0 4px 0; font-size: 11pt;">
+                To:<br>
+                <div style="border-bottom: 1px solid #000; min-height: 22px; padding: 2px 4px; font-weight: bold;">
+                    {{ data.to_recipient|default:"Procurement / Store Department, RVJV PTE LTD" }}
+                </div>
+            </div>
+
+            <div style="margin: 10px 0 4px 0; font-size: 11pt;">
+                Kindly supply the following goods:
+            </div>
+
+            <!-- Items Table (Exact 16 Rows Replica) -->
+            <table class="req-items-tbl">
                 <thead>
                     <tr>
-                        <th style="width: 35px; text-align: center;">Sl</th>
-                        <th>Description of Goods / Items</th>
-                        <th style="width: 80px; text-align: center;">Quantity</th>
-                        <th style="width: 70px; text-align: center;">Unit</th>
-                        <th>Specification / Make</th>
-                        <th>Remark</th>
+                        <th style="width: 45px;">Sl. No.</th>
+                        <th>Description</th>
+                        <th style="width: 90px;">Quantity Required</th>
+                        <th style="width: 65px;">Unit</th>
+                        <th style="width: 140px;">Specification</th>
+                        <th style="width: 110px;">Remark</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for itm in items %}
                     <tr>
-                        <td style="text-align: center; font-weight: 700;">{{ itm.sl|default:forloop.counter }}</td>
-                        <td style="font-weight: 600;">{{ itm.desc|default:"-" }}</td>
-                        <td style="text-align: center; font-weight: 700;">{{ itm.qty|default:"-" }}</td>
-                        <td style="text-align: center;">{{ itm.unit|default:"Nos" }}</td>
-                        <td>{{ itm.spec|default:"-" }}</td>
-                        <td>{{ itm.remark|default:"-" }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 15px; color: #94a3b8;">No itemized goods specified.</td>
+                        <td style="text-align: center; font-weight: {% if itm.desc %}bold{% else %}normal{% endif %};">{{ itm.sl }}</td>
+                        <td style="font-weight: {% if itm.desc %}600{% else %}normal{% endif %}; font-family: Arial, sans-serif; font-size: 9.5pt;">{{ itm.desc }}</td>
+                        <td style="text-align: center; font-weight: bold; font-family: Arial, sans-serif;">{{ itm.qty }}</td>
+                        <td style="text-align: center;">{{ itm.unit }}</td>
+                        <td style="font-size: 9pt;">{{ itm.spec }}</td>
+                        <td style="font-size: 9pt;">{{ itm.remark }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
 
-            <!-- 5. HR Requisition Form -->
-            {% elif record.form_type == 'hr_req' %}
-            <table class="doc-table">
+            <!-- Signatures Table -->
+            <table class="req-sig-tbl">
                 <tr>
-                    <td class="cell-label">Position Requested</td>
-                    <td class="cell-value"><strong>{{ data.position_requested|default:"-" }}</strong></td>
-                    <td class="cell-label">Vacancies</td>
-                    <td class="cell-value">{{ data.num_vacancies|default:"1" }} Person(s)</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Department / Unit</td>
-                    <td class="cell-value">{{ data.department|default:"-" }}</td>
-                    <td class="cell-label">Office / Site</td>
-                    <td class="cell-value">{{ data.office_site|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Requisition Category</td>
-                    <td class="cell-value">{{ data.requisition_type|default:"New Position" }}</td>
-                    <td class="cell-label">Employment Type</td>
-                    <td class="cell-value">{{ data.employment_type|default:"On Contract" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Target Joining Date</td>
-                    <td class="cell-value" colspan="3">{{ data.target_date|default:"Immediate" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Key Job Responsibilities</td>
-                    <td class="cell-value" colspan="3">{{ data.job_description|default:"-"|linebreaksbr }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Minimum Qualifications</td>
-                    <td class="cell-value" colspan="3">{{ data.min_qualifications|default:"-"|linebreaksbr }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Justification / Reasons</td>
-                    <td class="cell-value" colspan="3">{{ data.justification|default:"-"|linebreaksbr }}</td>
+                    <td>
+                        Requested by:<br>
+                        <span style="font-size: 9.5pt;">(Name and Signature)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ applicant_signature_name }}</div>
+                    </td>
+                    {% if record.form_type == 'material_req' %}
+                    <td>
+                        Approved by:<br>
+                        <span style="font-size: 9.5pt;">(Project Manager)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ approved_by_name }}</div>
+                    </td>
+                    <td>
+                        Accepted by:<br>
+                        <span style="font-size: 9.5pt;">(Procurement Manager)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ data.accepted_by|default:"Procurement Manager" }}</div>
+                    </td>
+                    {% elif record.form_type == 'stationery_req' %}
+                    <td>
+                        Approved by:<br>
+                        <span style="font-size: 9.5pt;">(Project Manager)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ approved_by_name }}</div>
+                    </td>
+                    <td>
+                        Accepted by:<br>
+                        <span style="font-size: 9.5pt;">(Adm Officer)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ data.accepted_by|default:"Adm Officer" }}</div>
+                    </td>
+                    {% elif record.form_type == 'pantry_req' %}
+                    <td>
+                        Verifed by:<br>
+                        <span style="font-size: 9.5pt;">(Adm Officer)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ recommended_by_name|default:"Adm Officer" }}</div>
+                    </td>
+                    <td>
+                        Approved by:<br>
+                        <span style="font-size: 9.5pt;">(Project Manager)</span>
+                        <div style="margin-top: 30px; font-weight: bold; font-family: Arial, sans-serif;">{{ approved_by_name }}</div>
+                    </td>
+                    {% endif %}
                 </tr>
             </table>
 
-            <!-- 6. Temporary Employee Information Form -->
+            <!-- ========================================================= -->
+            <!-- 4. NO DUES CERTIFICATE (Exact Word Replica)                 -->
+            <!-- ========================================================= -->
+            {% elif record.form_type == 'no_dues' %}
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 8px;">
+                <img src="{% static 'office_templates/assets/rvjv_logo_emblem.png' %}" style="height: 52px; width: 52px; object-fit: contain;" alt="Emblem">
+                <div style="text-align: center;">
+                    <div style="font-size: 15pt; font-weight: bold; letter-spacing: 1px;">RIGSAR-VAJRA JV</div>
+                    <div style="font-size: 10.5pt;">Project Office, GMC</div>
+                </div>
+                <img src="{% static 'office_templates/assets/rvjv_logo_emblem2.png' %}" style="height: 52px; width: 52px; object-fit: contain;" alt="Emblem">
+            </div>
+
+            <div style="font-size: 9.5pt; font-style: italic; margin-bottom: 8px; line-height: 1.3;">
+                Note: Please fill in and sign whichever is appropriate (Tick or Cross) and attach a copy of the Handing/Taking over Certificate with this form.
+            </div>
+
+            <div style="text-align: center; font-size: 14pt; font-weight: bold; text-decoration: underline; margin: 6px 0 10px 0;">
+                NO DUE CERTIFICATE
+            </div>
+
+            <div style="text-align: justify; line-height: 1.8; font-size: 10.5pt;">
+                This is to certify that Mr./Mrs. <span class="fill-text">{{ data.employee_name|default:"........................................" }}</span> 
+                Designation <span class="fill-text">{{ data.designation|default:"...................." }}</span> 
+                attached with <span class="fill-text">{{ data.department|default:"...................." }}</span> 
+                in office/site of RVJV PTE LTD has completed all necessary obligations and returned all assets related to 
+                <span style="font-weight: bold;">Store</span> [ <span class="chk-box">{% if data.store_clearance %}&#10004;{% endif %}</span> ] &nbsp;&nbsp; 
+                <span style="font-weight: bold;">OHS</span> [ <span class="chk-box">{% if data.ohs_clearance %}&#10004;{% endif %}</span> ] &nbsp;&nbsp; 
+                <span style="font-weight: bold;">Account</span> [ <span class="chk-box">{% if data.accounts_clearance %}&#10004;{% endif %}</span> ] &nbsp;&nbsp; 
+                <span style="font-weight: bold;">Administration</span> [ <span class="chk-box">{% if data.admin_clearance %}&#10004;{% endif %}</span> ] 
+                the undersigned individuals, being the authorized representative of respective Department/Division/Sections, confirm that no outstanding dues or liabilities are pending against the aforementioned employee as of <span class="fill-text">{{ data.effective_date|default:"…/…/20…" }}</span>.
+            </div>
+
+            <div style="margin-top: 10px; font-size: 10.5pt;">
+                <strong>Remarks for Due:</strong><br>
+                Division/Section Name: <span class="fill-text" style="display: inline-block; min-width: 480px;">{{ data.store_remarks|default:'' }} {{ data.ohs_remarks|default:'' }} {{ data.accounts_remarks|default:'' }} {{ data.admin_remarks|default:'' }}</span>
+            </div>
+
+            <div style="margin-top: 25px; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; font-size: 10pt; font-weight: bold;">
+                <div>Store In-charge</div>
+                <div>OHS Representative</div>
+                <div>Site Accountant</div>
+                <div>Project Administration Officer</div>
+            </div>
+
+            <div style="text-align: center; font-size: 10.5pt; font-weight: bold; margin-top: 8px;">
+                Authorized Signatory
+            </div>
+
+            <!-- Finance Box -->
+            <div style="border: 1px solid #000; padding: 8px 10px; margin-top: 12px; font-size: 9.5pt; line-height: 1.5;">
+                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 4px;">FINANCE DIVISION, CORPORATE OFFICE</div>
+                <div>
+                    [ <span class="chk-box">{% if not data.accounts_remarks %}&#10004;{% endif %}</span> ] &nbsp; There is No Outstanding Dues against the employee.
+                </div>
+                <div style="margin-top: 2px;">
+                    [ <span class="chk-box">{% if data.accounts_remarks %}&#10004;{% endif %}</span> ] &nbsp; There are Outstanding Dues amounting to Nu. <span class="fill-text">{{ data.accounts_due_amount|default:"___________________" }}</span> recoverable against Mr./Mrs. <span class="fill-text">{{ data.employee_name|default:"____________________________" }}</span> from the Finance Division/Section
+                </div>
+                <div style="margin-top: 4px; display: flex; justify-content: space-between;">
+                    <div>Remarks: <span class="fill-text">{{ data.accounts_remarks|default:"Nil" }}</span></div>
+                    <div>Authorized Signatory: ________________</div>
+                </div>
+                <div style="font-size: 8pt; font-style: italic; margin-top: 4px;">
+                    Note: 1. the outstanding dues may be deducted from his/her retirement benefits.<br>
+                    2. If the dues exceed his/her gross benefits, legal undertaking shall be signed to ensure the dues is paid back to the Company within a specific period.
+                </div>
+            </div>
+
+            <!-- HR & Admin Box -->
+            <div style="border: 1px solid #000; padding: 8px 10px; margin-top: 8px; font-size: 9.5pt; line-height: 1.5;">
+                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 4px;">HUMAN RESOURCE &amp; ADMIN DIVISION</div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div>Remarks: <span class="fill-text">{{ data.final_remarks|default:"No dues pending." }}</span></div>
+                    <div>Authorized Signatory: ________________</div>
+                </div>
+                <div style="font-size: 8pt; font-style: italic; margin-top: 4px;">
+                    Note: The decision of the Human Resource Division will solely relate to the aspect mentioned in the NDC; for matters outside the scope of the certificate, it will refer to the respective Division/section.
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- 5. TEMPORARY EMPLOYEE INFORMATION FORM (Exact Replica)     -->
+            <!-- ========================================================= -->
             {% elif record.form_type == 'temp_emp_info' %}
-            <table class="doc-table">
-                <tr>
-                    <th colspan="4">Employee Personal Information</th>
-                </tr>
-                <tr>
-                    <td class="cell-label">Full Name</td>
-                    <td class="cell-value" colspan="3"><strong>{{ data.full_name|default:"-" }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Residential Address</td>
-                    <td class="cell-value" colspan="3">{{ data.address|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Dzongkhag / District</td>
-                    <td class="cell-value">{{ data.dzongkhag|default:"-" }}</td>
-                    <td class="cell-label">Gewog / Village</td>
-                    <td class="cell-value">{{ data.gewog|default:"-" }} / {{ data.village|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Phone Number</td>
-                    <td class="cell-value">{{ data.phone_number|default:"-" }}</td>
-                    <td class="cell-label">Email Address</td>
-                    <td class="cell-value">{{ data.email_address|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Emergency Contact</td>
-                    <td class="cell-value">{{ data.emergency_contact_name|default:"-" }}</td>
-                    <td class="cell-label">Emergency Phone</td>
-                    <td class="cell-value">{{ data.emergency_contact_phone|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <th colspan="4">Employment &amp; Engagement Details</th>
-                </tr>
-                <tr>
-                    <td class="cell-label">Designation / Role</td>
-                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
-                    <td class="cell-label">Department</td>
-                    <td class="cell-value">{{ data.department|default:"-" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Supervisor In-Charge</td>
-                    <td class="cell-value">{{ data.supervisor|default:"-" }}</td>
-                    <td class="cell-label">Work Schedule</td>
-                    <td class="cell-value">{{ data.work_schedule|default:"General Shift" }}</td>
-                </tr>
-                <tr>
-                    <td class="cell-label">Start Date &rarr; End Date</td>
-                    <td class="cell-value" colspan="3">{{ data.start_date }} &rarr; {{ data.end_date|default:"Ongoing / Until notice" }}</td>
-                </tr>
-            </table>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <img src="{% static 'office_templates/assets/letter_pad_header.png' %}" style="width: 100%; max-height: 95px; object-fit: contain;" alt="Header Letter Pad">
+            </div>
 
-            <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; font-size: 11px; margin-top: 10px; border-radius: 4px;">
-                <strong>Acknowledgment:</strong> I acknowledge that my employment is temporary and governed by project terms, and does not guarantee permanent establishment.
+            <div style="text-align: center; font-size: 15pt; font-weight: bold; margin: 4px 0 14px 0;">
+                Temporary Employee Information Form
+            </div>
+
+            <div style="font-size: 11pt; line-height: 1.9;">
+                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 2px;">Employee Information</div>
+                <div>Full Name: <span class="fill-text">{{ data.full_name }}</span></div>
+                <div>Address: <span class="fill-text">{{ data.address }}</span></div>
+                <div>
+                    Dzongkhag: <span class="fill-text">{{ data.dzongkhag }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                    Village: <span class="fill-text">{{ data.village }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                    Gewog: <span class="fill-text">{{ data.gewog }}</span>
+                </div>
+                <div>Phone Number: <span class="fill-text">{{ data.phone_number }}</span></div>
+                <div>Email Address: <span class="fill-text">{{ data.email_address|default:"-" }}</span></div>
+                <div>Emergency Contact: <span class="fill-text">{{ data.emergency_contact_name }}</span></div>
+                <div>Emergency Contact Phone: <span class="fill-text">{{ data.emergency_contact_phone }}</span></div>
+
+                <div style="font-weight: bold; text-decoration: underline; margin-top: 10px; margin-bottom: 2px;">Employment Details</div>
+                <div>Designation: <span class="fill-text">{{ data.designation }}</span></div>
+                <div>Department: <span class="fill-text">{{ data.department }}</span></div>
+                <div>Supervisor: <span class="fill-text">{{ data.supervisor }}</span></div>
+                <div>Start Date: <span class="fill-text">{{ data.start_date }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; End Date: <span class="fill-text">{{ data.end_date|default:"Ongoing" }}</span></div>
+                <div>Work Schedule: <span class="fill-text">{{ data.work_schedule|default:"General Shift" }}</span></div>
+
+                <div style="font-weight: bold; margin-top: 12px;">Acknowledgment</div>
+                <div style="font-size: 10pt; line-height: 1.4;">
+                    I acknowledge that my employment is temporary and does not guarantee future or permanent employment.
+                </div>
+
+                <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+                    <div>Employee Signature: <span class="fill-text">{{ data.full_name }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ display_date }}</span></div>
+                    <div>Supervisor Signature: <span class="fill-text">{{ data.supervisor }}</span> &nbsp;&nbsp; Date: <span class="fill-text">{{ display_date }}</span></div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <img src="{% static 'office_templates/assets/letter_pad_footer.png' %}" style="width: 100%; max-height: 65px; object-fit: contain;" alt="Footer Letter Pad">
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- 6. HUMAN RESOURCE REQUISITION FORM (Exact PDF Replica)     -->
+            <!-- ========================================================= -->
+            {% elif record.form_type == 'hr_req' %}
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <img src="{% static 'office_templates/assets/hr_form_header_logo.png' %}" style="height: 65px; object-fit: contain;" alt="HR Logo">
+                <div style="text-align: right;">
+                    <div style="font-size: 14pt; font-weight: bold;">HUMAN RESOURCE REQUISITION FORM</div>
+                    <div style="font-size: 10pt; color: #475569;">HumanResourceRequisition</div>
+                </div>
+            </div>
+
+            <div style="font-size: 10pt; font-style: italic; margin-bottom: 6px;">
+                To be completed by Department/Division head:
+            </div>
+
+            <div style="line-height: 1.8; font-size: 10pt;">
+                <div>Position Requested: <span class="fill-text">{{ data.position_requested }}</span></div>
+
+                <!-- Requisition Category & Employment Type Grid -->
+                <table style="width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 9.5pt;">
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px 8px; width: 50%; font-weight: bold;">Requisition for &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [Tick]</td>
+                        <td style="border: 1px solid #000; padding: 4px 8px; width: 50%; font-weight: bold;">Employment Type &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [Tick]</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 4px 8px;">
+                            Existing Position/Replacement &nbsp; <span class="chk-box">{% if 'existing' in data.requisition_type|lower or 'replace' in data.requisition_type|lower %}&#10004;{% endif %}</span><br>
+                            New Position &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'new' in data.requisition_type|lower %}&#10004;{% endif %}</span>
+                        </td>
+                        <td style="border: 1px solid #000; padding: 4px 8px;">
+                            On contract &nbsp; <span class="chk-box">{% if 'contract' in data.employment_type|lower %}&#10004;{% endif %}</span><br>
+                            Regular &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="chk-box">{% if 'regular' in data.employment_type|lower %}&#10004;{% endif %}</span><br>
+                            Temporary &nbsp;&nbsp; <span class="chk-box">{% if 'temporary' in data.employment_type|lower or 'daily' in data.employment_type|lower %}&#10004;{% endif %}</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="font-weight: bold; margin-top: 6px;">JOB DESCRIPTIONS</div>
+                <div style="font-size: 8.5pt; font-style: italic; line-height: 1.3; margin-bottom: 6px;">
+                    Note: Job descriptions is must for all position requests. New position requests must be accompanied by: (i) Statement from department head or mention scope outlining reasons for increase in position establishment, (ii) Organizational chart for the department/division which indicates proposed location of new position.
+                </div>
+
+                <div>Position Title: <span class="fill-text">{{ data.position_requested }}</span></div>
+                <div>Department/Division/Units: <span class="fill-text">{{ data.department }}</span></div>
+                <div>Office/Project Sites: <span class="fill-text">{{ data.office_site }}</span></div>
+                <div>Reports to: <span class="fill-text">{{ recommended_by_name|default:"HOD / Division Head" }}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Supervision of others: <span class="fill-text">{{ data.num_vacancies }} Person(s)</span></div>
+                <div>Other terms and conditions if any: <span class="fill-text">{{ data.remarks|default:"As per project policies" }}</span></div>
+
+                <div style="border-top: 1px solid #000; margin: 8px 0;"></div>
+
+                <div style="font-weight: bold; margin-bottom: 2px;">Qualifications Required</div>
+                <div>Education: <span class="fill-text">{{ data.min_qualifications|default:"As required for role" }}</span></div>
+                <div>Experience / Specialized skills: <span class="fill-text">{{ data.justification|default:"Relevant site experience" }}</span></div>
+
+                <div style="font-weight: bold; margin-top: 6px;">Scope / Job Responsibilities:</div>
+                <div style="border: 1px solid #000; padding: 6px 8px; min-height: 50px; font-size: 9.5pt;">
+                    {{ data.job_description|linebreaksbr }}
+                </div>
+
+                <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+                    <div>
+                        Seal &amp; Signature:<br>
+                        Department/Division Head: <strong style="font-family: Arial, sans-serif;">{{ recommended_by_name }}</strong>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #000; margin: 10px 0 6px 0;"></div>
+                <div style="font-size: 9pt; font-weight: bold;">Verified and submitted for approval</div>
+                <div style="display: flex; justify-content: space-between; font-size: 9pt;">
+                    <div>Job description: <span class="fill-text">{{ data.position_requested }}</span></div>
+                    <div>Employment Type: <span class="fill-text">{{ data.employment_type }}</span></div>
+                    <div><strong>HR &amp; Admin Division</strong></div>
+                </div>
+
+                <div style="border-top: 1px solid #000; margin: 8px 0 4px 0;"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 9.5pt;">
+                    <div>Approved by: <strong>Project Manager</strong></div>
+                    <div>Seal &amp; Signature: <strong style="font-family: Arial, sans-serif;">{{ approved_by_name }}</strong></div>
+                </div>
             </div>
             {% endif %}
 
-            <!-- Signatures Section -->
-            <div class="signatures-section">
-                <div class="signatures-grid">
-                    <div class="sig-box">
-                        <div class="sig-title">Requested / Prepared By</div>
-                        <div class="sig-name">{{ applicant_signature_name }}</div>
-                        <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Date</div>
-                    </div>
-
-                    <div class="sig-box">
-                        <div class="sig-title">Recommended / Verified By</div>
-                        <div class="sig-name">{{ recommended_by_name }}</div>
-                        <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Seal</div>
-                    </div>
-
-                    <div class="sig-box">
-                        <div class="sig-title">Approved By</div>
-                        <div class="sig-name">{{ approved_by_name }}</div>
-                        <div style="font-size: 10px; color: #94a3b8;">Authorized Signatory</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Document Footer / Verification Trail -->
-        <div class="doc-footer">
+        <!-- Document Footer / System Audit Stamp (Screen & Print) -->
+        <div class="print-audit-bar">
             <div>
-                System Serial: <strong>{{ record.serial_no }}</strong> &bull; Status: {{ record.status }}
+                RVJV System Serial: <strong>{{ record.serial_no }}</strong> &bull; Status: {{ record.status }}
             </div>
             <div>
-                Printed by: <strong>{{ printed_by_user }}</strong> &bull; Timestamp: {{ print_time }}
+                Printed: <strong>{{ print_time }}</strong> &bull; User: {{ printed_by_user }}
             </div>
         </div>
     </div>
@@ -639,9 +778,11 @@
             .then(data => {
                 console.log('Print logged:', data);
             })
-            .catch(err => console.error('Print log error:', err));
+            .catch(err => {
+                console.warn('Audit print logging error:', err);
+            });
 
-            // Trigger native print dialog
+            // Trigger system print dialogue
             window.print();
         }
     </script>
