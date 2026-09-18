@@ -1,0 +1,527 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Office Forms & Print Hub - RVJV Portal{% endblock %}
+
+{% block content %}
+<style>
+    .forms-hub-container {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 20px 15px 90px 15px;
+    }
+
+    /* Top Hero Header */
+    .forms-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 28px 32px;
+        margin-bottom: 28px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    .forms-hero::after {
+        content: '📑';
+        position: absolute;
+        right: 25px;
+        bottom: -20px;
+        font-size: 8rem;
+        opacity: 0.08;
+        pointer-events: none;
+    }
+    .forms-hero-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .forms-hero-sub {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        max-width: 780px;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    }
+
+    /* Stats Ribbon */
+    .stats-ribbon {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .stat-pill {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 8px 16px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .stat-pill-num {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #38bdf8;
+    }
+    .stat-pill-label {
+        font-size: 0.78rem;
+        color: #cbd5e1;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Category Section */
+    .category-section {
+        margin-bottom: 34px;
+    }
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .category-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    /* Template Cards Grid */
+    .templates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+    }
+
+    .form-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        position: relative;
+    }
+    .form-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .form-card-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 12px;
+    }
+    .form-icon-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+    .form-card-title {
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 4px 0;
+        line-height: 1.3;
+    }
+    .form-card-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 8px;
+        color: white;
+    }
+    .form-card-desc {
+        color: #64748b;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        margin-bottom: 18px;
+        flex-grow: 1;
+    }
+
+    .form-card-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 14px;
+    }
+    .btn-fill-form {
+        flex: 1;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 9px 14px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+        transition: background 0.2s, transform 0.15s;
+    }
+    .btn-fill-form:hover {
+        background: #1d4ed8;
+        color: white;
+        transform: translateY(-1px);
+    }
+    .btn-download-blank {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+    }
+    .btn-download-blank:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+
+    /* Audit Records History Section */
+    .history-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.03);
+        padding: 24px;
+        margin-top: 20px;
+    }
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+    .history-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .filter-input {
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 7px 12px;
+        font-size: 0.84rem;
+        outline: none;
+    }
+
+    .table-modern {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.86rem;
+    }
+    .table-modern th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        padding: 10px 14px;
+        text-align: left;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .table-modern td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    .table-modern tr:hover td {
+        background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge-serial {
+        font-family: monospace;
+        font-weight: 800;
+        color: #1e40af;
+        background: #dbeafe;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    .badge-status {
+        padding: 3px 9px;
+        border-radius: 8px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .badge-printed { background: #dcfce7; color: #15803d; }
+    .badge-submitted { background: #e0f2fe; color: #0369a1; }
+    .badge-draft { background: #fef3c7; color: #b45309; }
+
+    /* Dark Mode */
+    [data-theme="dark"] .form-card,
+    [data-theme="dark"] .history-card {
+        background: #1e293b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .category-title,
+    [data-theme="dark"] .form-card-title,
+    [data-theme="dark"] .history-title {
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .table-modern th {
+        background: #0f172a !important;
+        color: #cbd5e1 !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] .table-modern td {
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+    [data-theme="dark"] .table-modern tr:hover td {
+        background: #0f172a !important;
+    }
+    [data-theme="dark"] .form-icon-box {
+        background: #0f172a !important;
+    }
+    [data-theme="dark"] .btn-download-blank {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] .filter-input {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: white !important;
+    }
+</style>
+
+<div class="forms-hub-container">
+
+    <!-- Hero Header -->
+    <div class="forms-hero">
+        <div style="position: relative; z-index: 2;">
+            <h1 class="forms-hero-title">
+                <span>📑</span> Office Forms &amp; Print Hub
+            </h1>
+            <p class="forms-hero-sub">
+                Standardized office forms for RVJV project operations. Select any template to fill, customize, and print official copies. Complete audit history tracks who created, edited, and printed each form.
+            </p>
+
+            <div class="stats-ribbon">
+                <div class="stat-pill">
+                    <span class="stat-pill-num">8</span>
+                    <span class="stat-pill-label">Standard Templates</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-pill-num">{{ total_records }}</span>
+                    <span class="stat-pill-label">Forms Generated</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-pill-num" style="color: #4ade80;">{{ total_printed }}</span>
+                    <span class="stat-pill-label">Official Prints Logged</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-pill-num" style="color: #f472b6;">{{ recent_30_days }}</span>
+                    <span class="stat-pill-label">Active This Month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categorized Forms Catalog -->
+    {% for cat_name, cat in categories.items %}
+    <div class="category-section">
+        <div class="category-header">
+            <span style="font-size: 1.4rem;">{{ cat.icon }}</span>
+            <h2 class="category-title">{{ cat.title }}</h2>
+        </div>
+
+        <div class="templates-grid">
+            {% for item in cat.items %}
+            <div class="form-card">
+                <div>
+                    <div class="form-card-top">
+                        <div class="form-icon-box">
+                            {{ item.icon }}
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 class="form-card-title">{{ item.title }}</h3>
+                            <span class="form-card-badge" style="background: {{ item.badge_color }};">
+                                {{ item.badge_text }}
+                            </span>
+                        </div>
+                    </div>
+                    <p class="form-card-desc">
+                        {{ item.description }}
+                    </p>
+                </div>
+
+                <div class="form-card-actions">
+                    <a href="{% url 'office_form_editor' item.key %}" class="btn-fill-form">
+                        <span>✏️</span> Fill &amp; Print Online
+                    </a>
+                    <a href="{% url 'office_form_download_template' item.template_file %}" class="btn-download-blank" title="Download original unedited document template">
+                        <span>📥</span> Blank
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Audit History & Records Log -->
+    <div class="history-card" id="historySection">
+        <div class="history-header">
+            <h3 class="history-title">
+                <span>📋</span> Forms Audit Register &amp; Print Logs
+            </h3>
+
+            <!-- Filter Controls -->
+            <form method="GET" action="{% url 'office_forms_hub' %}#historySection" class="filter-bar">
+                <input type="text" name="q" value="{{ search_q }}" placeholder="Search serial, user, title..." class="filter-input" style="width: 200px;">
+                
+                <select name="type" class="filter-input" onchange="this.form.submit()">
+                    <option value="">All Form Types</option>
+                    {% for key, cfg in all_templates.items %}
+                    <option value="{{ key }}" {% if selected_type == key %}selected{% endif %}>{{ cfg.title }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="status" class="filter-input" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="PRINTED" {% if selected_status == 'PRINTED' %}selected{% endif %}>Printed</option>
+                    <option value="SUBMITTED" {% if selected_status == 'SUBMITTED' %}selected{% endif %}>Submitted</option>
+                    <option value="DRAFT" {% if selected_status == 'DRAFT' %}selected{% endif %}>Draft</option>
+                </select>
+
+                <button type="submit" class="btn btn-primary" style="border-radius: 10px; padding: 7px 14px; font-weight: 700; font-size: 0.84rem;">
+                    Filter
+                </button>
+                {% if search_q or selected_type or selected_status %}
+                <a href="{% url 'office_forms_hub' %}#historySection" class="btn btn-outline-secondary" style="border-radius: 10px; padding: 7px 12px; font-size: 0.84rem;">
+                    Reset
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if records %}
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Serial No</th>
+                        <th>Form Name</th>
+                        <th>Created / Edited By</th>
+                        <th>Created Date</th>
+                        <th>Status</th>
+                        <th>Prints</th>
+                        <th>Last Printed</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in records %}
+                    <tr>
+                        <td>
+                            <span class="badge-serial">{{ rec.serial_no }}</span>
+                        </td>
+                        <td>
+                            <strong style="color: #0f172a;">{{ rec.form_title }}</strong>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">{{ rec.created_by_name|default:rec.created_by.username }}</div>
+                            {% if rec.updated_by and rec.updated_by != rec.created_by %}
+                            <div style="font-size: 0.72rem; color: #94a3b8;">Edited by: {{ rec.updated_by.username }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ rec.created_at|date:"d-M-Y" }}</div>
+                            <div style="font-size: 0.72rem; color: #94a3b8;">{{ rec.created_at|time:"h:i A" }}</div>
+                        </td>
+                        <td>
+                            {% if rec.status == 'PRINTED' %}
+                            <span class="badge-status badge-printed">🟢 Printed</span>
+                            {% elif rec.status == 'DRAFT' %}
+                            <span class="badge-status badge-draft">🟡 Draft</span>
+                            {% else %}
+                            <span class="badge-status badge-submitted">🔵 Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong style="color: #2563eb;">{{ rec.print_count }}</strong>
+                        </td>
+                        <td>
+                            {% if rec.last_printed_at %}
+                            <div>{{ rec.last_printed_at|date:"d-M-Y" }}</div>
+                            <div style="font-size: 0.72rem; color: #94a3b8;">{{ rec.last_printed_at|time:"h:i A" }} ({{ rec.last_printed_by.username|default:"Staff" }})</div>
+                            {% else %}
+                            <span style="color: #94a3b8; font-style: italic;">Not printed yet</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'office_form_print' rec.id %}" target="_blank" class="btn btn-outline-primary" style="padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; text-decoration: none;" title="Open clean print preview">
+                                🖨️ Print
+                            </a>
+                            <a href="{% url 'office_form_editor_edit' rec.form_type rec.id %}" class="btn btn-outline-secondary" style="padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; text-decoration: none; margin-left: 4px;" title="Edit details">
+                                ✏️ Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">📭</div>
+            <h4 style="color: #475569; font-weight: 700; margin-bottom: 4px;">No Form Records Found</h4>
+            <p style="font-size: 0.85rem; margin: 0;">Click on any of the templates above to fill and generate your first official office form.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

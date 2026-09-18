@@ -732,6 +732,21 @@
             </div>
             {% endif %}
 
+            <!-- Office Forms & Print Hub Card -->
+            <div class="b-card b-card-purple" onclick="window.location.href='{% url 'office_forms_hub' %}'" style="cursor: pointer; border: 1.5px solid rgba(139, 92, 246, 0.4); background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, #ffffff 100%);">
+                <div class="b-icon-wrapper b-icon-purple" style="background:rgba(139, 92, 246, 0.15); color:#8b5cf6;">
+                    <i class="fas fa-file-signature" style="font-size:1.4rem;"></i>
+                </div>
+                <div class="b-card-title">Office Forms Hub</div>
+                <div class="b-card-subtext" style="color: #7c3aed; font-size: 0.84rem; font-weight: 700; margin-top: 6px;">
+                    📑 8 Standard Company Formats
+                </div>
+                <div class="b-card-preview" style="margin-top: 12px;">
+                    <div class="b-card-preview-row"><span>Available Forms</span><b style="color:#7c3aed;">Leave, Requisitions, No Dues</b></div>
+                    <div class="b-card-preview-row"><span>Action</span><b style="color:#2563eb;">Fill, Print &amp; Track &rarr;</b></div>
+                </div>
+            </div>
+
             <!-- Overtime & Time Keeper QR Scanner -->
             {% if 'overtime_management' in assigned_modules or user.is_superuser or user.system_role == 'TIME_KEEPER' %}
             <div class="b-card b-card-green" onclick="window.location.href='{% if user.system_role == 'TIME_KEEPER' %}{% url 'overtime_scan' %}{% else %}{% url 'overtime_dashboard' %}{% endif %}'" style="cursor: pointer;">

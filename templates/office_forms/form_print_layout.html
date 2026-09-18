@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ cfg.title }} - {{ record.serial_no }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            color: #111827;
+            background: #f1f5f9;
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Floating Screen Action Bar */
+        .print-toolbar {
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .toolbar-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-toolbar {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+        .btn-print {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-print:hover {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* A4 Paper Container */
+        .page-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 18mm 18mm 18mm 18mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Official Company Header */
+        .comp-header {
+            text-align: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+        .comp-name {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #0f172a;
+            text-transform: uppercase;
+        }
+        .comp-sub {
+            font-size: 12px;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* Form Title Bar */
+        .form-title-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border: 1.5px solid #0f172a;
+            padding: 10px 16px;
+            margin-bottom: 18px;
+            border-radius: 4px;
+        }
+        .form-title-text {
+            font-size: 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #0f172a;
+        }
+        .form-meta-box {
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .serial-badge {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            background: #0f172a;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 2px;
+        }
+
+        /* Detail Tables & Key-Value Grids */
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        .doc-table th, .doc-table td {
+            border: 1px solid #94a3b8;
+            padding: 7px 10px;
+            font-size: 12px;
+            vertical-align: top;
+        }
+        .doc-table th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .cell-label {
+            background: #f8fafc;
+            font-weight: 700;
+            width: 25%;
+            color: #334155;
+        }
+        .cell-value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* Grid of 4 Departments for Clearance */
+        .clearance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .clearance-card {
+            border: 1.5px solid #94a3b8;
+            border-radius: 6px;
+            padding: 10px;
+            background: #ffffff;
+        }
+        .clearance-card-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Official Signatures Block */
+        .signatures-section {
+            margin-top: 30px;
+            padding-top: 10px;
+        }
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            text-align: center;
+        }
+        .sig-box {
+            border-top: 1.5px dashed #475569;
+            padding-top: 8px;
+        }
+        .sig-title {
+            font-weight: 800;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #0f172a;
+        }
+        .sig-name {
+            font-size: 12px;
+            color: #334155;
+            margin-top: 2px;
+            font-weight: 600;
+        }
+
+        /* Document Footer / Audit Stamp */
+        .doc-footer {
+            border-top: 1px solid #cbd5e1;
+            padding-top: 8px;
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+            }
+            .print-toolbar {
+                display: none !important;
+            }
+            .page-sheet {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- On-Screen Toolbar -->
+    <div class="print-toolbar no-print">
+        <div class="toolbar-title">
+            <span>📄</span>
+            <span>{{ cfg.title }} &bull; {{ record.serial_no }}</span>
+        </div>
+        <div class="toolbar-actions">
+            <a href="{% url 'office_form_editor_edit' record.form_type record.id %}" class="btn-toolbar btn-secondary">
+                ✏️ Edit Form
+            </a>
+            <a href="{% url 'office_forms_hub' %}" class="btn-toolbar btn-secondary">
+                📁 Forms Hub
+            </a>
+            <button onclick="triggerOfficialPrint()" class="btn-toolbar btn-print">
+                🖨️ Print Document
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Printable A4 Sheet -->
+    <div class="page-sheet">
+        <div>
+            <!-- Company Letterhead -->
+            <div class="comp-header">
+                <div class="comp-name">RVJV PTE LTD</div>
+                <div class="comp-sub">{{ data.project_name|default:"Earthwork and Enabling Works Project" }}</div>
+            </div>
+
+            <!-- Form Title Banner with Auto Serial -->
+            <div class="form-title-banner">
+                <div>
+                    <div class="form-title-text">{{ cfg.title }}</div>
+                    <div style="font-size: 11px; color: #475569; font-weight: 500;">Official Project Form &bull; Reference Copy</div>
+                </div>
+                <div class="form-meta-box">
+                    <div>Serial No: <span class="serial-badge">{{ record.serial_no }}</span></div>
+                    <div style="color: #64748b; margin-top: 3px;">Date: <strong>{{ data.date_requisition|default:data.from_date|default:record.created_at|date:"d-M-Y" }}</strong></div>
+                </div>
+            </div>
+
+            <!-- Content Renderers by Form Type -->
+
+            <!-- 1. Foreign Worker Leave Form -->
+            {% if record.form_type == 'fw_leave' %}
+            <table class="doc-table">
+                <tr>
+                    <td class="cell-label">Foreign Worker Name</td>
+                    <td class="cell-value" colspan="3">{{ data.worker_name|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Labour ID / Worker ID</td>
+                    <td class="cell-value">{{ data.labour_id|default:"-" }}</td>
+                    <td class="cell-label">Designation at Site</td>
+                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Worker Permit No</td>
+                    <td class="cell-value">{{ data.permit_no|default:"-" }}</td>
+                    <td class="cell-label">Contact Phone No</td>
+                    <td class="cell-value">{{ data.contact_no|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Site Work Zone</td>
+                    <td class="cell-value">{{ data.zone|default:"-" }}</td>
+                    <td class="cell-label">Leave Type</td>
+                    <td class="cell-value"><strong>{{ data.leave_type|default:"Casual Leave" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Leave Applied For</td>
+                    <td class="cell-value">{{ data.leave_days|default:"-" }} Days</td>
+                    <td class="cell-label">Leave Period</td>
+                    <td class="cell-value">{{ data.from_date }} &rarr; {{ data.to_date }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Reason for Leave</td>
+                    <td class="cell-value" colspan="3" style="min-height: 50px;">{{ data.reason|default:"Personal / Home Visit" }}</td>
+                </tr>
+            </table>
+
+            <!-- 2. RVJV Staff Leave Form -->
+            {% elif record.form_type == 'rvjv_leave' %}
+            <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 6px 10px; font-size: 10px; color: #92400e; margin-bottom: 12px; border-radius: 4px;">
+                * If on medical leave, attach certified medical certificates. Employees on probation are not eligible for casual &amp; earned leave.
+            </div>
+            <table class="doc-table">
+                <tr>
+                    <td class="cell-label">Applicant Name</td>
+                    <td class="cell-value" colspan="3">{{ data.applicant_name|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Employee ID</td>
+                    <td class="cell-value">{{ data.emp_id|default:"-" }}</td>
+                    <td class="cell-label">Designation</td>
+                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Contact Number</td>
+                    <td class="cell-value">{{ data.contact_no|default:"-" }}</td>
+                    <td class="cell-label">Zone / Department</td>
+                    <td class="cell-value">{{ data.zone|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Leave Duration</td>
+                    <td class="cell-value"><strong>{{ data.leave_days|default:"-" }} Days</strong></td>
+                    <td class="cell-label">Leave Type</td>
+                    <td class="cell-value"><strong>{{ data.leave_type|default:"Casual Leave" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="cell-label">From &rarr; To Date</td>
+                    <td class="cell-value" colspan="3">{{ data.from_date }} To {{ data.to_date }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Reason for Leave</td>
+                    <td class="cell-value" colspan="3">{{ data.reason|default:"-" }}</td>
+                </tr>
+            </table>
+
+            <!-- 3. No Dues Certificate (Clearance) -->
+            {% elif record.form_type == 'no_dues' %}
+            <div style="margin-bottom: 14px; font-size: 12px; line-height: 1.6; text-align: justify; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px;">
+                This is to certify that <strong>{{ data.employee_name|default:"........................................" }}</strong>, Designation: <strong>{{ data.designation|default:"...................." }}</strong>, attached with <strong>{{ data.department|default:"...................." }}</strong> in the office/site of <strong>{{ data.office_site|default:"RVJV PTE LTD" }}</strong> has completed all necessary obligations and surrendered/returned all company assets as verified below as of <strong>{{ data.effective_date }}</strong>.
+            </div>
+
+            <div class="clearance-grid">
+                <!-- Store Clearance -->
+                <div class="clearance-card">
+                    <div class="clearance-card-title">
+                        <span>1. Store Department</span>
+                        <span>{% if data.store_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569;">Tools, Equipment, Materials &amp; Consumables</div>
+                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.store_remarks|default:"Nil dues pending" }}</div>
+                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Store In-Charge</div>
+                </div>
+
+                <!-- OHS Clearance -->
+                <div class="clearance-card">
+                    <div class="clearance-card-title">
+                        <span>2. OHS Department</span>
+                        <span>{% if data.ohs_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569;">PPE, Safety Badge &amp; Site Clearance</div>
+                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.ohs_remarks|default:"Nil dues pending" }}</div>
+                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Safety Officer</div>
+                </div>
+
+                <!-- Accounts Clearance -->
+                <div class="clearance-card">
+                    <div class="clearance-card-title">
+                        <span>3. Accounts &amp; Finance</span>
+                        <span>{% if data.accounts_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569;">Imprest, Site Advances &amp; Salary Deductions</div>
+                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.accounts_remarks|default:"Nil dues pending" }}</div>
+                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Finance Head</div>
+                </div>
+
+                <!-- Admin Clearance -->
+                <div class="clearance-card">
+                    <div class="clearance-card-title">
+                        <span>4. Administration</span>
+                        <span>{% if data.admin_clearance %}✅ Cleared{% else %}❌ Pending{% endif %}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569;">Camp Bed, Room Keys &amp; Communication Assets</div>
+                    <div style="font-size: 11px; margin-top: 4px;"><strong>Remarks:</strong> {{ data.admin_remarks|default:"Nil dues pending" }}</div>
+                    <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; font-size: 10px; text-align: right;">Signature: Admin Officer</div>
+                </div>
+            </div>
+
+            <!-- 4. Requisition Forms (Material, Stationery, Pantry) -->
+            {% elif record.form_type in 'material_req,stationery_req,pantry_req' %}
+            <table class="doc-table">
+                <tr>
+                    <td class="cell-label">Requisition / Order Ref No</td>
+                    <td class="cell-value"><strong style="font-family: monospace;">{{ record.serial_no }}</strong></td>
+                    <td class="cell-label">Date of Requisition</td>
+                    <td class="cell-value">{{ data.date_requisition }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Requesting Department</td>
+                    <td class="cell-value">{{ data.department|default:"-" }}</td>
+                    <td class="cell-label">Date of Requirement</td>
+                    <td class="cell-value"><strong>{{ data.date_requirement }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="cell-label">To / Recipient</td>
+                    <td class="cell-value" colspan="3">{{ data.to_recipient|default:"Procurement / Store Department" }}</td>
+                </tr>
+                {% if data.remarks %}
+                <tr>
+                    <td class="cell-label">Purpose / Notes</td>
+                    <td class="cell-value" colspan="3">{{ data.remarks }}</td>
+                </tr>
+                {% endif %}
+            </table>
+
+            <div style="font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #0f172a;">Kindly supply the following items:</div>
+            
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35px; text-align: center;">Sl</th>
+                        <th>Description of Goods / Items</th>
+                        <th style="width: 80px; text-align: center;">Quantity</th>
+                        <th style="width: 70px; text-align: center;">Unit</th>
+                        <th>Specification / Make</th>
+                        <th>Remark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for itm in items %}
+                    <tr>
+                        <td style="text-align: center; font-weight: 700;">{{ itm.sl|default:forloop.counter }}</td>
+                        <td style="font-weight: 600;">{{ itm.desc|default:"-" }}</td>
+                        <td style="text-align: center; font-weight: 700;">{{ itm.qty|default:"-" }}</td>
+                        <td style="text-align: center;">{{ itm.unit|default:"Nos" }}</td>
+                        <td>{{ itm.spec|default:"-" }}</td>
+                        <td>{{ itm.remark|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 15px; color: #94a3b8;">No itemized goods specified.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 5. HR Requisition Form -->
+            {% elif record.form_type == 'hr_req' %}
+            <table class="doc-table">
+                <tr>
+                    <td class="cell-label">Position Requested</td>
+                    <td class="cell-value"><strong>{{ data.position_requested|default:"-" }}</strong></td>
+                    <td class="cell-label">Vacancies</td>
+                    <td class="cell-value">{{ data.num_vacancies|default:"1" }} Person(s)</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Department / Unit</td>
+                    <td class="cell-value">{{ data.department|default:"-" }}</td>
+                    <td class="cell-label">Office / Site</td>
+                    <td class="cell-value">{{ data.office_site|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Requisition Category</td>
+                    <td class="cell-value">{{ data.requisition_type|default:"New Position" }}</td>
+                    <td class="cell-label">Employment Type</td>
+                    <td class="cell-value">{{ data.employment_type|default:"On Contract" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Target Joining Date</td>
+                    <td class="cell-value" colspan="3">{{ data.target_date|default:"Immediate" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Key Job Responsibilities</td>
+                    <td class="cell-value" colspan="3">{{ data.job_description|default:"-"|linebreaksbr }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Minimum Qualifications</td>
+                    <td class="cell-value" colspan="3">{{ data.min_qualifications|default:"-"|linebreaksbr }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Justification / Reasons</td>
+                    <td class="cell-value" colspan="3">{{ data.justification|default:"-"|linebreaksbr }}</td>
+                </tr>
+            </table>
+
+            <!-- 6. Temporary Employee Information Form -->
+            {% elif record.form_type == 'temp_emp_info' %}
+            <table class="doc-table">
+                <tr>
+                    <th colspan="4">Employee Personal Information</th>
+                </tr>
+                <tr>
+                    <td class="cell-label">Full Name</td>
+                    <td class="cell-value" colspan="3"><strong>{{ data.full_name|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Residential Address</td>
+                    <td class="cell-value" colspan="3">{{ data.address|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Dzongkhag / District</td>
+                    <td class="cell-value">{{ data.dzongkhag|default:"-" }}</td>
+                    <td class="cell-label">Gewog / Village</td>
+                    <td class="cell-value">{{ data.gewog|default:"-" }} / {{ data.village|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Phone Number</td>
+                    <td class="cell-value">{{ data.phone_number|default:"-" }}</td>
+                    <td class="cell-label">Email Address</td>
+                    <td class="cell-value">{{ data.email_address|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Emergency Contact</td>
+                    <td class="cell-value">{{ data.emergency_contact_name|default:"-" }}</td>
+                    <td class="cell-label">Emergency Phone</td>
+                    <td class="cell-value">{{ data.emergency_contact_phone|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <th colspan="4">Employment &amp; Engagement Details</th>
+                </tr>
+                <tr>
+                    <td class="cell-label">Designation / Role</td>
+                    <td class="cell-value">{{ data.designation|default:"-" }}</td>
+                    <td class="cell-label">Department</td>
+                    <td class="cell-value">{{ data.department|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Supervisor In-Charge</td>
+                    <td class="cell-value">{{ data.supervisor|default:"-" }}</td>
+                    <td class="cell-label">Work Schedule</td>
+                    <td class="cell-value">{{ data.work_schedule|default:"General Shift" }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Start Date &rarr; End Date</td>
+                    <td class="cell-value" colspan="3">{{ data.start_date }} &rarr; {{ data.end_date|default:"Ongoing / Until notice" }}</td>
+                </tr>
+            </table>
+
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; font-size: 11px; margin-top: 10px; border-radius: 4px;">
+                <strong>Acknowledgment:</strong> I acknowledge that my employment is temporary and governed by project terms, and does not guarantee permanent establishment.
+            </div>
+            {% endif %}
+
+            <!-- Signatures Section -->
+            <div class="signatures-section">
+                <div class="signatures-grid">
+                    <div class="sig-box">
+                        <div class="sig-title">Requested / Prepared By</div>
+                        <div class="sig-name">{{ data.requested_by|default:data.worker_name|default:data.applicant_name|default:record.created_by_name|default:"Applicant Signature" }}</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Date</div>
+                    </div>
+
+                    <div class="sig-box">
+                        <div class="sig-title">Recommended / Verified By</div>
+                        <div class="sig-name">{{ data.supervisor_name|default:data.recommended_by|default:data.verified_by|default:"HOD / Officer In-Charge" }}</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Signature &amp; Seal</div>
+                    </div>
+
+                    <div class="sig-box">
+                        <div class="sig-title">Approved By</div>
+                        <div class="sig-name">{{ data.approved_by|default:data.approved_by_pm|default:"Project Manager" }}</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Authorized Signatory</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Footer / Verification Trail -->
+        <div class="doc-footer">
+            <div>
+                System Serial: <strong>{{ record.serial_no }}</strong> &bull; Status: {{ record.status }}
+            </div>
+            <div>
+                Printed by: <strong>{{ printed_by_user }}</strong> &bull; Timestamp: {{ print_time }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function triggerOfficialPrint() {
+            // Log the print in background via AJAX
+            fetch('/api/forms/log-print/{{ record.id }}/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Print logged:', data);
+            })
+            .catch(err => console.error('Print log error:', err));
+
+            // Trigger native print dialog
+            window.print();
+        }
+    </script>
+</body>
+</html>

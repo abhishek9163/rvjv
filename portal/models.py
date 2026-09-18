@@ -1353,3 +1353,82 @@ class ContractorWorkerPPE(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.worker_id}) @ {self.contractor_name}"
+
+
+class OfficeFormRecord(models.Model):
+    """
+    Office Form Records & Audit Register:
+    Stores filled form snapshots, unique serial numbers, creator info,
+    timestamps, and print tracking history.
+    """
+    FORM_TYPE_CHOICES = [
+        ('fw_leave', 'Foreign Worker Leave Form (2026)'),
+        ('rvjv_leave', 'RVJV Employee Leave Form'),
+        ('no_dues', 'No Due Certificate (Clearance)'),
+        ('material_req', 'Material Requisition Form'),
+        ('stationery_req', 'Stationery Requisition Form'),
+        ('pantry_req', 'Pantry Requisition Form'),
+        ('hr_req', 'Human Resource Requisition Form'),
+        ('temp_emp_info', 'Temporary Employee Information Form'),
+    ]
+
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft / In Progress'),
+        ('SUBMITTED', 'Submitted / Active'),
+        ('PRINTED', 'Printed / Issued'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    form_type = models.CharField(max_length=50, choices=FORM_TYPE_CHOICES, db_index=True)
+    form_title = models.CharField(max_length=200)
+    serial_no = models.CharField(max_length=60, unique=True, db_index=True)
+    
+    # Audit & User tracking
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_office_forms')
+    created_by_name = models.CharField(max_length=150, blank=True, default='')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_office_forms')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Print tracking
+    last_printed_at = models.DateTimeField(null=True, blank=True)
+    last_printed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='printed_office_forms')
+    print_count = models.PositiveIntegerField(default=0)
+
+    # Core Form Data Snapshot
+    form_data = models.JSONField(default=dict, blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED')
+    notes = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Office Form Record"
+        verbose_name_plural = "📑 Office Form Records & Logs"
+
+    def __str__(self):
+        return f"[{self.serial_no}] {self.form_title} by {self.created_by_name or 'User'}"
+
+    @classmethod
+    def generate_serial_no(cls, form_type):
+        import datetime
+        prefix_map = {
+            'fw_leave': 'FWLV',
+            'rvjv_leave': 'RVLV',
+            'no_dues': 'NDC',
+            'material_req': 'MREQ',
+            'stationery_req': 'SREQ',
+            'pantry_req': 'PREQ',
+            'hr_req': 'HRREQ',
+            'temp_emp_info': 'TEMPF',
+        }
+        prefix = prefix_map.get(form_type, 'FORM')
+        year = datetime.date.today().year
+        base = f"RVJV-{prefix}-{year}-"
+        count = cls.objects.filter(serial_no__startswith=base).count() + 1
+        while True:
+            candidate = f"{base}{count:04d}"
+            if not cls.objects.filter(serial_no=candidate).exists():
+                return candidate
+            count += 1
+

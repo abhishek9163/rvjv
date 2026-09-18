@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_forms
 
 urlpatterns = [
     path('', views.auth_view, name='auth_view'),
@@ -265,5 +266,14 @@ urlpatterns = [
     path('safety/api/employees/search/', views.api_safety_employee_search, name='api_safety_employee_search'),
     path('manpower/', views.manpower_dashboard_view, name='manpower_dashboard'),
     path('api/manpower/sync/', views.api_sync_manpower_data, name='api_sync_manpower_data'),
+
+    # Office Forms & Print Hub
+    path('forms/', views_forms.office_forms_hub_view, name='office_forms_hub'),
+    path('forms/editor/<str:form_type>/', views_forms.office_form_editor_view, name='office_form_editor'),
+    path('forms/editor/<str:form_type>/<int:record_id>/', views_forms.office_form_editor_view, name='office_form_editor_edit'),
+    path('forms/print/<int:record_id>/', views_forms.office_form_print_view, name='office_form_print'),
+    path('forms/download-template/<str:filename>/', views_forms.download_original_template, name='office_form_download_template'),
+    path('api/forms/save/', views_forms.api_save_office_form, name='api_save_office_form'),
+    path('api/forms/log-print/<int:record_id>/', views_forms.api_log_office_form_print, name='api_log_office_form_print'),
 ]
 
